@@ -209,11 +209,11 @@ const (
 	metaMod
 	metaPow
 	metaUnm
-	metaIDiv
-	metaBAnd
-	metaBOr
-	metaBXor
-	metaBNot
+	metaIdiv
+	metaBand
+	metaBor
+	metaBxor
+	metaBnot
 	metaShl
 	metaShr
 	metaConcat
@@ -236,11 +236,11 @@ var metaFields = [...]string{
 	metaMod:      "mod",
 	metaPow:      "pow",
 	metaUnm:      "unm",
-	metaIDiv:     "idiv",
-	metaBAnd:     "band",
-	metaBOr:      "bor",
-	metaBXor:     "bxor",
-	metaBNot:     "bnot",
+	metaIdiv:     "idiv",
+	metaBand:     "band",
+	metaBor:      "bor",
+	metaBxor:     "bxor",
+	metaBnot:     "bnot",
 	metaShl:      "shl",
 	metaShr:      "shr",
 	metaConcat:   "concat",
@@ -294,7 +294,7 @@ func metaOf(v Value) *Table {
 			}
 			if o, ok := u.(HasDiv); ok { // __div, __idiv
 				events.setStr(metaDiv.toName(), o)
-				events.setStr(metaIDiv.toName(), o)
+				events.setStr(metaIdiv.toName(), o)
 			}
 			if o, ok := u.(HasMod); ok { // __mod
 				events.setStr(metaMod.toName(), o)
@@ -312,16 +312,16 @@ func metaOf(v Value) *Table {
 				events.setStr(metaLe.toName(), o)
 			}
 			if o, ok := u.(HasAnd); ok { // __band
-				events.setStr(metaBAnd.toName(), o)
+				events.setStr(metaBand.toName(), o)
 			}
 			if o, ok := u.(HasOr); ok { // __bor
-				events.setStr(metaBOr.toName(), o)
+				events.setStr(metaBor.toName(), o)
 			}
 			if o, ok := u.(HasXor); ok { // __bxor
-				events.setStr(metaBXor.toName(), o)
+				events.setStr(metaBxor.toName(), o)
 			}
 			if o, ok := u.(HasNot); ok { // __bnot
-				events.setStr(metaBNot.toName(), o)
+				events.setStr(metaBnot.toName(), o)
 			}
 			if o, ok := u.(HasShl); ok { // __shl
 				events.setStr(metaShl.toName(), o)

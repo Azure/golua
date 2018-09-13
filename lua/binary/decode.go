@@ -81,7 +81,7 @@ func decodePrototype(r *bytes.Buffer, proto *Prototype) {
 	{
 		var num uint32
 		must(binary.Read(r, order, &num))
-		proto.UpValues = make([]UpValue, num)
+		proto.UpValues = make([]UpValue, num, num)
 		for i := range proto.UpValues {
 			var (
 				upv UpValue
@@ -94,7 +94,7 @@ func decodePrototype(r *bytes.Buffer, proto *Prototype) {
 			must(err)
 
 			proto.UpValues[i] = upv
-		} 
+		}
 	}
 
 	// decode nested closure prototypes

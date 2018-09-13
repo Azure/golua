@@ -1,24 +1,30 @@
 package stdlib
 
 import (
+    "fmt"
+
 	"github.com/Azure/golua/lua"
 )
 
+// TODO: LibTable  (Table, OpenTable)
+// TODO: LibCoro   (Coro/Coroutine, OpenCoro)
+// TODO: LibIO     (IO, OpenIO)
+// TODO: LibOS     (OS, OpenOS)
+// TODO: LibLoad   (Package, OpenPackage)
+// TODO: LibMath   (Math, OpenMath)
+// TODO: LibUTF8   (UTF8, OpenUTF8)
+// TODO: LibDebug  (Debug, OpenDebug)
+// TODO: LibString (String, OpenString)
 func Import(state *lua.State) {
-    var stdlibs = map[string]lua.Func{
-        "_G":        lua.Func(OpenBase),
-        // "package":   lua.Func(Package),
-        // "coroutine": lua.Func(Coroutine),
-        // "table":     lua.Func(Table),
-        // "io":        lua.Func(IO),
-        // "os":        lua.Func(OS),
-        // "string":    lua.Func(String),
-        // "math":      lua.Func(Math),
-        // "utf8":      lua.Func(UTF8),
-        // "debug":     lua.Func(Debug),
+    var stdlibs = []struct{ Name string; Load lua.Func }{
+        {"_G",      lua.Func(OpenBase)},
+        {"package", lua.Func(OpenLoad)},
     }
-    for name, load := range stdlibs {
-        state.Require(name, load, true)
-        state.Pop(1)
+    for _, stdlib := range stdlibs {
+        state.Logf("open stdlib module %q", stdlib.Name)
+        lua.Require(state, stdlib.Name, stdlib.Load, true)
+        state.Pop()
     }
 }
+
+func unimplemented(msg string) { panic(fmt.Errorf(msg)) }

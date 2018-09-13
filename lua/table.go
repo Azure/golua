@@ -46,7 +46,7 @@ func newTable(state *State, arrayN, hashN int) table {
 }
 
 func (t *table) Set(k, v Value) {
-	if isNilOrNone(k) {
+	if IsNone(k) {
 		return
 	}
 	if n, ok := k.(Number); ok {
@@ -57,7 +57,7 @@ func (t *table) Set(k, v Value) {
 		}
 		// TODO: resize & rehash
 	}
-	if isNilOrNone(v) {
+	if IsNone(v) {
 		delete(t.hash, k)
 		return
 	}
@@ -65,7 +65,7 @@ func (t *table) Set(k, v Value) {
 }
 
 func (t *table) Get(k Value) Value {
-	if isNilOrNone(k) {
+	if IsNone(k) {
 		return None
 	}
 	if n, ok := k.(Number); ok {
@@ -113,7 +113,7 @@ func (t *table) setInt(key int64, value Value) {
 }
 
 func (t *table) exists(key Value) bool {
-	return !isNilOrNone(t.Get(key))
+	return !IsNone(t.Get(key))
 }
 
 const maxInt = int(^uint(0) >> 1)
