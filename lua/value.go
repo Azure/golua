@@ -1,6 +1,8 @@
 package lua
 
 import (
+	"runtime"
+	"reflect"
 	"fmt"
 )
 
@@ -8,7 +10,9 @@ type Type int
 
 const (
 	NilType  	 Type = iota
+	IntType
 	BoolType
+	FloatType
 	NumberType
 	StringType
 	FuncType
@@ -20,7 +24,9 @@ const (
 
 var types = [...]string{
 	NilType: 	  "nil",
+	IntType: 	  "int",
 	BoolType: 	  "boolean",
+	FloatType:    "float",
 	NumberType:   "number",
 	StringType:   "string",
 	FuncType:     "function",
@@ -62,11 +68,11 @@ type Object struct {
 }
 
 func (x *Object) Unwrap() interface{} { return x.data }
-func (x *Object) String() string { return "userdata" }
+func (x *Object) String() string { return fmt.Sprintf("userdata: %p", x) }
 func (x *Object) Type() Type { return UserDataType }
 
 type Table struct { table }
-func (x *Table) String() string { return "table" }
+func (x *Table) String() string { return fmt.Sprintf("table: %p", x) }
 func (x *Table) Type() Type { return TableType }
 
 //func (x *Table) Next(key Value) (Value, Value) {}
@@ -86,30 +92,25 @@ func (x *Table) Type() Type { return TableType }
 //func (x *Table) RawSetStr(key string, value Value) {}
 
 type Float float64
-func (x Float) String() string { return "number" }
-func (x Float) Type() Type { return NumberType }
+func (x Float) String() string { return fmt.Sprintf("%v", float64(x)) }
+func (x Float) Type() Type { return FloatType }
 func (Float) number() {}
-
-type Func func(*State)uint32
-func (x Func) String() string { return "function" }
-func (x Func) Type() Type { return FuncType }
 
 type String string
 func (x String) String() string { return string(x) }
 func (x String) Type() Type { return StringType }
-
 
 type Bool bool
 const (
 	True  = Bool(true)
 	False = Bool(false)
 )
-func (x Bool) String() string { return fmt.Sprintf("%t", x) }
+func (x Bool) String() string { return fmt.Sprintf("%t", bool(x)) }
 func (x Bool) Type() Type { return BoolType }
 
 type Int int64
-func (x Int) String() string { return "number" }
-func (x Int) Type() Type { return NumberType }
+func (x Int) String() string { return fmt.Sprintf("%v", int64(x)) }
+func (x Int) Type() Type { return IntType }
 func (Int) number() {}
 
 type Nil byte
@@ -117,13 +118,36 @@ const None = Nil(0)
 func (x Nil) String() string { return "nil" }
 func (x Nil) Type() Type { return NilType }
 
+type Func func(*State)int
+
+func (x Func) Call(state *State) int {
+	return x(state)
+}
+
+func (x Func) Type() Type {
+	if x == nil {
+		return NilType
+	}
+	return FuncType
+}
+
+func (x Func) String() string {
+	if x != nil {
+		pc := reflect.ValueOf(x).Pointer()
+		fn := runtime.FuncForPC(pc)
+		_, ln := fn.FileLine(pc)
+		return fmt.Sprintf("func@%s:%d", fn.Name(), ln)
+	}
+	return fmt.Sprintf("func@%s", None)
+}
+
 //
 // Value APIs
 //
 
 func ValueOf(value interface{}) Value {
 	switch value := value.(type) {
-		case func(*State)uint32:
+		case func(*State)int:
 			return Func(value)
 		case float64:
 			return Float(value)
@@ -149,4 +173,19 @@ func ValueOf(value interface{}) Value {
 	return udata
 }
 
-func isNilOrNone(value Value) bool { return value == nil || value == None }
+func IsNumber(value Value) bool { return IsFloat(value) || IsInt(value) }
+func IsFloat(value Value) bool { return value.Type() == FloatType }
+func IsNone(value Value) bool { return value == nil || value == None || !isNil(value) }
+func IsInt(value Value) bool { return value.Type() == IntType }
+func isNil(value Value) bool { return reflect.ValueOf(value).IsValid() }//IsNil() }
+
+func Truth(value Value) bool { return bool(truth(value)) }
+
+// truth returns true for any Lua value different from false
+// and None (or nil), otherwise returns false.
+func truth(value Value) Bool {
+	if b, ok := value.(Bool); ok {
+		return b
+	}
+	return Bool(!IsNone(value))
+}

@@ -1,6 +1,9 @@
 package lua
 
 import (
+	"strings"
+	"fmt"
+
 	"github.com/Azure/golua/lua/binary"
 )
 
@@ -27,5 +30,32 @@ func newGoClosure(native Func, nups int) *Closure {
 	return cls
 }
 
-func (x *Closure) String() string { return "closure" }
-func (x *Closure) Type() Type { return FuncType }
+func (x *Closure) Type() Type {
+	if x.isLua() {
+		return FuncType
+	}
+	return x.native.Type()
+}
+
+func (x *Closure) String() string {
+	if x == nil {
+		return "closure(none)"
+	}
+	var b strings.Builder
+	if x.isLua() {
+		fmt.Fprintf(&b, "closure(lua:func@%s:%d)", x.proto.Source, x.proto.SrcPos)
+	} else {
+		fmt.Fprintf(&b, "closure(go:%s)", x.native.String())
+	}
+	return b.String()
+}
+
+func (x *Closure) isLua() bool { return x.proto != nil } 
+
+func (cls *Closure) openUpValues(state *State) {
+	state.Log("openUpValues: TODO")
+}
+
+func (cls *Closure) closeUpValues(state *State, upto Value) {
+	state.Log("closeUpValues: TODO")
+}

@@ -1,57 +1,50 @@
-// TODO: loadkx
-// TODO: getupval
-// TODO: gettable
-// TODO: settabup
-// TODO: settable
-// TODO: setupval
-// TODO: newtable
-// TODO: self
-// TODO: unm
-// TODO: not
-// TODO: length
-// TODO: concat
-// TODO: jmp
-// TODO: eq
-// TODO: lt
-// TODO: le
-// TODO: test
-// TODO: testset
-// TODO: call
-// TODO: tailcall
-// TODO: returns
-// TODO: forloop
-// TODO: forprep
-// TODO: tforcall
-// TODO: tforloop
-// TODO: setlist
-// TODO: vararg
-// TODO: bnot
-// TODO: extraarg
+// # TODO
+// not
+// loadbool
+// lt
+// le
+// eq
+// jmp
+
+// concat
+// test
+// testset
+// loadkx
+// loadnil
+// gettable
+// settable
+// newtable
+
+// getupval
+// setupval
+// self
+// tailcall
+// forloop
+// forprep
+// tforcall
+// tforloop
+// setlist
+// vararg
+// extraarg
 package lua
 
 import (
-	"fmt"
-	"os"
-
 	//"github.com/Azure/golua/pkg/luautil"
-	//"github.com/Azure/golua/lua/binary"
 	"github.com/Azure/golua/lua/ir"
-	"github.com/Azure/golua/lua/op"
 )
 
-// TODO: remove
-var (
-	_ = fmt.Println
-	_ = os.Exit
-)
+//
+// Implementation of Lua v53 Opcodes
+//
 
 // MOVE: Copy a value between registers.
 //
 // @args A B
 //
 // R(A) := R(B)
-func move(frame *Frame, instr ir.Instr) {
-	unimplemented(instr.String())
+func (vm *v53) move(instr ir.Instr) {
+	rb := vm.frame().get(instr.B()+1)
+	vm.frame().set(instr.A(), rb)
 }
 
 // LOADK: Load a constant into a register.
@@ -59,8 +52,9 @@ func move(frame *Frame, instr ir.Instr) {
 // @args A Bx
 //
 // R(A) := Kst(Bx)
-func loadk(frame *Frame, instr ir.Instr) {
-	unimplemented(instr.String())
+func (vm *v53) loadk(instr ir.Instr) {
+	kst := vm.constant(instr.BX())
+	vm.frame().set(instr.A(), kst)
 }
 
 // LOADKX: Load a constant into a register. The next 'instruction'
@@ -69,7 +63,7 @@ func loadk(frame *Frame, instr ir.Instr) {
 // @args A
 //
 // R(A) := Kst(extra arg)
-func loadkx(frame *Frame, instr ir.Instr) {
+func (vm *v53) loadkx(instr ir.Instr) {
 	unimplemented(instr.String())
 }
 
@@ -78,8 +72,9 @@ func loadkx(frame *Frame, instr ir.Instr) {
 // @args A B C
 //
 // R(A) := (Bool)B; if (C) pc++
-func loadbool(frame *Frame, instr ir.Instr) {
-	unimplemented(instr.String())
+func (vm *v53) loadbool(instr ir.Instr) {
+	vm.frame().set(instr.A(), Bool(instr.B() == 1))
+	if instr.C() != 0 { vm.frame().step(1) }
 }
 
 // LOADNIL: Load nil values into a range of registers.
@@ -87,7 +82,7 @@ func loadbool(frame *Frame, instr ir.Instr) {
 // @args A B
 //
 // R(A), R(A+1), ..., R(A+B) := nil
-func loadnil(frame *Frame, instr ir.Instr) {
+func (vm *v53) loadnil(instr ir.Instr) {
 	unimplemented(instr.String())
 }
 
@@ -96,43 +91,7 @@ func loadnil(frame *Frame, instr ir.Instr) {
 // @args A B
 //       
 // R(A) := UpValue[B]
-func getupval(frame *Frame, instr ir.Instr) {
-	unimplemented(instr.String())
-}
- 
-// GETTABUP: Read a value from table in up-value into a register.
-//
-// @args A B C
-//   
-// R(A) := UpValue[B][RK(C)]
-func gettabup(frame *Frame, instr ir.Instr) {
-	unimplemented(instr.String())
-}
-
-// GETTABLE: Read a table element into a register.
-//
-// @args A B C
-//
-// R(A) := R(B)[RK(C)]
-func gettable(frame *Frame, instr ir.Instr) {
-	unimplemented(instr.String())
-}
-
-// SETTABUP: Write a register value into table in up-value
-//
-// @args A B C
-//
-// UpValue[A][RK(B)] := RK(C) 
-func settabup(frame *Frame, instr ir.Instr) {
-	unimplemented(instr.String())
-}
-
-// SETTABLE: Write a register value into a table element.
-//
-// @args A B C
-//
-// R(A)[RK(B)] := RK(C)
-func settable(frame *Frame, instr ir.Instr) {
+func (vm *v53) getupval(instr ir.Instr) {
 	unimplemented(instr.String())
 }
 
@@ -140,9 +99,51 @@ func settable(frame *Frame, instr ir.Instr) {
 //
 // @args A B
 //
-// UpValue[B] := R(A)            
-func setupval(frame *Frame, instr ir.Instr) {
+// UpValue[B] := R(A)
+func (vm *v53) setupval(instr ir.Instr) {
 	unimplemented(instr.String())
+}
+
+// GETTABLE: Read a table element into a register (locals).
+//
+// @args A B C
+//
+// R(A) := R(B)[RK(C)]
+func (vm *v53) gettable(instr ir.Instr) {
+	unimplemented(instr.String())
+}
+
+// SETTABLE: Write a register value into a table element (locals).
+//
+// @args A B C
+//
+// R(A)[RK(B)] := RK(C)
+func (vm *v53) settable(instr ir.Instr) {
+	unimplemented(instr.String())
+}
+
+// GETTABUP: Read a value from table in up-value into a register (globals).
+//
+// @args A B C
+//   
+// R(A) := UpValue[B][RK(C)]
+func (vm *v53) gettabup(instr ir.Instr) {
+	up := vm.frame().upvalue(instr.B())
+	rc := vm.rk(instr.C())
+	ra := vm.State.gettable(up, rc, 0)
+	vm.frame().set(instr.A(), ra)
+}
+
+// SETTABUP: Write a register value into table in up-value (globals).
+//
+// @args A B C
+//
+// UpValue[A][RK(B)] := RK(C) 
+func (vm *v53) settabup(instr ir.Instr) {
+	up := vm.frame().upvalue(instr.A())
+	rb := vm.rk(instr.B())
+	rc := vm.rk(instr.C())
+	vm.State.settable(up, rb, rc, 0)
 }
 
 // NEWTABLE: Create a new table.
@@ -167,7 +168,7 @@ func setupval(frame *Frame, instr ir.Instr) {
 // @args A B C
 //
 // R(A) := {} (size = B,C)
-func newtable(frame *Frame, instr ir.Instr) {
+func (vm *v53) newtable(instr ir.Instr) {
 	unimplemented(instr.String())
 }
 
@@ -176,7 +177,7 @@ func newtable(frame *Frame, instr ir.Instr) {
 // @args A B C
 //
 // R(A+1) := R(B); R(A) := R(B)[RK(C)] 
-func self(frame *Frame, instr ir.Instr) {
+func (vm *v53) self(instr ir.Instr) {
 	unimplemented(instr.String())
 }
 
@@ -185,8 +186,13 @@ func self(frame *Frame, instr ir.Instr) {
 // @args A B C
 //
 // R(A) := RK(B) + RK(C)               
-func add(frame *Frame, instr ir.Instr) {
-	unimplemented(instr.String())
+func (vm *v53) add(instr ir.Instr) {
+	var (
+		rb = vm.rk(instr.B())
+		rc = vm.rk(instr.C())
+		ra = vm.arith(OpAdd, rb, rc)
+	)
+	vm.frame().set(instr.A(), ra)
 }
 
 // SUB: Subtraction operator.
@@ -194,8 +200,13 @@ func add(frame *Frame, instr ir.Instr) {
 // @args A B C
 //
 // R(A) := RK(B) - RK(C)
-func sub(frame *Frame, instr ir.Instr) {
-	unimplemented(instr.String())
+func (vm *v53) sub(instr ir.Instr) {
+	var (
+		rb = vm.rk(instr.B())
+		rc = vm.rk(instr.C())
+		ra = vm.arith(OpSub, rb, rc)
+	)
+	vm.frame().set(instr.A(), ra)
 }
 
 // MUL: Multiplication operator.
@@ -203,8 +214,13 @@ func sub(frame *Frame, instr ir.Instr) {
 // @args A B C
 //    
 // R(A) := RK(B) * RK(C)
-func mul(frame *Frame, instr ir.Instr) {
-	unimplemented(instr.String())
+func (vm *v53) mul(instr ir.Instr) {
+	var (
+		rb = vm.rk(instr.B())
+		rc = vm.rk(instr.C())
+		ra = vm.arith(OpMul, rb, rc)
+	)
+	vm.frame().set(instr.A(), ra)
 }
 
 // MOD: Modulus (remainder) operator.
@@ -212,8 +228,13 @@ func mul(frame *Frame, instr ir.Instr) {
 // @args A B C
 //
 // R(A) := RK(B) % RK(C)                
-func mod(frame *Frame, instr ir.Instr) {
-	unimplemented(instr.String())
+func (vm *v53) mod(instr ir.Instr) {
+	var (
+		rb = vm.rk(instr.B())
+		rc = vm.rk(instr.C())
+		ra = vm.arith(OpMod, rb, rc)
+	)
+	vm.frame().set(instr.A(), ra)
 }
 
 // POW: Exponentation operator.
@@ -221,8 +242,13 @@ func mod(frame *Frame, instr ir.Instr) {
 // @args A B C
 //
 // R(A) := RK(B) ^ RK(C)               
-func pow(frame *Frame, instr ir.Instr) {
-	unimplemented(instr.String())
+func (vm *v53) pow(instr ir.Instr) {
+	var (
+		rb = vm.rk(instr.B())
+		rc = vm.rk(instr.C())
+		ra = vm.arith(OpPow, rb, rc)
+	)
+	vm.frame().set(instr.A(), ra)
 }
 
 // DIV: Division operator.         
@@ -230,8 +256,13 @@ func pow(frame *Frame, instr ir.Instr) {
 // @args A B C
 //
 // R(A) := RK(B) / RK(C)
-func div(frame *Frame, instr ir.Instr) {
-	unimplemented(instr.String())
+func (vm *v53) div(instr ir.Instr) {
+	var (
+		rb = vm.rk(instr.B())
+		rc = vm.rk(instr.C())
+		ra = vm.arith(OpDiv, rb, rc)
+	)
+	vm.frame().set(instr.A(), ra)
 }
 
 // UNM: Unary minus.
@@ -239,8 +270,12 @@ func div(frame *Frame, instr ir.Instr) {
 // @args A B
 //
 // R(A) := -R(B)
-func unm(frame *Frame, instr ir.Instr) {
-	unimplemented(instr.String())
+func (vm *v53) unm(instr ir.Instr) {
+	var (
+		rb = vm.rk(instr.B())
+		ra = vm.arith(OpMinus, rb, None)
+	)
+	vm.frame().set(instr.A(), ra)
 }
 
 // NOT: Logical NOT operator.  
@@ -248,8 +283,9 @@ func unm(frame *Frame, instr ir.Instr) {
 // @args A B
 //
 // R(A) := not R(B)
-func not(frame *Frame, instr ir.Instr) {
-	unimplemented(instr.String())
+func (vm *v53) not(instr ir.Instr) {
+	rb := vm.frame().get(instr.B())
+	vm.frame().set(instr.A(), truth(rb))
 }
                   
 // LEN: Length operator.
@@ -257,7 +293,7 @@ func not(frame *Frame, instr ir.Instr) {
 // @args A B
 //
 // R(A) := length of R(B) 
-func length(frame *Frame, instr ir.Instr) {
+func (vm *v53) length(instr ir.Instr) {
 	unimplemented(instr.String())
 }
 
@@ -266,7 +302,7 @@ func length(frame *Frame, instr ir.Instr) {
 // @args A B C
 //
 // R(A) := R(B).. ... ..R(C)
-func concat(frame *Frame, instr ir.Instr) {
+func (vm *v53) concat(instr ir.Instr) {
 	unimplemented(instr.String())
 }
 
@@ -275,8 +311,15 @@ func concat(frame *Frame, instr ir.Instr) {
 // @args A sBx
 //
 // pc+=sBx; if (A) close all upvalues >= R(A-1)
-func jmp(frame *Frame, instr ir.Instr) {
-	unimplemented(instr.String())
+func (vm *v53) jmp(instr ir.Instr) {
+	vm.frame().step(instr.SBX())
+	if a := instr.A(); a != 0 {
+		var (
+			ra = vm.frame().get(a-1)
+			ls = vm.State
+		)
+		vm.frame().closure.closeUpValues(ls, ra)
+	}
 }
 
 // EQ: Equality test, with conditional jump.
@@ -284,8 +327,15 @@ func jmp(frame *Frame, instr ir.Instr) {
 // @args A B C
 //
 // if ((RK(B) == RK(C)) ~= A) then pc++
-func eq(frame *Frame, instr ir.Instr) {
-	unimplemented(instr.String())
+func (vm *v53) eq(instr ir.Instr) {
+	var (
+		rb = vm.rk(instr.B())
+		rc = vm.rk(instr.C())
+		aa = instr.A() == 1
+	)
+	if vm.compare(OpEq, rb, rc) != aa {
+		vm.frame().step(1)
+	}
 }
 
 // LT: Less than test, with conditional jump.
@@ -293,8 +343,15 @@ func eq(frame *Frame, instr ir.Instr) {
 // @args A B C
 //
 // if ((RK(B) <  RK(C)) ~= A) then pc++
-func lt(frame *Frame, instr ir.Instr) {
-	unimplemented(instr.String())
+func (vm *v53) lt(instr ir.Instr) {
+	var (
+		rb = vm.rk(instr.B())
+		rc = vm.rk(instr.C())
+		aa = instr.A() == 1
+	)
+	if vm.compare(OpLt, rb, rc) != aa {
+		vm.frame().step(1)
+	}
 }
 
 // LE: Less than or equal to test, with conditional jump.
@@ -302,8 +359,15 @@ func lt(frame *Frame, instr ir.Instr) {
 // @args A B C
 //
 // if ((RK(B) <= RK(C)) ~= A) then pc++
-func le(frame *Frame, instr ir.Instr) {
-	unimplemented(instr.String())
+func (vm *v53) le(instr ir.Instr) {
+	var (
+		rb = vm.rk(instr.B())
+		rc = vm.rk(instr.C())
+		aa = instr.A() == 1
+	)
+	if vm.compare(OpLe, rb, rc) != aa {
+		vm.frame().step(1)
+	}
 }
 
 // TEST: Boolean test, with conditional jump.    
@@ -311,7 +375,7 @@ func le(frame *Frame, instr ir.Instr) {
 // @args A C 
 //
 // if not (R(A) <=> C) then pc++          
-func test(frame *Frame, instr ir.Instr) {
+func (vm *v53) test(instr ir.Instr) {
 	unimplemented(instr.String())
 }
 
@@ -320,7 +384,7 @@ func test(frame *Frame, instr ir.Instr) {
 // @args A B C
 //
 // if (R(B) <=> C) then R(A) := R(B) else pc++
-func testset(frame *Frame, instr ir.Instr) {
+func (vm *v53) testset(instr ir.Instr) {
 	unimplemented(instr.String())
 }
 
@@ -348,8 +412,20 @@ func testset(frame *Frame, instr ir.Instr) {
 // @args A B C
 //
 // R(A), ... ,R(A+C-2) := R(A)(R(A+1), ... ,R(A+B-1))  
-func call(frame *Frame, instr ir.Instr) {
-	unimplemented(instr.String())
+func (vm *v53) call(instr ir.Instr) {
+	var (
+		//a = instr.A()
+		b = instr.B()
+		c = instr.C()
+	)
+
+	// OPEN THE UPVALUES
+
+	if b != 0 {
+		vm.State.Call(b-1, c-1)
+		return
+	}
+	unimplemented("call: b == 0")
 }
 
 // TAILCALL: Perform a tail call.   
@@ -357,7 +433,7 @@ func call(frame *Frame, instr ir.Instr) {
 // @args A B C
 //
 // return R(A)(R(A+1), ... ,R(A+B-1))
-func tailcall(frame *Frame, instr ir.Instr) {
+func (vm *v53) tailcall(instr ir.Instr) {
 	unimplemented(instr.String())
 }
 
@@ -381,13 +457,22 @@ func tailcall(frame *Frame, instr ir.Instr) {
 //
 // If B > 0, then the number of values to be returned is simply B-1.
 // 
-// @args A B
-//
 // If (B == 0) then return up to 'top'.
+//
+// @args A B
 // 
 // return R(A), ... ,R(A+B-2)
-func returns(frame *Frame, instr ir.Instr) {
-	unimplemented(instr.String())
+func (vm *v53) returns(instr ir.Instr) {
+	var (
+		a = instr.A()
+		b = instr.B()
+	)
+	if b > 0 {
+		rets := vm.frame().popN(a+(b-1))
+		vm.frame().caller().pushN(rets)
+		return
+	}
+	unimplemented("returns: b == 0")
 }
 
 // FORLOOP: Iterate a numeric for loop.
@@ -395,7 +480,7 @@ func returns(frame *Frame, instr ir.Instr) {
 // @args A sBx 
 //
 // R(A)+=R(A+2); if R(A) <?= R(A+1) then { pc+=sBx; R(A+3)=R(A) }                     
-func forloop(frame *Frame, instr ir.Instr) {
+func (vm *v53) forloop(instr ir.Instr) {
 	unimplemented(instr.String())
 }
 
@@ -404,7 +489,7 @@ func forloop(frame *Frame, instr ir.Instr) {
 // @args A sBx 
 //
 // R(A)-=R(A+2); pc+=sBx
-func forprep(frame *Frame, instr ir.Instr) {
+func (vm *v53) forprep(instr ir.Instr) {
 	unimplemented(instr.String())
 }
 
@@ -413,7 +498,7 @@ func forprep(frame *Frame, instr ir.Instr) {
 // @args A C
 //
 // R(A+3), ... ,R(A+2+C) := R(A)(R(A+1), R(A+2))
-func tforcall(frame *Frame, instr ir.Instr) {
+func (vm *v53) tforcall(instr ir.Instr) {
 	unimplemented(instr.String())
 }
 
@@ -422,7 +507,7 @@ func tforcall(frame *Frame, instr ir.Instr) {
 // @args A sBx 
 //
 // if R(A+1) ~= nil then { R(A)=R(A+1); pc += sBx } 
-func tforloop(frame *Frame, instr ir.Instr) {
+func (vm *v53) tforloop(instr ir.Instr) {
 	unimplemented(instr.String())
 }
 
@@ -431,7 +516,7 @@ func tforloop(frame *Frame, instr ir.Instr) {
 // @args A B C
 //
 // R(A)[(C-1)*FPF+i] := R(A+i), 1 <= i <= B
-func setlist(frame *Frame, instr ir.Instr) {
+func (vm *v53) setlist(instr ir.Instr) {
 	unimplemented(instr.String())
 }
 
@@ -440,8 +525,11 @@ func setlist(frame *Frame, instr ir.Instr) {
 // @args A Bx
 // 
 // R(A) := closure(KPROTO[Bx])
-func closure(frame *Frame, instr ir.Instr) {
-	unimplemented(instr.String())
+func (vm *v53) closure(instr ir.Instr) {
+	cls := newLuaClosure(vm.prototype(instr.BX()))
+	cls.openUpValues(vm.State)
+	vm.frame().push(cls)
+	vm.frame().replace(instr.A()+1)
 }
 
 // VARARG: Assign vararg function arguments to register.  
@@ -449,7 +537,7 @@ func closure(frame *Frame, instr ir.Instr) {
 // @args A B
 //
 // R(A), R(A+1), ..., R(A+B-2) = vararg
-func vararg(frame *Frame, instr ir.Instr) {
+func (vm *v53) vararg(instr ir.Instr) {
 	unimplemented(instr.String())
 }
 
@@ -458,8 +546,13 @@ func vararg(frame *Frame, instr ir.Instr) {
 // @args A B C
 //
 // R(A) := RK(B) // RK(C)
-func idiv(frame *Frame, instr ir.Instr) {
-	unimplemented(instr.String())
+func (vm *v53) idiv(instr ir.Instr) {
+	var (
+		rb = vm.rk(instr.B())
+		rc = vm.rk(instr.C())
+		ra = vm.arith(OpQuo, rb, rc)
+	)
+	vm.frame().set(instr.A(), ra)
 }
 
 // BAND: Bit-wise AND operator.        
@@ -467,8 +560,13 @@ func idiv(frame *Frame, instr ir.Instr) {
 // @args A B C
 //
 // R(A) := RK(B) & RK(C)
-func band(frame *Frame, instr ir.Instr) {
-	unimplemented(instr.String())
+func (vm *v53) band(instr ir.Instr) {
+	var (
+		rb = vm.rk(instr.B())
+		rc = vm.rk(instr.C())
+		ra = vm.arith(OpAnd, rb, rc)
+	)
+	vm.frame().set(instr.A(), ra)
 }
 
 // BOR: Bit-wise OR operator.
@@ -476,8 +574,13 @@ func band(frame *Frame, instr ir.Instr) {
 // @args A B C
 //
 // R(A) := RK(B) | RK(C) 
-func bor(frame *Frame, instr ir.Instr) {	
-	unimplemented(instr.String())
+func (vm *v53) bor(instr ir.Instr) {	
+	var (
+		rb = vm.rk(instr.B())
+		rc = vm.rk(instr.C())
+		ra = vm.arith(OpOr, rb, rc)
+	)
+	vm.frame().set(instr.A(), ra)
 }
 
 // BXOR: Bit-wise Exclusive OR operator.
@@ -485,8 +588,13 @@ func bor(frame *Frame, instr ir.Instr) {
 // @args A B C
 //
 // R(A) := RK(B) ~ RK(C)
-func bxor(frame *Frame, instr ir.Instr) {
-	unimplemented(instr.String())
+func (vm *v53) bxor(instr ir.Instr) {
+	var (
+		rb = vm.rk(instr.B())
+		rc = vm.rk(instr.C())
+		ra = vm.arith(OpXor, rb, rc)
+	)
+	vm.frame().set(instr.A(), ra)
 }
 
 // SHL: Shift bits left.         
@@ -494,8 +602,13 @@ func bxor(frame *Frame, instr ir.Instr) {
 // @args A B C
 //
 // R(A) := RK(B) << RK(C) 
-func shl(frame *Frame, instr ir.Instr) {
-	unimplemented(instr.String())
+func (vm *v53) shl(instr ir.Instr) {
+	var (
+		rb = vm.rk(instr.B())
+		rc = vm.rk(instr.C())
+		ra = vm.arith(OpLsh, rb, rc)
+	)
+	vm.frame().set(instr.A(), ra)
 }
 
 // SHR: Shift bits right.         
@@ -503,8 +616,13 @@ func shl(frame *Frame, instr ir.Instr) {
 // @args A B C
 //
 // R(A) := RK(B) >> RK(C)
-func shr(frame *Frame, instr ir.Instr) {
-	unimplemented(instr.String())
+func (vm *v53) shr(instr ir.Instr) {
+	var (
+		rb = vm.rk(instr.B())
+		rc = vm.rk(instr.C())
+		ra = vm.arith(OpRsh, rb, rc)
+	)
+	vm.frame().set(instr.A(), ra)
 }
 
 // BNOT: Bit-wise NOT operator.        
@@ -512,212 +630,17 @@ func shr(frame *Frame, instr ir.Instr) {
 // @args A B
 // 
 // R(A) := ~R(B)
-func bnot(frame *Frame, instr ir.Instr) {
-	unimplemented(instr.String())
+func (vm *v53) bnot(instr ir.Instr) {
+	var (
+		rb = vm.rk(instr.B())
+		ra = vm.arith(OpNot, rb, None)
+	)
+	vm.frame().set(instr.A(), ra)
 }
 
 // EXTRAARG: Extra (larger) argument for previous opcode.
 //
 // @args Ax
-func extraarg(frame *Frame, instr ir.Instr) {
+func (vm *v53) extraarg(instr ir.Instr) {
 	unimplemented(instr.String())
-}
-
-// cmd is an execution state corresponding to a lua opcode.
-type cmd func(*Frame, ir.Instr) (cmd, ir.Instr)
-
-// ops is a table of lua opcode commands.
-var ops []cmd
-
-func init() {
-	ops = []cmd{
-		op.MOVE: func(frame *Frame, instr ir.Instr) (cmd, ir.Instr) {
-			move(frame, instr)
-			return frame.fetch()
-		},
-		op.LOADK: func(frame *Frame, instr ir.Instr) (cmd, ir.Instr) {
-			loadk(frame, instr)
-			return frame.fetch()
-		},
-		op.LOADKX: func(frame *Frame, instr ir.Instr) (cmd, ir.Instr) {
-			loadkx(frame, instr)
-			return frame.fetch()
-		},
-		op.LOADBOOL: func(frame *Frame, instr ir.Instr) (cmd, ir.Instr) {
-			loadbool(frame, instr)
-			return frame.fetch()
-		},
-		op.LOADNIL: func(frame *Frame, instr ir.Instr) (cmd, ir.Instr) {
-			loadnil(frame, instr)
-			return frame.fetch()
-		},
-		op.GETUPVAL: func(frame *Frame, instr ir.Instr) (cmd, ir.Instr) {
-			getupval(frame, instr)
-			return frame.fetch()
-		},
-		op.GETTABUP: func(frame *Frame, instr ir.Instr) (cmd, ir.Instr) {
-			gettabup(frame, instr)
-			return frame.fetch()
-		},
-		op.GETTABLE: func(frame *Frame, instr ir.Instr) (cmd, ir.Instr) {
-			gettable(frame, instr)
-			return frame.fetch()
-		},
-		op.SETTABUP: func(frame *Frame, instr ir.Instr) (cmd, ir.Instr) {
-			settabup(frame, instr)
-			return frame.fetch()
-		},
-		op.SETUPVAL: func(frame *Frame, instr ir.Instr) (cmd, ir.Instr) {
-			setupval(frame, instr)
-			return frame.fetch()
-		},
-		op.SETTABLE: func(frame *Frame, instr ir.Instr) (cmd, ir.Instr) {
-			settable(frame, instr)
-			return frame.fetch()
-		},
-		op.NEWTABLE: func(frame *Frame, instr ir.Instr) (cmd, ir.Instr) {
-			newtable(frame, instr)
-			return frame.fetch()
-		},
-		op.SELF: func(frame *Frame, instr ir.Instr) (cmd, ir.Instr) {
-			self(frame, instr)
-			return frame.fetch()
-		},
-		op.ADD: func(frame *Frame, instr ir.Instr) (cmd, ir.Instr) {
-			add(frame, instr)
-			return frame.fetch()
-		},
-		op.SUB: func(frame *Frame, instr ir.Instr) (cmd, ir.Instr) {
-			sub(frame, instr)
-			return frame.fetch()
-		},
-		op.MUL: func(frame *Frame, instr ir.Instr) (cmd, ir.Instr) {
-			mul(frame, instr)
-			return frame.fetch()
-		},
-		op.MOD: func(frame *Frame, instr ir.Instr) (cmd, ir.Instr) {
-			mod(frame, instr)
-			return frame.fetch()
-		},
-		op.POW: func(frame *Frame, instr ir.Instr) (cmd, ir.Instr) {
-			pow(frame, instr)
-			return frame.fetch()
-		},
-		op.DIV: func(frame *Frame, instr ir.Instr) (cmd, ir.Instr) {
-			div(frame, instr)
-			return frame.fetch()
-		},
-		op.IDIV: func(frame *Frame, instr ir.Instr) (cmd, ir.Instr) {
-			idiv(frame, instr)
-			return frame.fetch()
-		},
-		op.BAND: func(frame *Frame, instr ir.Instr) (cmd, ir.Instr) {
-			band(frame, instr)
-			return frame.fetch()
-		},
-		op.BOR: func(frame *Frame, instr ir.Instr) (cmd, ir.Instr) {
-			bor(frame, instr)
-			return frame.fetch()
-		},
-		op.BXOR: func(frame *Frame, instr ir.Instr) (cmd, ir.Instr) {
-			bxor(frame, instr)
-			return frame.fetch()
-		},
-		op.SHL: func(frame *Frame, instr ir.Instr) (cmd, ir.Instr) {
-			shl(frame, instr)
-			return frame.fetch()
-		},
-		op.SHR: func(frame *Frame, instr ir.Instr) (cmd, ir.Instr) {
-			shr(frame, instr)
-			return frame.fetch()
-		},
-		op.UNM: func(frame *Frame, instr ir.Instr) (cmd, ir.Instr) {
-			unm(frame, instr)
-			return frame.fetch()
-		},
-		op.BNOT: func(frame *Frame, instr ir.Instr) (cmd, ir.Instr) {
-			bnot(frame, instr)
-			return frame.fetch()
-		},
-		op.NOT: func(frame *Frame, instr ir.Instr) (cmd, ir.Instr) {
-			not(frame, instr)
-			return frame.fetch()
-		},
-		op.LEN: func(frame *Frame, instr ir.Instr) (cmd, ir.Instr) {
-			length(frame, instr)
-			return frame.fetch()
-		},
-		op.CONCAT: func(frame *Frame, instr ir.Instr) (cmd, ir.Instr) {
-			concat(frame, instr)
-			return frame.fetch()
-		},
-		op.JMP: func(frame *Frame, instr ir.Instr) (cmd, ir.Instr) {
-			jmp(frame, instr)
-			return frame.fetch()
-		},
-		op.EQ: func(frame *Frame, instr ir.Instr) (cmd, ir.Instr) {
-			eq(frame, instr)
-			return frame.fetch()
-		},
-		op.LT: func(frame *Frame, instr ir.Instr) (cmd, ir.Instr) {
-			lt(frame, instr)
-			return frame.fetch()
-		},
-		op.LE: func(frame *Frame, instr ir.Instr) (cmd, ir.Instr) {
-			le(frame, instr)
-			return frame.fetch()
-		},
-		op.TEST: func(frame *Frame, instr ir.Instr) (cmd, ir.Instr) {
-			test(frame, instr)
-			return frame.fetch()
-		},
-		op.TESTSET: func(frame *Frame, instr ir.Instr) (cmd, ir.Instr) {
-			testset(frame, instr)
-			return frame.fetch()
-		},
-		op.CALL: func(frame *Frame, instr ir.Instr) (cmd, ir.Instr) {
-			call(frame, instr)
-			return frame.fetch()
-		},
-		op.TAILCALL: func(frame *Frame, instr ir.Instr) (cmd, ir.Instr) {
-			tailcall(frame, instr)
-			return frame.fetch()
-		},
-		op.RETURN: func(frame *Frame, instr ir.Instr) (cmd, ir.Instr) {
-			returns(frame, instr)
-			return nil, instr
-		},
-		op.FORLOOP: func(frame *Frame, instr ir.Instr) (cmd, ir.Instr) {
-			forloop(frame, instr)
-			return frame.fetch()
-		},
-		op.FORPREP: func(frame *Frame, instr ir.Instr) (cmd, ir.Instr) {
-			forprep(frame, instr)
-			return frame.fetch()
-		},
-		op.TFORCALL: func(frame *Frame, instr ir.Instr) (cmd, ir.Instr) {
-			tforcall(frame, instr)
-			return frame.fetch()
-		},
-		op.TFORLOOP: func(frame *Frame, instr ir.Instr) (cmd, ir.Instr) {
-			tforloop(frame, instr)
-			return frame.fetch()
-		},
-		op.SETLIST: func(frame *Frame, instr ir.Instr) (cmd, ir.Instr) {
-			setlist(frame, instr)
-			return frame.fetch()
-		},
-		op.CLOSURE: func(frame *Frame, instr ir.Instr) (cmd, ir.Instr) {
-			closure(frame, instr)
-			return frame.fetch()
-		},
-		op.VARARG: func(frame *Frame, instr ir.Instr) (cmd, ir.Instr) {
-			vararg(frame, instr)
-			return frame.fetch()
-		},
-		op.EXTRAARG: func(frame *Frame, instr ir.Instr) (cmd, ir.Instr) {
-			extraarg(frame, instr)
-			return frame.fetch()
-		},
-	}
 }

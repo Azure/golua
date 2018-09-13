@@ -103,7 +103,10 @@ type (
 )
 
 func (proto *Prototype) NumParams() int { return int(proto.Params) }
+func (proto *Prototype) StackSize() int { return int(proto.Stack) }
 func (proto *Prototype) IsVararg() bool { return int(proto.Vararg) == 1 }
+func (proto *Prototype) Const(index int) interface{} { return proto.Consts[index] }
+func (proto *Prototype) Proto(index int) *Prototype { return &proto.Protos[index] }
 
 // func Save(out io.Writer, chunk *Chunk) (int64, error) {
 // 	return 0, nil

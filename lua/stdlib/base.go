@@ -1,11 +1,13 @@
 package stdlib
 
 import (
-	"fmt"
-	"github.com/Azure/golua/lua"
+    "fmt"
+    "os"
+    "github.com/Azure/golua/lua"
 )
 
 var _ = fmt.Println
+var _ = os.Exit
 
 //
 // Lua Standard Library -- Base
@@ -13,46 +15,43 @@ var _ = fmt.Println
 
 // collectgarbage
 // xpcall
-func OpenBase(state *lua.State) uint32 {
-	var funcs = map[string]lua.Func{
-		"assert": 		  nil,
-		"dofile": 		  nil,
-		"error": 		  nil,
-		"getmetatable":   nil,
-		"ipairs": 		  nil,
-		"loadfile": 	  nil,
-		"load": 		  nil,
-		"next": 		  nil,
-		"pairs": 		  nil,
-		"pcall": 		  nil,
-		"print": 		  nil,
-		"rawequal": 	  nil,
-		"rawlen": 		  nil,
-		"rawget": 	      nil,
-		"rawset": 	      nil,
-		"select": 	      nil,
-		"setmetatable":   nil,
-		"tonumber": 	  nil,
-		"tostring": 	  nil,
-		"type":     	  nil,
-		"xpcall": 		  nil,
-	}
-	// globals := state.Globals()
-	// globals.SetFuncs(funcs)
-	// globals.SetValue("_G", globals)
-	// globals.SetValue("_VERSION", lua.Version)
-	
-	// table := state.NewTable()
-	// table.SetFuncs(funcs)
-	// state.SetGlobal("_G", table)
-	// state.SetGlobal("_VERSION", lua.Version)
+func OpenBase(state *lua.State) int {
+    var funcs = map[string]lua.Func{
+        "assert":       lua.Func(Assert),
+        "dofile":       lua.Func(DoFile),
+        "error":        lua.Func(Error),
+        "getmetatable": lua.Func(GetMetaTable),
+        "ipairs":       lua.Func(IPairs),
+        "loadfile":     lua.Func(LoadFile),
+        "load":         lua.Func(Load),
+        "next":         lua.Func(Next),
+        "pairs":        lua.Func(Pairs),
+        "pcall":        lua.Func(PCall),
+        "print":        lua.Func(Print),
+        "rawequal":     lua.Func(RawEqual),
+        "rawlen":       lua.Func(RawLen),
+        "rawget":       lua.Func(RawGet),
+        "rawset":       lua.Func(RawSet),
+        "select":       lua.Func(Select),
+        "setmetatable": lua.Func(SetMetaTable),
+        "tonumber":     lua.Func(ToNumber),
+        "tostring":     lua.Func(ToString),
+        "type":         lua.Func(Type),
+    }
 
-	table := state.SetFuncs(state.Globals(), funcs)
-	state.Push(table)
-	state.SetField(-3, "_G")
-	state.PushString(lua.Version)
-	state.SetField(-3, "_VERSION")
-	return 1
+    // Open base library into globals table.
+    state.Push(state.Globals())
+    state.SetFuncs(funcs, 0)
+
+    // Set global _G.
+    state.PushIndex(-1)
+    state.SetField(-2, "_G")
+
+    // Set global _VERSION.
+    state.Push(lua.Version)
+    state.SetField(-2, "_VERSION")
+
+    return 1
 }
 
 // assert(v, [, message])
@@ -62,119 +61,157 @@ func OpenBase(state *lua.State) uint32 {
 // object; when absent, it defaults to "assertion failed!"
 //
 // See https://www.lua.org/manual/5.3/manual.html#pdf-assert
-// func assert_(state *lua.State) uint32 {
-// 	if state.ToBool(1) {
-// 		return state.GetTop()
-// 	}
-// 	state.Errorf("")
-// }
+func Assert(state *lua.State) int {
+    unimplemented("base: assert")
+    return 0
+}
 
 // dofile([filename])
 //
 // See https://www.lua.org/manual/5.3/manual.html#pdf-dofile
-//func dofile_(state *lua.State) uint32 {}
+func DoFile(state *lua.State) int {
+    unimplemented("base: assert")
+    return 0
+}
 
 // error(message [, level])
 //
 // See https://www.lua.org/manual/5.3/manual.html#pdf-error
-//func error_(state *lua.State) uint32 {}
+func Error(state *lua.State) int {
+    unimplemented("base: error")
+    return 0
+}
 
 // getmetatable(object)
 //
 // See https://www.lua.org/manual/5.3/manual.html#pdf-getmetatable
-//func getmetatable_(state *lua.State) uint32 {}
+func GetMetaTable(state *lua.State) int {
+    unimplemented("base: getmetatable")
+    return 0
+}
 
 // ipairs(t)
 //
 // See https://www.lua.org/manual/5.3/manual.html#pdf-ipairs
-//func ipairs_(state *lua.State) uint32 {}
+func IPairs(state *lua.State) int {
+    unimplemented("base: ipairs")
+    return 0
+}
 
 // loadfile([filename [, mode [, env]]])
 //
 // See https://www.lua.org/manual/5.3/manual.html#pdf-loadfile
-//func loadfile_(state *lua.State) uint32 {}
+func LoadFile(state *lua.State) int {
+    unimplemented("base: loadfile")
+    return 0
+}
 
 // load(chunk [, chunkname [, mode [, env]]])
 //
 // See https://www.lua.org/manual/5.3/manual.html#pdf-load
-//func load_(state *lua.State) uint32 {}
+func Load(state *lua.State) int {
+    unimplemented("base: load")
+    return 0
+}
 
 // next(table [, index])
 //
 // See https://www.lua.org/manual/5.3/manual.html#pdf-next
-//func next_(state *lua.State) uint32 {}
+func Next(state *lua.State) int {
+    unimplemented("base: next")
+    return 0
+}
 
 // pairs(t)
 //
 // See https://www.lua.org/manual/5.3/manual.html#pdf-pairs
-//func pairs_(state *lua.State) uint32 {}
+func Pairs(state *lua.State) int {
+    unimplemented("base: pairs")
+    return 0
+}
 
 // pcall(f [, arg1, ...])
 //
 // See https://www.lua.org/manual/5.3/manual.html#pdf-pcall
-//func pcall_(state *lua.State) uint32 {}
+func PCall(state *lua.State) int {
+    unimplemented("base: assert")
+    return 0
+}
 
 // print(...)
 //
 // See https://www.lua.org/manual/5.3/manual.html#pdf-print
-// func print_(state *lua.State) uint32 {
-// 	top := state.GetTop() // # args
-// 	state.GetGlobal("tostring")
-// 	for i := 1; i <= top; i++ {
-// 		state.PushValue(-1)
-// 		state.PushValue(i)
-// 		state.Call(1, 1)
-
-// 		str, ok := state.ToString(-1)
-// 		if !ok {
-// 			panic("'tostring' must return a string to 'print'")
-// 		}
-// 		fmt.Print(str)
-// 		state.Pop(1)
-// 	}
-// 	fmt.Println()
-// 	return 0
-// }
+func Print(state *lua.State) int {
+    for i := 1; i <= state.Top(); i++ {
+        fmt.Printf("%v ", state.Value(i))
+    }
+    fmt.Println()
+    return 0
+}
 
 // rawequal(v1, v2)
 //
 // See https://www.lua.org/manual/5.3/manual.html#pdf-rawequal
-//func rawequal_(state *lua.State) uint32 {}
+func RawEqual(state *lua.State) int {
+    unimplemented("base: rawequal")
+    return 0
+}
 
 // rawlen(v)
 //
 // See https://www.lua.org/manual/5.3/manual.html#pdf-rawlen
-//func rawlen_(state *lua.State) uint32 {}
+func RawLen(state *lua.State) int {
+    unimplemented("base: rawlen")
+    return 0
+}
 
 // rawget(table, index)
 //
 // See https://www.lua.org/manual/5.3/manual.html#pdf-rawget
-//func rawget_(state *lua.State) uint32 {}
+func RawGet(state *lua.State) int {
+    unimplemented("base: rawget")
+    return 0
+}
 
 // rawset(table, index, value)
 //
 // See https://www.lua.org/manual/5.3/manual.html#pdf-rawset
-//func rawset_(state *lua.State) uint32 {}
+func RawSet(state *lua.State) int {
+    unimplemented("base: rawset")
+    return 0
+}
 
 // select(index, ...)
 //
 // See https://www.lua.org/manual/5.3/manual.html#pdf-select
-//func select_(state *lua.State) uint32 {}
+func Select(state *lua.State) int {
+    unimplemented("base: select")
+    return 0
+}
 
 // setmetatable(table, metatable)
 //
 // See https://www.lua.org/manual/5.3/manual.html#pdf-setmetatable
-//func setmetatable_(state *lua.State) uint32 {}
+func SetMetaTable(state *lua.State) int {
+    unimplemented("base: setmetatable")
+    return 0
+}
 
 // tonumber(e [, base])
 //
 // See https://www.lua.org/manual/5.3/manual.html#pdf-tonumber
-//func tonumber_(state *lua.State) uint32 {}
+func ToNumber(state *lua.State) int {
+    unimplemented("base: tonumber")
+    return 0
+}
 
 // tostring(v)
 //
 // See https://www.lua.org/manual/5.3/manual.html#pdf-tostring
-//func tostring_(state *lua.State) uint32 {}
+func ToString(state *lua.State) int {
+    unimplemented("base: tostring")
+    return 0
+}
 
 // type(v)
 // 
@@ -185,4 +222,7 @@ func OpenBase(state *lua.State) uint32 {
 // "function", "thread", and "userdata".
 //
 // See https://www.lua.org/manual/5.3/manual.html#pdf-type
-//func type_(state *lua.State) uint32 {}
+func Type(state *lua.State) int {
+    unimplemented("base: type")
+    return 0
+}
