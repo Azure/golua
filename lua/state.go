@@ -84,7 +84,7 @@ func (state *State) traceback(w io.Writer) {
 		fmt.Fprintf(w, "function @ %d (%d returns)\n", fr.fnID, fr.rets)
 
 		fmt.Fprintf(w, "    locals (%d)\n", fr.gettop())
-		for top := fr.gettop() - 1; top >= 1; top-- {
+		for top := fr.gettop() - 1; top >= 0; top-- {
 			indent := "       "
 			fmt.Fprintf(w, "%s[%d] %d @ %v (%T)\n",
 				indent,
@@ -107,11 +107,10 @@ func (state *State) recover(err *error) {
 	if r := recover(); r != nil {
 		if e, ok := r.(runtimeErr); ok {
 			*err = e
-			//fmt.Fprintln(os.Stdout, *err)
 			// if state.global.config.debug {
 			// 	Debug(state)
 			// }
-			return
+			//return
 		}
 		panic(r)
 	}
@@ -175,7 +174,7 @@ func (state *State) depth() int { return state.calls }
 
 // Calls a function (Go or Lua). The function to be called is at funcID in the stack.
 // The arguments are on the stack in direct order following the function.
-//
+
 // On return, all the results are on the stack, starting at the original function position.
 func (state *State) call(fr *Frame) {
 	// Check that we are below the recursion / call max.
@@ -196,22 +195,20 @@ func (state *State) call(fr *Frame) {
  	// Is it a Lua closure?
 	if fr.closure.isLua() {
 		// Ensure stack has space.
-		fr.checkstack(fr.closure.proto.StackSize())
+		fr.checkstack(fr.closure.binary.StackSize())
 
  		// Adjust the stack; params is the # of fixed real
 		// parameters from the prototype, and fr.top holds
 		// the # of passed arguments currently on the frame
 		// local stack.
-		switch params := fr.closure.proto.NumParams(); {
- 			// # arguments < # parameters
-			case fr.gettop() < params:
+		switch params := fr.closure.binary.NumParams(); {
+			case fr.gettop() < params: // # arguments < # parameters
 				for fr.gettop() < params {
-					fr.push(nil) // nil to top
+					fr.push(None) // nil to top
 				}
- 			// # arguments > # parameters
-			case fr.gettop() > params:
+			case fr.gettop() > params: // # arguments > # parameters
 				extras := fr.popN(fr.gettop() - params)
-				if fr.closure.proto.IsVararg() {
+				if fr.closure.binary.IsVararg() {
 				    fr.vararg = extras
 				}
 		}
@@ -222,19 +219,20 @@ func (state *State) call(fr *Frame) {
 	}
 
 	// Otherwise Go closure.
-	switch retc := fr.closure.native(state); {
-		// # returned == # expected
-		default:
-			fr.caller().pushN(fr.popN(retc))
- 		// # returned > # expected
-		case retc > fr.rets:
-			fr.caller().pushN(fr.popN(fr.rets))
- 		// # returned < # expected
-		case retc < fr.rets:
-			fr.caller().pushN(fr.popN(retc))
-			fr.caller().pushN(make([]Value, fr.rets-retc))
+	if rets := fr.popN(fr.closure.native(state)); fr.rets != 0 {
+		switch retc := len(rets); {
+			case retc < fr.rets:
+				for retc < fr.rets {
+					rets = append(rets, None)
+					retc++
+				}
+			case retc > fr.rets:
+				if fr.rets != MultRets {
+					rets = rets[:fr.rets]
+				}
+		}
+		fr.caller().pushN(rets)
 	}
-	//fmt.Printf("returns %v (actual=%d, wanted=%d)\n", rets, retc, fr.rets)
 }
 
 func (state *State) init(g *global) {
@@ -296,112 +294,86 @@ func (state *State) load(filename string, source interface{}) (*Closure, error) 
 		return nil, err
 	}
 
-	if state.global.config.trace {
-		fmt.Fprintln(os.Stdout, &chunk)
-	}
-
 	cls := newLuaClosure(&chunk.Entry)
     if len(cls.upvals) > 0 {
         globals := state.global.registry.getInt(GlobalsIndex)
-        cls.upvals[0] = &globals        
+        cls.upvals[0] = &upValue{index: -1, value: globals}
     }
 	return cls, nil
 }
 
-func (state *State) gettable(obj, key Value, chain int) Value {
-	if chain > MaxMetaChain {
-		state.errorf("'__index' chain too long; possible loop")
+func (state *State) gettable(obj, key Value, raw bool) Value {
+	if tbl, ok := obj.(*Table); ok {
+		if val := tbl.Get(key); !IsNone(val) || raw || IsNone(state.metafield(tbl, "__index")) {
+			return val
+		}
+		val, err := tryMetaIndex(state, tbl, key)
+		if err != nil {
+			panic(err)
+		}
+		return val
 	}
-	if tbl, ok := obj.(*Table); ok && tbl.exists(key) {
-		return tbl.Get(key)
-	}
-	// switch meta := state.metafield(obj, metaIndex).(type) {
-	// 	case *Closure:
-	// 		state.frame().push(meta)
-	// 		state.frame().push(obj)
-	// 		state.frame().push(key)
-	// 		state.Call(2, 1)
-	// 		return state.stack(0).pop()
-	// 	case *Table:
-	// 		return state.gettable(meta, key, chain+1)
-	// 	default:
-	// 		if _, ok := obj.(*Table); !ok {
-	// 			state.errorf("attempt to index a %s value (%v)", obj.Type(), key)
-	// 		}
-	// }
-	return None
+	fmt.Printf("gettable(%v, %v, %t)\n", obj, key, raw)
+	state.Debug(true)
+	panic(runtimeErr(fmt.Errorf("table expected, got %v", obj)))
 }
 
-func (state *State) settable(obj, key, val Value, chain int) {
-	if chain > MaxMetaChain {
-		state.errorf("'__newindex' chain too long; possible loop")
-	}
-	if tbl, ok := obj.(*Table); ok && (!tbl.exists(key) || chain == 1) {
+func (state *State) settable(obj, key, val Value, raw bool) {
+	if tbl, ok := obj.(*Table); ok && (!tbl.exists(key) || raw) {
 		tbl.Set(key, val)
 		return
 	}
-	unimplemented("settable: '__newindex'")
-	// switch meta := state.metafield(obj, metaNewIndex).(type) {
-	// 	case *Closure:
-	// 		state.frame().push(meta)
-	// 		state.frame().push(obj)
-	// 		state.frame().push(key)
-	// 		state.frame().push(val)
-	// 		state.Call(3, 0)
-	// 	case *Table:
-	// 		state.settable(meta, key, val, chain+1)
-	// 	default:
-	// 		if _, ok := obj.(*Table); !ok {
-	// 			state.errorf("attempt to index a %s value (%v)", obj.Type(), key)
-	// 		}
-	// }
+	if err := tryMetaNewIndex(state, obj, key, val); err != nil {
+		panic(err)
+	}
 }
 
-func (state *State) metafield(value Value, event metaEvent) Value {
-	// if meta := state.getmetatable(value, true); meta != nil {
-	// 	if tbl, ok := meta.(*Table); ok && tbl != nil {
-	// 		return tbl.getStr(event.toName())
-	// 	}
-	// }
-	unimplemented("metafield")
+func (state *State) metafield(value Value, event string) Value {
+	if obj := state.getmetatable(value, true); !IsNone(obj) {
+		if tbl, ok := obj.(*Table); ok && tbl != nil {
+			return tbl.getStr(event)
+		}
+	}
 	return None
 }
 
-// pops a table from the stack and sets it as the new metatable
-// for the value at the given index.
-func (state *State) setmetatable(index int) {
-	unimplemented("setmetatable")
+func (state *State) setmetatable(value, meta Value) {
+	mt, ok := meta.(*Table)
+	if !ok && !IsNone(meta) {
+		state.errorf("metatable must be table or nil")
+	}
+	switch v := value.(type) {
+		case *Object:
+			v.meta = mt
+		case *Table:
+			v.meta = mt
+		default:
+			state.global.builtins[v.Type()] = mt
+	}
 }
 
 func (state *State) getmetatable(value Value, rawget bool) Value {
-	// if IsNone(value) {
-	// 	return None
-	// }
-	// var meta Value = None
-	// switch value := value.(type) {
-	// 	case *Object:
-	// 		if !IsNone(value.meta) {
-	// 			meta = value.meta
-	// 		}
-	// 	case *Table:
-	// 		if !IsNone(value.meta) {
-	// 			meta = value.meta
-	// 		}
-	// 	default:
-	// 		if mt := state.global.builtins[value.Type()]; !IsNone(mt) {
-	// 			meta = mt
-	// 		}
-	// }
-	// if !rawget && !IsNone(value) {
-	// 	if mt, ok := meta.(*Table); ok {
-	// 		if mm := mt.getStr("__metatable"); !IsNone(mm) {
-	// 			meta = mm
-	// 		}
-	// 	}
-	// }
-	// return meta
-	unimplemented("getmetatable")
-	return None
+	var meta Value = None
+	switch value := value.(type) {
+		case *Object:
+			if !IsNone(value.meta) {
+				meta = value.meta
+			}
+		case *Table:
+			if !IsNone(value.meta) {
+				meta = value.meta
+			}
+		default:
+			meta = state.global.builtins[value.Type()] 
+	}
+	if !rawget && !IsNone(meta) {
+		if mt, ok := meta.(*Table); ok {
+			if mm := mt.getStr("__metatable"); !IsNone(mm) {
+				meta = mm
+			}
+		}
+	}
+	return meta
 }
 
 func (state *State) Logf(format string, args ...interface{}) {
@@ -409,7 +381,7 @@ func (state *State) Logf(format string, args ...interface{}) {
 }
 
 func (state *State) Log(args ...interface{}) {
-	if state.global.config.debug {
+	if state.global.config.trace {
 		fmt.Fprintf(os.Stdout, "lua: %v\n", fmt.Sprint(args...))
 	}
 }

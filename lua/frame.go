@@ -24,17 +24,16 @@ type (
 
     // Frame is the context to execute a function closure.
     Frame struct {
-        prev, next *Frame // dynamic link caller and callee frame
-        closure *Closure  // frame closure
-        vararg  []Value   // variable arguments
-        locals  []Value   // frame stack locals 
-        upvals  []int     // list of open upvalue indices
-        state   *State    // thread state
-        depth   int       // call frame ID
-        fnID    int       // function index
-        rets    int       // # expected returns
-        //top     int       // next free slot in frame stack
-        pc      int       // last executed instruction pc
+        prev, next *Frame         // dynamic link caller and callee frame
+        closure  *Closure         // frame closure
+        vararg   []Value          // variable arguments
+        locals   []Value          // frame stack locals
+        state    *State           // thread state
+        depth    int              // call frame ID
+        fnID     int              // function index
+        rets     int              // # expected returns
+        pc       int              // last executed instruction pc
+        up       map[int]*upValue // map of open upvalues
     }
 )
 
@@ -64,6 +63,24 @@ func (fr *Frame) absindex(index int) int {
     }
     // negative
     return fr.gettop() + index + 1
+}
+
+// settop sets the locals stack top to top if valid, removing or adding
+// elements to adjust the stack.
+func (fr *Frame) settop(top int) {
+    // if top = fr.absindex(top); top < 0 {
+    //     panic(runtimeErr(fmt.Errorf("stack underflow!")))
+    // }
+    switch diff := fr.gettop() - top; {
+        case diff >= 0: // new top < old top
+            for i := 0; i < diff; i++ {
+                fr.pop()
+            }
+        case diff < 0: // new top > old top
+            for i := 0; i > diff; i-- {
+                fr.push(None)
+            }
+    }
 }
 
 // Reverse reverses the frame's locals stack starting from the src to dst indices.
@@ -147,9 +164,64 @@ func (fr *Frame) callee() *Frame {
     return nil
 }
 
+// varargs returns the values in vararg upto n; if n == 0, then
+// then varargs returns all values in the expression.
+func (fr *Frame) varargs(n int) []Value {
+    // n > len(fr.vararg)
+    // n < len(fr.vararg)
+    if n <= 0 {
+        return fr.vararg
+    }
+    va := make([]Value, n)
+    for i := 0; i < min(len(fr.vararg), n); i++ {
+        va[i] = fr.vararg[i]
+    }
+    return va
+}
+
 // upvalue returns the upvalue at index.
-func (fr *Frame) upvalue(index int) Value {
-    return *fr.closure.upvals[index]
+func (fr *Frame) getUp(index int) *upValue { return fr.closure.getUp(index) }
+
+// setupval set the upvalue at index to value
+func (fr *Frame) setUp(index int, value Value) { fr.closure.setUp(index, value) }
+
+// openUp opens the upvalues for the closure.
+func (fr *Frame) openUp(cls *Closure) {
+    if cls.isLua() {
+        for i, up := range cls.binary.UpValues {
+            fr.state.Logf("open up (%d) @ %d (local = %t)", i, up.AtIndex(), up.IsLocal())
+
+            if up.IsLocal() { // upvalue is local?
+                cls.upvals[i] = fr.findUp(int(up.AtIndex()))
+            } else { // otherwise upvalue is in enclosing function.
+                cls.upvals[i] = fr.closure.upvals[up.AtIndex()]
+            }
+        }
+    }
+}
+
+// findupval searches for the upvalue (open or closed) in the
+// frame's locals stack.
+func (fr *Frame) findUp(index int) *upValue {
+    if fr.up == nil {
+        fr.up = make(map[int]*upValue)
+    }
+    if up, open := fr.up[index]; open {
+        return up
+    }
+    up := &upValue{frame: fr, index: index}
+    fr.up[index] = up
+    return up
+}
+
+// closeUp closes upvalues below the index upto.
+func (fr *Frame) closeUp(upto int) {
+    for i, up := range fr.up {
+        if i <= upto {
+            delete(fr.up, i)
+            up.close()
+        }
+    }
 }
 
 // gettop returns the index of the top element in the stack.
@@ -210,7 +282,7 @@ func (fr *Frame) pop() Value {
 //
 // TODO: ensure stack
 func (fr *Frame) popN(n int) (vs []Value) {
-    vs = make([]Value, n)
+    vs = make([]Value, n, n)
     for i := n-1; i >= 0; i-- {
         vs[i] = fr.pop()
     }
@@ -222,9 +294,16 @@ func (fr *Frame) popN(n int) (vs []Value) {
 //
 // TODO: bounds check
 func (fr *Frame) step(n int) ir.Instr {
-    i := ir.Instr(fr.closure.proto.Code[fr.pc])
+    i := ir.Instr(fr.closure.binary.Code[fr.pc])
     fr.pc += n
     return i
+}
+
+// code returns the instruction for pc.
+//
+// TODO: bounds check
+func (fr *Frame) code(pc int) ir.Instr {
+    return ir.Instr(fr.closure.binary.Code[pc])
 }
 
 // set sets the frame local value at index to value.
@@ -232,18 +311,11 @@ func (fr *Frame) step(n int) ir.Instr {
 // TODO: pseudo & upvalue indices.
 // TODO: bounds and stack check.
 func (fr *Frame) set(index int, value Value) {
-    // if index == fr.gettop() {
-    //     fr.push(value)
-    // } else {
-    //     fr.locals[index-1] = value
-    // }
-    if fr.gettop() == index {
+    if fr.gettop() == 0 || fr.gettop() == index {
         fr.push(value)
         return
     }
-    if index = fr.absindex(index); fr.instack(index) {
-        fr.locals[index-1] = value
-    }
+    fr.locals[index] = value
 }
 
 // get returns the value located in the frame's locals
@@ -252,8 +324,8 @@ func (fr *Frame) set(index int, value Value) {
 // TODO: pseudo & upvalue indices.
 // TODO: bounds and stack check.
 func (fr *Frame) get(index int) Value {
-    if index = fr.absindex(index); fr.instack(index) {
-        return fr.locals[index-1]
+    if index >= 0 && index < len(fr.locals) {
+        return fr.locals[index]
     }
     return None
 }

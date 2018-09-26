@@ -3,7 +3,10 @@ package lua
 import (
 	"strconv"
 	"math"
+    "fmt"
 )
+
+var _ = fmt.Println
 
 // Op represents a Lua arithmetic, bitwise, or relational operator.
 type Op int
@@ -34,6 +37,10 @@ const (
     OpGt                     // '>'
     OpGe                     // '>='
     OpNe                     // '~='
+
+    // Miscellaneous Operators
+    OpConcat                 // '..'
+    OpLength                 // '#'
 )
 
 // compare applies the relational operator to the values x and y.
@@ -80,56 +87,47 @@ func (state *State) compare(op Op, x, y Value) bool {
         //case OpGt: // '>'
 
         case OpEq: // '=='
+            if x.Type() != y.Type() {
+                return false
+            }
             switch x := x.(type) {
                 case String:
-                    // x (string) < y (string)
-                    if y, ok := y.(String); ok {
-                        return x == y
-                    }
+                    return x == y.(String)
                 case Float:
-                    // x (float) < y (float)
-                    if y, ok := y.(Float); ok {
-                        return x == y
-                    }
-                    // x (float) < y (int)
-                    if y, ok := y.(Int); ok {
-                        return x == Float(y)
-                    }
+                    return x == y.(Float)
+                case Bool:
+                    return x == y.(Bool)
                 case Int:
-                    // x (integer) < y (float)
-                    if y, ok := y.(Float); ok {
-                        return Float(x) == y
-                    }
-                    // x (integer) < y (integer)
-                    if y, ok := y.(Int); ok {
-                        return x == y
-                    }
+                    return x == y.(Int)
+                case Nil:
+                    return true
             }
+
             // try __eq
             event = metaEq
 
         case OpLe: // '<='
             switch x := x.(type) {
                 case String:
-                    // x (string) < y (string)
+                    // x (string) <= y (string)
                     if y, ok := y.(String); ok {
                         return x <= y
                     }
                 case Float:
-                    // x (float) < y (float)
+                    // x (float) <= y (float)
                     if y, ok := y.(Float); ok {
                         return x <= y
                     }
-                    // x (float) < y (int)
+                    // x (float) <= y (int)
                     if y, ok := y.(Int); ok {
                         return x <= Float(y)
                     }
                 case Int:
-                    // x (integer) < y (float)
+                    // x (integer) <= y (float)
                     if y, ok := y.(Float); ok {
                         return Float(x) <= y
                     }
-                    // x (integer) < y (integer)
+                    // x (integer) <= y (integer)
                     if y, ok := y.(Int); ok {
                         return x <= y
                     }
@@ -167,7 +165,7 @@ func (state *State) compare(op Op, x, y Value) bool {
             event = metaLt
     }
     // try metamethod
-    state.errorf("ops: todo: call relational metamethod: %v(%T,%T)", event.toName(), x, y)
+    state.errorf("ops: todo: call relational metamethod: %v(%T,%T)", event.name(), x, y)
     return false
 }
 
@@ -361,8 +359,31 @@ func (state *State) arith(op Op, x, y Value) Value {
             event = metaBnot
     }
     // try metamethod event
-    state.errorf("ops: todo: call arithmetic metamethod: %v(%T,%T)", event.toName(), x, y)
-    return None
+    val, err := tryMetaBinary(state, x, y, event)
+    if err != nil {
+        panic(runtimeErr(err))
+    }
+    return val
+}
+
+// length returns the length of the object.
+func (state *State) length(obj Value) int {
+    var meta Value
+    switch obj := obj.(type) {
+        case *Table:
+            if meta = state.metafield(obj, "__len"); !IsNone(meta) {
+                break
+            }
+            return len(obj.list)
+        case String:
+            return len(string(obj))
+        default: // try metamethod
+            if meta = state.metafield(obj, "__len"); IsNone(meta) {
+                state.errorf("attempt to get length of %v value", obj.Type())
+            }
+    }
+    state.errorf("ops: todo: call __len metamethod")
+    return 0
 }
 
 // toInteger converts a value to an integer.
@@ -405,6 +426,25 @@ func toNumber(v Value) (Number, bool) {
             return Float(v), true
     }
     return nil, false
+}
+
+// concat returns the concatenation of values.
+func (state *State) concat(values []Value) Value {
+    lhs := values[0]
+    for i := 1; i < len(values); i++ {
+        rhs := values[i]
+        if s1, ok := toString(lhs); ok {
+            if s2, ok := toString(rhs); ok {
+                lhs = String(s1 + s2)
+                continue
+            }
+        }
+        var err error
+        if lhs, err = tryMetaConcat(state, lhs, rhs); err != nil {
+            state.errorf("%v", err)
+        }
+    }
+    return lhs
 }
 
 // toFloat converts a value to a float.

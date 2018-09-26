@@ -91,11 +91,6 @@ func (t *table) String() string {
 	return b.String()
 }
 
-func (t *table) Next(value Value) (Value, Value) {
-	fmt.Println("Next: TODO")
-	return None, None
-}
-
 func (t *table) getStr(key string) Value {
 	return t.Get(String(key)) 
 }
@@ -116,7 +111,67 @@ func (t *table) exists(key Value) bool {
 	return !IsNone(t.Get(key))
 }
 
+func (t *table) next(key Value) (k, v Value, more bool) {
+	if IsNone(key) || t.keys == nil { // first iteration?
+		t.keys = make(map[Value]int, len(t.hash))
+		t.iter = make([]Value, 0, len(t.hash))
+		for k := range t.hash {
+			t.iter = append(t.iter, k)
+			t.keys[k] = len(t.iter) - 1
+		}
+	}
+	if index := t.iterKey(key); index < len(t.list) {
+		k = Int(index + 1)
+		v = t.list[index]
+		return k, v, true
+	} else {
+		if index = index - len(t.list); index < len(t.iter) {
+			k := t.iter[index]
+			v := t.hash[k]
+			return k, v, true
+		}
+	}
+
+	// Key did not exist or iteration ended.
+	t.iter = nil
+	t.keys = nil
+
+	return None, None, false
+}
+
+// iterKey returns the index of a 'key' for table traversals. First goes
+// all elements in the array part, then elements in the hash part. The
+// beginning of a traversal is signaled by 0.
+func (t *table) iterKey(key Value) (index int) {
+	if IsNone(key) { return 0 } // first iteration?
+	index = arrayIndex(key)
+	if index != 0 && index <= len(t.list) { // key in array?
+		return index // found index
+	}
+	// otherwise key is in hash part.
+	var found bool
+	if index, found = t.keys[key]; !found {
+		panic(runtimeErr(fmt.Errorf("invalid key (%v) to 'next'", key)))
+	}
+	// hash elements are numbered after array ones.
+	return index + 1 + len(t.list)
+}
+
 const maxInt = int(^uint(0) >> 1)
+
+func arrayIndex(val Value) int {
+	switch val := val.(type) {
+		case Float:
+			if x, ok := float2int(float64(val)); ok {
+				return x
+			}
+		case Int:
+			if x := int(val); x > 0 && x < maxInt {
+				return x
+			}
+	}
+	return 0
+}
 
 func float2int(f64 float64) (int, bool) {
 	if math.IsInf(f64, 0) || math.IsNaN(f64) {
@@ -127,18 +182,4 @@ func float2int(f64 float64) (int, bool) {
 		}
 		return 0, false
 	}
-}
-
-func arrayIndex(num Number) int {
-	switch num := num.(type) {
-		case Float:
-			if x, ok := float2int(float64(num)); ok {
-				return x
-			}
-		case Int:
-			if x := int(num); x > 0 && x < maxInt {
-				return x
-			}
-	}
-	return 0
 }
