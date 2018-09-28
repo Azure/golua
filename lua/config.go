@@ -32,6 +32,16 @@ const (
 	// package.path.
 	EnvVarLuaPath = "$LUA_PATH"
 
+	// Versioned equivalent to LUA_INIT.
+	EnvVarLuaInit53 = "$LUA_INIT_5_3"
+
+	// When called without option -E, the interpreter checks for
+	// an environment variable LUA_INIT_5_3 (or LUA_INIT if the
+	// versioned name is not defined) before running any argument.
+	// If the variable content has the format @filename, then lua
+	// executes the file. Otherwise, lua executes the string itself.
+	EnvVarLuaInit = "$LUA_INIT"
+
 	// Name of the environment variable that Lua checks to set
 	// the Lua root dir.
 	EnvVarLuaRoot = "$LUA_ROOT"
@@ -71,16 +81,7 @@ var (
 	//
 	// On init, Root is set to the value of the environment variable LUA_ROOT;
 	// otherwise Root is set to DefaultLuaRootPrefix.
-	Root = expand(EnvVarLuaRoot, DefaultLuaRootPrefix)
-
-	// Path is the path to the directory used by Lua require to search for a go loader.
-	//
-	// Lua initializes the LuaGoPath (package.gopath) in the same way it initializes
-	// LuaPath (package.path), using the environment variable LUA_GOPATH_5_3 or LUA_GOPATH.
-	//
-	// On init, Path is set to the value of the environment variable LUA_GOPATH;
-	// otherwise Path is set to DefaultLuaGoPath.
-	Home = expand(EnvVarLuaGoPath, DefaultLuaGoPath)
+	EnvRoot = expand(EnvVarLuaRoot, DefaultLuaRootPrefix)
 
 	// Home is the path to the directory Lua used by require to search for lua loaders.
 	//
@@ -90,7 +91,21 @@ var (
 	//
 	// On init, Home is set to the value of the environment variable LUA_PATH;
 	// otherwise Home is set to DefaultLuaPath.
-	Path = expand(EnvVarLuaPath, DefaultLuaPath)
+	EnvHome = expand(EnvVarLuaGoPath, DefaultLuaGoPath)
+
+	// Path is the path to the directory used by Lua require to search for a go loader.
+	//
+	// Lua initializes the LuaGoPath (package.gopath) in the same way it initializes
+	// LuaPath (package.path), using the environment variable LUA_GOPATH_5_3 or LUA_GOPATH.
+	//
+	// On init, Path is set to the value of the environment variable LUA_GOPATH;
+	// otherwise Path is set to DefaultLuaGoPath.
+	EnvPath = expand(EnvVarLuaPath, DefaultLuaPath)
+
+	// EnvInit is the path to file or string used to initialize Lua.
+	//
+	// export LUA_INIT=@/path/to/file/init.lua
+	EnvInit = expand(EnvVarLuaInit, "")
 )
 
 // expand expands the environment variable envvar return the value set in the
@@ -133,3 +148,12 @@ func WithVerbose(enable bool) Option {
 		cfg.debug = enable
 	}
 }
+
+// Mode is a set of flags (or 0). They control where Lua chunk loading is limited
+// to binary chunks, text chunks, or both (default).
+type Mode uint
+
+const (
+	BinaryMode Mode = 1 << iota // Only binary chunks
+	TextMode 					// Only text chunks
+)

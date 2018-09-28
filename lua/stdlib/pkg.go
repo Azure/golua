@@ -9,27 +9,27 @@ import (
 )
 
 //
-// Lua Standard Library -- Load/Package
+// Lua Standard Library -- load/package
 //
 
-func OpenLoad(state *lua.State) int {
+func OpenPackage(state *lua.State) int {
 	// Create 'package' table
-	var pkgFuncs = map[string]lua.Func{
-		"searchpath": lua.Func(SearchPath),
-		"loadlib": 	  lua.Func(LoadLibrary),
+	var packageFuncs = map[string]lua.Func{
+		"searchpath": lua.Func(SearchPath),  // lua.Func(pkgSearchPath),
+		"loadlib": 	  lua.Func(LoadLibrary), // lua.Func(pkgLoadLib),
 	}
 	state.NewTableSize(0, 8)
-	state.SetFuncs(pkgFuncs, 0)
+	state.SetFuncs(packageFuncs, 0)
 
 	// Create 'searchers' table.
 	createSearchersTable(state)
 	
 	// Set 'path' field.
-	state.Push(lua.Path)
+	state.Push(lua.EnvPath)
 	state.SetField(-2, "path")
 
 	// Set 'cpath' field.
-	state.Push(lua.Home)
+	state.Push(lua.EnvHome)
 	state.SetField(-2, "cpath")
 
 	// Set 'config' field.
@@ -238,7 +238,7 @@ func searchLua(state *lua.State) int {
 		// Module not found in this path.
 		return 1
 	}
-	if err := state.Load(filename, nil); err != nil {
+	if err := state.Load(filename, nil, 0); err != nil {
 		// Module didn't load successfully.
 		state.Push(fmt.Sprintf("error loading module '%s' from file '%s':\n\t%v",
 			modname,
@@ -247,7 +247,6 @@ func searchLua(state *lua.State) int {
 		))
 		return 1
 	}
-
 	// Module loaded successfully. Push the script path
 	// as 2nd argument to module invocator. Return 2
 	// because after the above Load, the module Loader

@@ -68,7 +68,7 @@ type (
 		Protos   []Prototype
 		PcLnTab  []uint32
 		Locals   []LocalVar
-		FreeVars []string
+		UpNames  []string
 	}
 
 	Header struct {
@@ -108,9 +108,8 @@ func (proto *Prototype) IsVararg() bool { return int(proto.Vararg) == 1 }
 func (proto *Prototype) Const(index int) interface{} { return proto.Consts[index] }
 func (proto *Prototype) Proto(index int) *Prototype { return &proto.Protos[index] }
 
-// func Save(out io.Writer, chunk *Chunk) (int64, error) {
-// 	return 0, nil
-// }
+func (upval *UpValue) IsLocal() bool { return upval.InStack == 1 }
+func (upval *UpValue) AtIndex() int { return int(upval.Index) }
 
 func IsChunk(data []byte) bool { return len(data) > 4 && string(data[:4]) == LUA_SIGNATURE }
 
@@ -127,6 +126,12 @@ func Unpack(data []byte) (chunk Chunk, err error) {
 	}()
 	decode(bytes.NewBuffer(data), &chunk)
 	return chunk, err
+}
+
+func Pack(proto *Prototype, strip bool) []byte {
+	b := new(bytes.Buffer)
+	encode(b, proto)
+	return b.Bytes()
 }
 
 func assert(cond bool, mesg string) {

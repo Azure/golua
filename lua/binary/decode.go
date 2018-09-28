@@ -144,9 +144,9 @@ func decodePrototype(r *bytes.Buffer, proto *Prototype) {
 	{
 		var num uint32
 		must(binary.Read(r, order, &num))
-		proto.FreeVars = make([]string, num)
-		for i := range proto.FreeVars {
-			proto.FreeVars[i] = decodeString(r)
+		proto.UpNames = make([]string, num)
+		for i := range proto.UpNames {
+			proto.UpNames[i] = decodeString(r)
 		}
 	}
 }

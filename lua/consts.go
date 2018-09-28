@@ -48,9 +48,15 @@ const (
 	// Limit for table tag-method chains (to avoid loops).
 	MaxMetaChain = 2000
 
+	// Limit for table tag-method chains (to avoid loops).
+	metaLoopMax = 10
+
 	// Maximum depth for nested Go calls and syntactical nested non-terminals
 	// in a program.
 	//
 	// Value must be < 255.
 	MaxCalls = 200
+
+	// Number of list items to accumulate before a SETLIST instruction.
+	FieldsPerFlush = 50
 )

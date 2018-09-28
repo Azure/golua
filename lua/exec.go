@@ -19,13 +19,19 @@ type v53 struct { *State }
 // at index of the binary chunk
 func (vm *v53) prototype(index int) *binary.Prototype {
 	cls := vm.frame().closure
-	return &cls.proto.Protos[index]
+	return &cls.binary.Protos[index]
 }
 
 // constant pushes onto the stack the value of constant at index.
 func (vm *v53) constant(index int) Value {
 	cls := vm.frame().closure
-	return ValueOf(cls.proto.Consts[index])
+	return valueOf(vm.State, cls.binary.Consts[index])
+}
+
+func (vm *v53) trace(instr ir.Instr) {
+	if vm.global.config.debug {
+		fmt.Printf("vm @ %02d : %v\n", vm.frame().pc, instr)
+	}
 }
 
 // fetch returns the next opcode function and instruction to execute
@@ -43,13 +49,12 @@ func (vm *v53) rk(index int) Value {
 		return vm.constant(index & 0xFF)
 	}
 	// Register value
-	return vm.frame().get(index + 1)
+	return vm.frame().get(index)
 }
 
 func execute(vm *v53) {
-	for cmd, instr := vm.fetch(); cmd != nil; {
-		vm.State.Logf("vm @ %02d : %v", vm.frame().pc, instr)
-		cmd, instr = cmd(vm, instr)
+	for cmd, instr := vm.fetch(); cmd != nil; cmd, instr = cmd(vm, instr) {
+		vm.trace(instr)
 	}
 }
 

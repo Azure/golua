@@ -67,6 +67,10 @@ type Object struct {
 	data interface{}
 }
 
+func UserData(data interface{}) *Object {
+	return &Object{data: data}
+}
+
 func (x *Object) Unwrap() interface{} { return x.data }
 func (x *Object) String() string { return fmt.Sprintf("userdata: %p", x) }
 func (x *Object) Type() Type { return UserDataType }
@@ -145,10 +149,21 @@ func (x Func) String() string {
 // Value APIs
 //
 
-func ValueOf(value interface{}) Value {
+func (x *Table) ForEach(fn func(k, v Value)) {
+	for i, v := range x.table.list {
+		fn(Int(i), v)
+	}
+	for k, v := range x.table.hash {
+		fn(k, v)
+	}
+}
+
+func valueOf(state *State, value interface{}) Value {
 	switch value := value.(type) {
 		case func(*State)int:
-			return Func(value)
+			return newGoClosure(Func(value), 0)
+		case Func:
+			return newGoClosure(value, 0)
 		case float64:
 			return Float(value)
 		case float32:
@@ -169,7 +184,7 @@ func ValueOf(value interface{}) Value {
 			return None
 	}
 	udata := &Object{data: value}
-	udata.meta = metaOf(udata)
+	udata.meta = metaOf(state, udata)
 	return udata
 }
 
@@ -181,6 +196,20 @@ func isNil(value Value) bool { return reflect.ValueOf(value).IsValid() }//IsNil(
 
 func Truth(value Value) bool { return bool(truth(value)) }
 
+func toString(value Value) (string, bool) {
+	switch value := value.(type) {
+		case String:
+			return string(value), true
+		case Float:
+			s := fmt.Sprintf("%v", float64(value))
+			return s, true
+		case Int:
+			s := fmt.Sprintf("%v", int64(value))
+			return s, true
+	}
+	return "", false
+}
+
 // truth returns true for any Lua value different from false
 // and None (or nil), otherwise returns false.
 func truth(value Value) Bool {
@@ -189,3 +218,6 @@ func truth(value Value) Bool {
 	}
 	return Bool(!IsNone(value))
 }
+
+func max(a, b int) int { if a > b { return a }; return b }
+func min(a, b int) int { if a < b { return a }; return b }

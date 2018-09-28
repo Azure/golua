@@ -42,17 +42,17 @@ func (state *State) get(index int) Value {
 			if index > frame.gettop() {
 				return None
 			}
-			return frame.get(index)
+			return frame.get(index-1)
 		//
 		// Negative stack index
 		//
 		case !isPseudoIndex(index):
 			//state.Logf("get %d (absolute = %d)", index, frame.absindex(index))
 			// Debug(state)
-			// if index = frame.absindex(index); index < 1 || index > frame.gettop() {
-			// 	state.errorf("invalid index (%d)", index)
-			// }
-			return frame.get(index)
+			if index = frame.absindex(index); index < 1 || index > frame.gettop() {
+				state.errorf("invalid index (%d)", index)
+			}
+			return frame.get(index-1)
 		//
 		// Registry pseudo index
 		//
@@ -68,12 +68,11 @@ func (state *State) get(index int) Value {
 			if nups := len(frame.closure.upvals); nups == 0 || nups > index {
 				return None
 			}
-			return frame.upvalue(index-1)
+			return frame.getUp(index-1).get()
 	}
 }
 
 func (state *State) set(index int, value Value) {
-	state.Logf("setting %d = %v", index, value)
 	switch frame := state.frame(); {
 		//
 		// Positive stack index
@@ -85,16 +84,16 @@ func (state *State) set(index int, value Value) {
 			if index > frame.gettop() {
 				return
 			}
-			frame.set(index, value)
+			frame.set(index-1, value)
 			return
 		//
 		// Negative stack index
 		//
 		case !isPseudoIndex(index):
-			// if index = state.AbsIndex(index); index < 1 || index > stack.top() {
-			// 	state.errorf("invalid index (%d)", index)
-			// }
-			frame.set(index, value)
+			if index = frame.absindex(index); index < 1 || index > frame.gettop() {
+				state.errorf("invalid index (%d)", index)
+			}
+			frame.set(index-1, value)
 			return
 		//
 		// Registry pseudo index
@@ -110,14 +109,41 @@ func (state *State) set(index int, value Value) {
 			if index = RegistryIndex - index; index >= MaxUpValues {
 				state.errorf("upvalue index too large (%d)", index)
 			}
-			Debug(state)
-
 			if nups := len(frame.closure.upvals); nups == 0 || nups > index {
 				return
 			}			
-			frame.closure.upvals[index] = &value
+			frame.setUp(index-1, value)
 			return
 	}
+}
+
+// converts an integer to a "floating point byte", represented as (eeeeexxx), where the real
+// value is (1xxx) * 2^(eeeee - 1) if eeeee != 0 and (xxx) otherwise.
+func i2fb(i int) int {
+	var (
+		u = uint8(i)
+		e int = 0 // exponent
+	)
+	if u < 8 {
+		return i
+	}
+	for u >= (8 << 4) {    // coarse steps
+		u = (u + 0xF) >> 4 // x = ceil(x/16)
+		e += 4
+	}
+	for u >= (8 << 1) {  // fine steps
+		u = (u + 1) >> 1 // x = ceil(x/2)
+		e++
+	}
+	return ((e + 1) << 3) | (int(i) - 8)
+}
+
+// converts a "floating point byte" to an integer.
+func fb2i(i int) int {
+	if i < 8 {
+		return i
+	}
+	return ((i & 7) + 8) << ((uint8(i) >> 3) - 1)
 }
 
 // When a function is created, it is possible to associate some values with it, thus creating
