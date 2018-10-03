@@ -151,7 +151,7 @@ func (state *State) Pop() Value { return state.frame().pop() }
 func (state *State) Dump(strip bool) []byte {
     if cls, ok := state.get(-1).(*Closure); ok {
         if cls.isLua() {
-            return binary.Pack(cls.binary, strip)
+            return binary.Dump(cls.binary, strip)
         }
     }
     return nil
@@ -199,12 +199,17 @@ func (state *State) Load(filename string, source interface{}, mode Mode) error {
 }
 
 // Register sets the Go function fn as the new value of global name.
-// state.PushFunc(fn)
-// state.SetGlobal(name)
-func (state *State) Register(name string, fn Func) { unimplemented("Register") }
+func (state *State) Register(name string, fn Func) {
+    state.Push(newGoClosure(fn, 0))
+    state.SetGlobal(name)
+}
 
 // AtPanic sets a new panic function and returns the old one (see §4.6).
-func (state *State) AtPanic(fn Func) Func { unimplemented("AtPanic"); return nil }
+func (state *State) AtPanic(panicFn Func) Func {
+    prevFn := state.global.panicFn
+    state.global.panicFn = panicFn
+    return prevFn
+}
 
 // Status returns the status of the thread.
 // 
@@ -281,13 +286,19 @@ func (state *State) Concat(n int) {
 // The result is pushed on the stack.
 func (state *State) Length(index int) int { unimplemented("Length"); return 0 }
 
-// Compares two Lua values. Returns 1 if the value at index index1 satisfies op when compared with the value at index index2, following the semantics of the corresponding Lua operator (that is, it may call metamethods). Otherwise returns 0. Also returns 0 if any of the indices is not valid.
+// Compares two Lua values. Returns 1 if the value at index index1 satisfies op
+// when compared with the value at index index2, following the semantics of the
+// corresponding Lua operator (that is, it may call metamethods).
+//
+// Otherwise returns false. Also returns false if any of the indices are invalid.
 // 
 // The value of op must be one of the following constants:
 //      * LUA_OPEQ: compares for equality (==)
 //      * LUA_OPLT: compares for less than (<)
 //      * LUA_OPLE: compares for less or equal (<=)
-func (state *State) Compare(op Op, i1, i2 int) bool { unimplemented("Compare"); return false }
+func (state *State) Compare(op Op, i1, i2 int) bool {
+   return state.compare(op, state.get(i1), state.get(i2))
+}
 
 // Pushes onto the stack the value of the global name.
 // 

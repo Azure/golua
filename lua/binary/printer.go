@@ -5,6 +5,8 @@ import (
 	"strings"
 	"fmt"
 
+	"github.com/davecgh/go-spew/spew"
+
 	"github.com/Azure/golua/lua/ir"
 	"github.com/Azure/golua/lua/op"
 )
@@ -157,4 +159,8 @@ func pcln(pclntab []uint32, pc int) (line string) {
 		line = fmt.Sprintf("%d", pclntab[pc])
 	}
 	return line
+}
+
+func Print(proto *Prototype) string {
+	return spew.Sdump(proto)
 }

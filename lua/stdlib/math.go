@@ -78,8 +78,15 @@ func OpenMath(state *lua.State) int {
 //
 // See https://www.lua.org/manual/5.3/manual.html#pdf-math.abs
 func mathAbs(state *lua.State) int {
-    unimplemented("math.abs")
-    return 0
+    if state.IsInt(1) {
+         n := state.ToInt(1)
+         if n < 0 { n = -n }
+         state.Push(n)
+    } else {
+         n := state.CheckNumber(1)
+         state.Push(math.Abs(n))
+    }
+    return 1
 }
 
 // math.acos (x)
@@ -88,8 +95,9 @@ func mathAbs(state *lua.State) int {
 //
 // See https://www.lua.org/manual/5.3/manual.html#pdf-math.acos
 func mathAcos(state *lua.State) int {
-    unimplemented("math.acos")
-    return 0
+    f64 := state.CheckNumber(1)
+    state.Push(math.Acos(f64))
+    return 1
 }
 
 // math.asin (x)
@@ -98,8 +106,9 @@ func mathAcos(state *lua.State) int {
 //
 // See https://www.lua.org/manual/5.3/manual.html#pdf-math.asin
 func mathAsin(state *lua.State) int {
-    unimplemented("math.asin")
-    return 0
+    f64 := state.CheckNumber(1)
+    state.Push(math.Asin(f64))
+    return 1
 }
 
 // math.atan (y [, x])
@@ -107,13 +116,14 @@ func mathAsin(state *lua.State) int {
 // Returns the arc tangent of y/x (in radians), but uses the signs of both arguments to find the
 // quadrant of the result. (It also handles correctly the case of x being zero.)
 //
-//
 // The default value for x is 1, so that the call math.atan(y) returns the arc tangent of y.
 //
 // See https://www.lua.org/manual/5.3/manual.html#pdf-math.atan
 func mathAtan(state *lua.State) int {
-    unimplemented("math.atan")
-    return 0
+    y := state.CheckNumber(1)
+    x := state.OptNumber(2, 1.0)
+    state.Push(math.Atan2(y, x))
+    return 1
 }
 
 // math.ceil (x)
@@ -122,8 +132,21 @@ func mathAtan(state *lua.State) int {
 //
 // See https://www.lua.org/manual/5.3/manual.html#pdf-math.ceil
 func mathCeil(state *lua.State) int {
-    unimplemented("math.ceil")
-    return 0
+    if state.IsInt(1) {
+        state.SetTop(1)
+        return 1
+    }
+    var (
+        num = state.CheckNumber(1)
+        f64 = math.Ceil(num)
+        i64 = int64(f64)
+    )
+    if float64(i64) == f64 {
+        state.Push(i64)
+    } else {
+        state.Push(f64)
+    }
+    return 1
 }
 
 // math.cos (x)
@@ -132,8 +155,9 @@ func mathCeil(state *lua.State) int {
 //
 // See https://www.lua.org/manual/5.3/manual.html#pdf-math.cos
 func mathCos(state *lua.State) int {
-    unimplemented("math.cos")
-    return 0
+    f64 := state.CheckNumber(1)
+    state.Push(math.Cos(f64))
+    return 1
 }
 
 // math.deg (x)
@@ -142,8 +166,10 @@ func mathCos(state *lua.State) int {
 //
 // See https://www.lua.org/manual/5.3/manual.html#pdf-math.deg
 func mathDeg(state *lua.State) int {
-    unimplemented("math.deg")
-    return 0
+    f64 := state.CheckNumber(1)
+    deg := f64 * 180 / math.Pi
+    state.Push(deg)
+    return 1
 }
 
 // math.exp (x)
@@ -152,8 +178,9 @@ func mathDeg(state *lua.State) int {
 //
 // See https://www.lua.org/manual/5.3/manual.html#pdf-math.exp
 func mathExp(state *lua.State) int {
-    unimplemented("math.exp")
-    return 0
+    f64 := state.CheckNumber(1)
+    state.Push(math.Exp(f64))
+    return 1
 }
 
 // math.floor (x)
@@ -162,29 +189,60 @@ func mathExp(state *lua.State) int {
 //
 // See https://www.lua.org/manual/5.3/manual.html#pdf-math.floor
 func mathFloor(state *lua.State) int {
-    unimplemented("math.floor")
-    return 0
+    if state.IsInt(1) {
+        state.SetTop(1)
+        return 1
+    }
+    var ( 
+       num = state.CheckNumber(1)
+        f64 = math.Floor(num)
+        i64 = int64(f64)
+    )
+    if float64(i64) == f64 {
+        state.Push(i64)
+    } else {
+        state.Push(f64)
+    }
+    return 1
 }
 
 // math.fmod (x, y)
 //
-// Returns the remainder of the division of x by y that rounds the quotient towards zero. (integer/float)
+// Returns the remainder of the division of x by y that rounds the
+// quotient towards zero. (integer/float)
 //
 // See https://www.lua.org/manual/5.3/manual.html#pdf-math.fmod
 func mathFmod(state *lua.State) int {
-    unimplemented("math.fmod")
-    return 0
+    if state.IsInt(1) && state.IsInt(2) {
+        if d := state.CheckInt(2); uint64(d) + 1 <= 1 {
+            if d == 0 {
+                panic("bad argument to 'fmod' (zero)")
+            }
+            state.Push(0)
+            return 1
+        } else {
+            n := state.CheckInt(1)
+            state.Push(n % d)
+            return 1
+        }
+    }
+    n := state.CheckNumber(1)
+    d := state.CheckNumber(2)
+    state.Push(math.Mod(n, d))
+    return 1
 }
 
 // math.log (x [, base])
 //
-// Returns the logarithm of x in the given base. The default for base is e (so that the function returns
-// the natural logarithm of x).
+// Returns the logarithm of x in the given base. The default for base is e
+// (so that the function returns the natural logarithm of x).
 //
 // See https://www.lua.org/manual/5.3/manual.html#pdf-math.log
 func mathLog(state *lua.State) int {
-    unimplemented("math.log")
-    return 0
+    num := state.CheckNumber(1)
+    base := state.OptNumber(2, math.E)
+    state.Push(math.Log(num) / math.Log(base))
+    return 1
 }
 
 // math.max (x, ···)
@@ -193,8 +251,17 @@ func mathLog(state *lua.State) int {
 //
 // See https://www.lua.org/manual/5.3/manual.html#pdf-math.max
 func mathMax(state *lua.State) int {
-    unimplemented("math.max")
-    return 0
+   if state.Top() < 1 {
+        panic("bad argument to 'max' (value expected)")
+    }
+    var max int = 1
+    for i := 1; i <= state.Top(); i++ {
+        if state.Compare(lua.OpLt, max, i) { // i > max
+            max = i
+        }
+    }
+    state.PushIndex(max)
+    return 1
 }
 
 // math.min (x, ···)
@@ -203,8 +270,17 @@ func mathMax(state *lua.State) int {
 //
 // See https://www.lua.org/manual/5.3/manual.html#pdf-math.min
 func mathMin(state *lua.State) int {
-    unimplemented("math.min")
-    return 0
+    if state.Top() < 1 {
+        panic("bad argument to 'min' (value expected)")
+    }
+    var min int = 1
+    for i := 1; i <= state.Top(); i++ {
+        if state.Compare(lua.OpLt, i, min) { // i < min
+            min = i
+        }
+    }
+    state.PushIndex(min)
+    return 1
 }
 
 // math.modf (x)
@@ -213,8 +289,15 @@ func mathMin(state *lua.State) int {
 //
 // See https://www.lua.org/manual/5.3/manual.html#pdf-math.modf
 func mathModf(state *lua.State) int {
-    unimplemented("math.modf")
-    return 0
+    if state.IsInt(1) {
+        state.Push(0.0)
+        return 2
+    }
+    x := state.CheckNumber(1)
+    i, f := math.Modf(x)
+    state.Push(i)
+    state.Push(f)
+    return 2
 }
 
 // math.rad (x)
@@ -223,8 +306,10 @@ func mathModf(state *lua.State) int {
 //
 // See https://www.lua.org/manual/5.3/manual.html#pdf-math.rad
 func mathRad(state *lua.State) int {
-    unimplemented("math.rad")
-    return 0
+    f64 := state.CheckNumber(1)
+    rad := f64 * math.Pi / 180
+    state.Push(rad)
+    return 1
 }
 
 // math.random ([m [, n]])
@@ -239,8 +324,28 @@ func mathRad(state *lua.State) int {
 //
 // See https://www.lua.org/manual/5.3/manual.html#pdf-math.random
 func mathRand(state *lua.State) int {
-    unimplemented("math.random")
-    return 0
+    var ( lo, hi int64 )
+    switch argc := state.Top(); argc {
+        case 0:
+            state.Push(rand.Float64())
+            return 1
+        case 1:
+            lo, hi = 1, state.CheckInt(1)
+        case 2:
+            lo = state.CheckInt(1)
+            hi = state.CheckInt(2)
+        default:
+            panic("wrong number of arguments")
+    }
+    if lo < 0 && hi > math.MaxInt64 + lo {
+        panic("interval too large")
+    } 
+    if lo > hi {
+        panic("bad argument to 'random' (interval is empty)")
+    }
+    rn := rand.Int63n(hi-lo+1) + lo
+    state.Push(rn)
+    return 1
 }
 
 // math.randomseed (x)
@@ -259,8 +364,9 @@ func mathRandSeed(state *lua.State) int {
 //
 // See https://www.lua.org/manual/5.3/manual.html#pdf-math.sin
 func mathSin(state *lua.State) int {
-    unimplemented("math.sin")
-    return 0
+    f64 := state.CheckNumber(1)
+    state.Push(math.Sin(f64))
+    return 1
 }
 
 // math.sqrt (x)
@@ -269,8 +375,9 @@ func mathSin(state *lua.State) int {
 //
 // See https://www.lua.org/manual/5.3/manual.html#pdf-math.sqrt
 func mathSqrt(state *lua.State) int {
-    unimplemented("math.sqrt")
-    return 0
+    f64 := state.CheckNumber(1)
+    state.Push(math.Sqrt(f64))
+    return 1
 }
 
 // math.tan (x)
@@ -279,8 +386,9 @@ func mathSqrt(state *lua.State) int {
 //
 // See https://www.lua.org/manual/5.3/manual.html#pdf-math.tan
 func mathTan(state *lua.State) int {
-    unimplemented("math.tan")
-    return 0
+    f64 := state.CheckNumber(1)
+    state.Push(math.Tan(f64))
+    return 1
 }
 
 // math.tointeger (x)
@@ -289,8 +397,12 @@ func mathTan(state *lua.State) int {
 //
 // See https://www.lua.org/manual/5.3/manual.html#pdf-math.tointeger
 func mathToInt(state *lua.State) int {
-    unimplemented("math.tointeger")
-    return 0
+    if i64, ok := state.TryInt(1); ok {
+        state.Push(i64)
+    } else {
+        state.Push(nil)
+    }
+    return 1
 }
 
 // math.type (x)
@@ -299,16 +411,27 @@ func mathToInt(state *lua.State) int {
 //
 // See https://www.lua.org/manual/5.3/manual.html#pdf-math.type
 func mathType(state *lua.State) int {
-    unimplemented("math.type")
-    return 0
+    switch {
+        case state.IsInt(1):
+            state.Push("integer")
+        case state.IsNumber(1):
+            state.Push("float")
+        default:
+            state.CheckAny(1)
+            state.Push(nil)
+    }
+    return 1
 }
 
 // math.ult (m, n)
 //
-// Returns a boolean, true if and only if integer m is below integer n when they are compared as unsigned integers.
+// Returns a boolean, true if and only if integer m is below
+// integer n when they are compared as unsigned integers.
 //
 // See https://www.lua.org/manual/5.3/manual.html#pdf-math.ult
 func mathUlt(state *lua.State) int {
-    unimplemented("math.ult")
-    return 0
+    m := uint64(state.CheckInt(1))
+    n := uint64(state.CheckInt(2))
+    state.Push(m < n)
+    return 1
 }

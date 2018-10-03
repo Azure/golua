@@ -80,16 +80,35 @@ func baseAssert(state *lua.State) int {
 
 // dofile([filename])
 //
+// Opens the named file and executes its contents as a Lua chunk.
+// When called without arguments, dofile executes the contents of
+// the standard input (stdin). Returns all values returned by the
+// chunk. In case of errors, dofile propagates the error to its
+// caller (that is, dofile does not run in protected mode).
+//
 // See https://www.lua.org/manual/5.3/manual.html#pdf-dofile
 func baseDoFile(state *lua.State) int {
-    unimplemented("base: assert")
-    return 0
+    var (
+        file = state.OptString(1, "")
+        src interface{} = nil
+    )
+    state.SetTop(1)
+    if file == "" {
+        file = "stdin"
+        src = os.Stdin
+    }
+    if err := state.Load(file, src, 0); err != nil {
+        panic(err)
+    }
+    state.Call(0, lua.MultRets)
+    return state.Top() - 1
 }
 
 // error(message [, level])
 //
 // See https://www.lua.org/manual/5.3/manual.html#pdf-error
 func baseError(state *lua.State) int {
+    state.Debug(true)
     unimplemented("base: error")
     return 0
 }
@@ -178,7 +197,7 @@ func baseLoad(state *lua.State) int {
     if state.TypeAt(4) != lua.NilType {
         env = 4
     }
-    chunk, ok := state.ToString(1)
+    chunk, ok := state.TryString(1)
     if ok && chunk != "" { // loading a string?
         name = state.OptString(2, chunk)    
     } else {
@@ -221,6 +240,8 @@ func baseNext(state *lua.State) int {
 //
 // See https://www.lua.org/manual/5.3/manual.html#pdf-pairs
 func basePairs(state *lua.State) int {
+    fmt.Println(state.GetMetaField(1, "__pairs"))
+    state.Debug(true)
     if state.CheckAny(1); state.GetMetaField(1, "__pairs") == lua.NilType { // no metamethod?
         state.PushClosure(baseNext, 0) // will return generator
         state.PushIndex(1)             // state,
@@ -320,10 +341,17 @@ func baseToNumber(state *lua.State) int {
 
 // tostring(v)
 //
+// Receives a value of any type and converts it to a string in a human-readable
+// format. For complete control of how numbers are converted, use string.format.
+//
+// If the metatable of v has a __tostring field, then tostring calls the corresponding
+// value with v as argument, and uses the result of the call as its result.
+//
 // See https://www.lua.org/manual/5.3/manual.html#pdf-tostring
 func baseToString(state *lua.State) int {
-    unimplemented("base: tostring")
-    return 0
+    state.CheckAny(1)
+    state.Push(state.ToString(1))
+    return 1
 }
 
 // type(v)

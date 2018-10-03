@@ -267,7 +267,7 @@ func searchLua(state *lua.State) int {
 
 func findFile(state *lua.State, name, pathkey string) string {
 	state.GetField(lua.UpValueIndex(1), pathkey)
-	path, ok := state.ToString(-1)
+	path, ok := state.TryString(-1)
 	if !ok {
 		state.Errorf("'package.%s' must be a string", pathkey)
 	}

@@ -289,7 +289,7 @@ func (state *State) load(filename string, source interface{}) (*Closure, error) 
 		state.emit(filename)
 	}
 
-	chunk, err := binary.Unpack(src)
+	chunk, err := binary.Load(src)
 	if err != nil {
 		return nil, err
 	}
@@ -334,7 +334,7 @@ func (state *State) metafield(value Value, event string) Value {
 			return tbl.getStr(event)
 		}
 	}
-	return None
+	return nilValue
 }
 
 func (state *State) setmetatable(value, meta Value) {

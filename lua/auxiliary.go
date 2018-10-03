@@ -1,5 +1,9 @@
 package lua
 
+import "fmt"
+
+var _ = fmt.Println
+
 // If the registry already has the key name, return false. Otherwise, creates a new table to
 // be used as a metatable for userdata, adds to this new table the pair __name = name, adds
 // to the registry the pair [name] = new table, and returns true. The entry __name is used
@@ -64,139 +68,6 @@ func (state *State) GetMetaTable(name string) Type {
     return NilType
 }
 
-// CheckType checks whether the function argument at index has type typ.
-//
-// See https://www.lua.org/manual/5.3/manual.html#luaL_checktype
-func (state *State) CheckType(index int, typ Type) {
-	if state.TypeAt(index) != typ {
-		typeError(state, index, typ)
-	}
-}
-
-// CheckString checks whether the function argument at index is a string and returns
-// this string. This function uses ToString to get its result, so all conversions
-// and caveats of that function apply here.
-//
-// See https://www.lua.org/manual/5.3/manual.html#luaL_checkstring
-func (state *State) CheckString(index int) string {
-	v, ok := state.ToString(index)
-	if !ok {
-		typeError(state, index, StringType)
-	}
-	return v
-}
-
-// CheckInt checks whether the function argument at index is an integer (or can be converted to an
-// integer) and returns the value as an integer.
-//
-// See https://www.lua.org/manual/5.3/manual.html#luaL_checkinteger
-func (state *State) CheckInt(index int) int64 {
-	v, ok := toInteger(state.get(index))
-	if !ok {
-		intError(state, index)
-	}
-	return int64(v)
-}
-
-// CheckAny checks whether the function has an argument of any type (including nil)
-// at position index.
-//
-// See https://www.lua.org/manual/5.3/manual.html#luaL_checkany
-func (state *State) CheckAny(index int) {
-	if state.TypeAt(index) == NilType {
-		argError(state, index, "value expected")
-	}
-}
-
-// OptString checks if the argument at index is a string and returns this string;
-// Otherwise, if absent or nil, returns optStr.
-//
-// This function invokes CheckString so the caveats of that function apply here.
-//
-// See https://www.lua.org/manual/5.3/manual.html#pdf-optstring
-func (state *State) OptString(index int, optStr string) string {
-	if state.TypeAt(index) == NilType {
-		return optStr
-	}
-	return state.CheckString(index)
-}
-
-// OptInt checks if the function argument at index is an integer (or convertible to), and returns
-// the integer; Otherwise, if absent or nil, returns optInt.
-//
-// This function invokes CheckInt so the caveats of that function apply here.
-//
-// See https://www.lua.org/manual/5.3/manual.html#luaL_optinteger
-func (state *State) OptInt(index int, optInt int64) int64 {
-	if state.TypeAt(index) == IntType {
-		return optInt
-	}
-	return state.CheckInt(index)
-}
-
-// ToString converts the Lua value at the given index to a Go string. The Lua value must be a string
-// or a number; otherwise, the function returns ("", false). If the value is a number, then ToString
-// also changes the actual value in the stack to a string. (This change confuses Next(...) when ToString
-// is applied to keys during a table traversal.)
-//
-// ToString returns a copy of the string inside the Lua state.
-//
-// See https://www.lua.org/manual/5.3/manual.html#lua_tolstring
-func (state *State) ToString(index int) (string, bool) {
-	// TODO: check __tostring ??
-	s, ok := toString(state.get(index))
-	if ok {
-		state.set(index, String(s))
-	}
-	return s, ok
-}
-
-// ToBool converts the Lua value at the given index to a Go boolean value. Like all tests in Lua, ToBool
-// returns true for any Lua value different from false and nil; otherwise it returns false.
-//
-// If you want to accept only actual boolean values, use IsBool to test the value's type.
-//
-// See https://www.lua.org/manual/5.3/manual.html#lua_toboolean
-func (state *State) ToBool(index int) bool {
-	return Truth(state.Value(index))
-}
-
-// ToThread converts the value at the given index to a Lua thread (*State). This value must be a thread;
-// otherwise, the function returns nil.
-//
-// See https://www.lua.org/manual/5.3/manual.html#lua_tothread
-func (state *State) ToThread(index int) *Thread {
-	if v, ok := state.get(index).(*Thread); ok {
-		return v
-	}
-	return nil
-}
-
-// IsThread returns true if the value at the given index is a thread; otherwise false.
-//
-// See https://www.lua.org/manual/5.3/manual.html#lua_isthread
-func (state *State) IsThread(index int) bool {
-	return state.TypeAt(index) == ThreadType
-}
-
-// IsNoneOrNil returns true if the given index is not valid or if the value at this index is nil and
-// false otherwise.
-//
-// See https://www.lua.org/manual/5.3/manual.html#lua_isnoneornil
-func (state *State) IsNoneOrNil(index int) bool {
-	return state.IsNone(index) || state.IsNil(index)
-}
-
-// IsNone returns true if the given index is not valid, and false otherwise.
-//
-// See https://www.lua.org/manual/5.3/manual.html#lua_isnone
-func (state *State) IsNone(index int) bool { return state.TypeAt(index) == NilType }
-
-// IsNil returns true if the value at the given index is nil, and false otherwise.
-//
-// See https://www.lua.org/manual/5.3/manual.html#lua_isnil
-func (state *State) IsNil(index int) bool { return IsNone(state.get(index)) }
-
 // TypeAt returns the type of the value in the given valid index.
 //
 // TypeAt returns NilType for a non-valid (but acceptable) index.
@@ -214,7 +85,14 @@ func (state *State) TypeAt(index int) Type {
 	if state.isValid(index) {
 		return state.get(index).Type()
 	}
-	return NilType
+	return NoneType
+}
+
+func (state *State) valueAt(index int) Value {
+	if state.isValid(index) {
+		return state.get(index)
+	}
+	return None
 }
 
 func (state *State) isValid(index int) bool {

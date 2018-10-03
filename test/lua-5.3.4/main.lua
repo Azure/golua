@@ -8,7 +8,6 @@ if _port then return end
 -- use only "double quotes" inside shell scripts (better change to
 -- run on Windows)
 
-
 print ("testing stand-alone interpreter")
 
 assert(os.execute())   -- machine has a system command

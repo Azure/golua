@@ -9,7 +9,7 @@ import (
 type Type int
 
 const (
-	NilType  	 Type = iota
+	NilType   	 Type = iota
 	IntType
 	BoolType
 	FloatType
@@ -20,9 +20,11 @@ const (
 	ThreadType
 	TableType
 	maxTypeID
+	NoneType
 )
 
 var types = [...]string{
+	NoneType: 	  "no value",
 	NilType: 	  "nil",
 	IntType: 	  "int",
 	BoolType: 	  "boolean",
@@ -61,6 +63,16 @@ type (
 		Type() Type
 	}
 )
+
+// func (x *Object) Format(fmts fmt.State, char rune) {}
+// func (x *Table) Format(fmts fmt.State, char rune) {}
+// func (x Float) Format(fmts fmt.State, char rune) {}
+// func (x String) Format(fmts fmt.State, char rune) {}
+// func (x Bool) Format(fmts fmt.State, char rune) {}
+// func (x Int) Format(fmts fmt.State, char rune) {}
+// func (x Nil) Format(fmts fmt.State, char rune) {}
+// func (x Func) Format(fmts fmt.State, char rune) {}
+// func (x *Thread) Format(fmts fmt.State, char rune) {}
 
 type Object struct {
 	meta *Table
@@ -119,8 +131,14 @@ func (Int) number() {}
 
 type Nil byte
 const None = Nil(0)
+const nilValue = Nil(1)
 func (x Nil) String() string { return "nil" }
-func (x Nil) Type() Type { return NilType }
+func (x Nil) Type() Type {
+	if x == None {
+		return NoneType
+	}
+	return NilType
+}
 
 type Func func(*State)int
 
@@ -181,7 +199,7 @@ func valueOf(state *State, value interface{}) Value {
 		case Value:
 			return value
 		case nil:
-			return None
+			return Nil(1)
 	}
 	udata := &Object{data: value}
 	udata.meta = metaOf(state, udata)
@@ -206,6 +224,13 @@ func toString(value Value) (string, bool) {
 		case Int:
 			s := fmt.Sprintf("%v", int64(value))
 			return s, true
+		case Bool:
+			s := fmt.Sprintf("%t", bool(value))
+			return s, true
+		case Nil:
+			return value.String(), true
+		default:
+			return value.String(), true
 	}
 	return "", false
 }

@@ -2,6 +2,7 @@ package lua
 
 import (
 	"strconv"
+    "strings"
 	"math"
     "fmt"
 )
@@ -87,20 +88,34 @@ func (state *State) compare(op Op, x, y Value) bool {
         //case OpGt: // '>'
 
         case OpEq: // '=='
-            if x.Type() != y.Type() {
-                return false
-            }
             switch x := x.(type) {
                 case String:
-                    return x == y.(String)
+                    // x (string) <= y (string)
+                    if y, ok := y.(String); ok {
+                        return x == y
+                    }
                 case Float:
-                    return x == y.(Float)
-                case Bool:
-                    return x == y.(Bool)
+                    // x (float) <= y (float)
+                    if y, ok := y.(Float); ok {
+                        return x == y
+                    }
+                    // x (float) <= y (int)
+                    if y, ok := y.(Int); ok {
+                        return x == Float(y)
+                    }
                 case Int:
-                    return x == y.(Int)
+                    // x (integer) <= y (float)
+                    if y, ok := y.(Float); ok {
+                        return Float(x) == y
+                    }
+                    // x (integer) <= y (integer)
+                    if y, ok := y.(Int); ok {
+                        return x == y
+                    }
                 case Nil:
-                    return true
+                    if isNil(y) {
+                        return true
+                    }
             }
 
             // try __eq
@@ -409,25 +424,6 @@ func toInteger(v Value) (Int, bool) {
     return Int(0), false
 }
 
-// tonumber converts a value to a number.
-//
-// Returns the number and true if successful; otherwise nil and false.
-func toNumber(v Value) (Number, bool) {
-    switch v := v.(type) {
-        case String:
-            f64, err := strconv.ParseFloat(string(v), 64)
-            if err != nil {
-                return nil, false
-            }
-            return Float(f64), true
-        case Float:
-            return v, true
-        case Int:
-            return Float(v), true
-    }
-    return nil, false
-}
-
 // concat returns the concatenation of values.
 func (state *State) concat(values []Value) Value {
     lhs := values[0]
@@ -445,6 +441,25 @@ func (state *State) concat(values []Value) Value {
         }
     }
     return lhs
+}
+
+// tonumber converts a value to a number.
+//
+// Returns the number and true if successful; otherwise nil and false.
+func toNumber(v Value) (Number, bool) {
+    switch v := v.(type) {
+        case String:
+            f64, err := strconv.ParseFloat(strings.TrimSpace(string(v)), 64)
+            if err != nil {
+                return nil, false
+            }
+            return Float(f64), true
+        case Float:
+            return v, true
+        case Int:
+            return Float(v), true
+    }
+    return nil, false
 }
 
 // toFloat converts a value to a float.

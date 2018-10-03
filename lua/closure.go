@@ -1,7 +1,7 @@
 package lua
 
 import (
-	"strings"
+	//"strings"
 	"fmt"
 
 	"github.com/Azure/golua/lua/binary"
@@ -49,16 +49,17 @@ func (x *Closure) Type() Type {
 }
 
 func (x *Closure) String() string {
-	if x == nil {
-		return "closure(none)"
-	}
-	var b strings.Builder
-	if x.isLua() {
-		fmt.Fprintf(&b, "closure(lua:func@%s:%d)", x.binary.Source, x.binary.SrcPos)
-	} else {
-		fmt.Fprintf(&b, "closure(go:%s)", x.native.String())
-	}
-	return b.String()
+	// if x == nil {
+	// 	return "closure(none)"
+	// }
+	// var b strings.Builder
+	// if x.isLua() {
+	// 	fmt.Fprintf(&b, "closure(lua:func@%s:%d)", x.binary.Source, x.binary.SrcPos)
+	// } else {
+	// 	fmt.Fprintf(&b, "closure(go:%s)", x.native.String())
+	// }
+	// return b.String()
+	return fmt.Sprintf("function: %p", x)
 }
 
 func (x *Closure) isLua() bool { return x.binary != nil }

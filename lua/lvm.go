@@ -66,7 +66,7 @@ func (vm *v53) loadnil(instr ir.Instr) {
 		b = instr.B()
 	)
 	for i := a; i <= a + b; i++ {
-		vm.frame().set(i, None)
+		vm.frame().set(i, Nil(1))
 	}
 }
 
@@ -302,7 +302,7 @@ func (vm *v53) unm(instr ir.Instr) {
 // R(A) := not R(B)
 func (vm *v53) not(instr ir.Instr) {
 	rb := vm.frame().get(instr.B())
-	vm.frame().set(instr.A(), truth(rb))
+	vm.frame().set(instr.A(), !truth(rb))
 }
                   
 // LEN: Length operator.
