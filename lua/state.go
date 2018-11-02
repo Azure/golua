@@ -20,6 +20,37 @@ type runtimeErr error
 // version number for this Lua implementation.
 var version = float64(503)
 
+// ThreadStatus is a Lua thread status.
+type ThreadStatus int
+
+// thread statuses
+const (
+	ThreadOK ThreadStatus = iota // Thread is in success state 
+	ThreadYield 				 // Thread is in suspended state
+	ThreadError 				 // Thread finished execution with error
+)
+
+// String returns the canoncial string of the thread status.
+func (status ThreadStatus) String() string {
+	switch status {
+		case ThreadOK:
+			return "OK"
+		case ThreadYield:
+			return "YIELD"
+		case ThreadError:
+			return "ERROR"
+	}
+	return fmt.Sprintf("unknown thread status %d", status)
+}
+
+// Lua execution thread.
+type Thread struct {
+	*State
+}
+
+func (x *Thread) String() string { return "thread" }
+func (x *Thread) Type() Type { return ThreadType }
+
 type (
 	// 'per thread' state.
 	State struct {
@@ -117,8 +148,16 @@ func (state *State) recover(err *error) {
 }
 
 // errorf reports a formatted error message.
-func (state *State) errorf(format string, args ...interface{}) {
-	panic(runtimeErr(fmt.Errorf(format, args...)))
+func (state *State) errorf(format string, args ...interface{}) int {
+	return state.panic(runtimeErr(fmt.Errorf(format, args...)))
+}
+
+// panic generates a Lua error, using the value at the top of the stack at the
+// error object. This function panics, and never returns.
+//
+// See https://www.lua.org/manual/5.3/manual.html#lua_error
+func (state *State) panic(err error) int {
+	panic(err)
 }
 
 // enter enters a new call frame.
@@ -265,7 +304,6 @@ func (state *State) load(filename string, source interface{}) (*Closure, error) 
 	if src, err = syntax.Source(filename, source); err != nil {
 		return nil, err
 	}
-
 	if !binary.IsChunk(src) {
 	    dir, err := ioutil.TempDir("", "glua")
 	    if err != nil {
@@ -285,9 +323,9 @@ func (state *State) load(filename string, source interface{}) (*Closure, error) 
 	    }
 	}
 
-	if state.global.config.debug {
-		state.emit(filename)
-	}
+	// if state.global.config.debug {
+	// 	state.emit(filename)
+	// }
 
 	chunk, err := binary.Load(src)
 	if err != nil {
@@ -303,8 +341,9 @@ func (state *State) load(filename string, source interface{}) (*Closure, error) 
 }
 
 func (state *State) gettable(obj, key Value, raw bool) Value {
+	// fmt.Printf("gettable(%v, %v, %t)\n", obj, key, raw)
 	if tbl, ok := obj.(*Table); ok {
-		if val := tbl.Get(key); !IsNone(val) || raw || IsNone(state.metafield(tbl, "__index")) {
+		if val := tbl.get(key); !IsNone(val) || raw || IsNone(state.metafield(tbl, "__index")) {
 			return val
 		}
 		val, err := tryMetaIndex(state, tbl, key)
@@ -313,14 +352,23 @@ func (state *State) gettable(obj, key Value, raw bool) Value {
 		}
 		return val
 	}
-	fmt.Printf("gettable(%v, %v, %t)\n", obj, key, raw)
-	state.Debug(true)
-	panic(runtimeErr(fmt.Errorf("table expected, got %v", obj)))
+	if !raw {
+		val, err := tryMetaIndex(state, obj, key)
+		if err != nil {
+			panic(err)
+		}
+		return val
+	}
+	return nil
+	// fmt.Printf("gettable(%v, %v, %t): TODO\n", obj, key, raw)
+	// state.Debug(true)
+	// panic(runtimeErr(fmt.Errorf("table expected, got %v", obj)))
 }
 
 func (state *State) settable(obj, key, val Value, raw bool) {
-	if tbl, ok := obj.(*Table); ok && (!tbl.exists(key) || raw) {
-		tbl.Set(key, val)
+	// fmt.Printf("settable(%v, %v, %v) (raw = %t)\n", obj, key, val, raw)
+	if tbl, ok := obj.(*Table); ok && (tbl.exists(key) || raw) {
+		tbl.set(key, val)
 		return
 	}
 	if err := tryMetaNewIndex(state, obj, key, val); err != nil {
@@ -334,7 +382,7 @@ func (state *State) metafield(value Value, event string) Value {
 			return tbl.getStr(event)
 		}
 	}
-	return nilValue
+	return None
 }
 
 func (state *State) setmetatable(value, meta Value) {
@@ -353,20 +401,22 @@ func (state *State) setmetatable(value, meta Value) {
 }
 
 func (state *State) getmetatable(value Value, rawget bool) Value {
-	var meta Value = None
+	var meta Value
 	switch value := value.(type) {
 		case *Object:
-			if !IsNone(value.meta) {
+			if !IsNone(value.meta) && value.meta != nil {
 				meta = value.meta
 			}
 		case *Table:
-			if !IsNone(value.meta) {
+			if !IsNone(value.meta) && value.meta != nil {
 				meta = value.meta
 			}
 		default:
-			meta = state.global.builtins[value.Type()] 
+			if mt := state.global.builtins[value.Type()]; mt != nil {
+				meta = mt
+			}
 	}
-	if !rawget && !IsNone(meta) {
+	if !rawget && !IsNone(meta) && meta != nil {
 		if mt, ok := meta.(*Table); ok {
 			if mm := mt.getStr("__metatable"); !IsNone(mm) {
 				meta = mm
@@ -385,3 +435,166 @@ func (state *State) Log(args ...interface{}) {
 		fmt.Fprintf(os.Stdout, "lua: %v\n", fmt.Sprint(args...))
 	}
 }
+
+// get resolves the value located at the acceptable index which may be valid and
+// point to a stack position or pseudo-index which are used to access the registry
+// and upvalues of function.
+//
+// Any function in the API that receives stack indices works only with valid
+// or acceptable indices.
+//
+// A valid index is an index that refers to a position that stores a modifiable
+// lua value (1 <= abs(index) <= top) and pseudo-indices, which represent some
+// positions that are accessible to host code but that are not in the stack.
+// Pseudo-indices are used to access the registry and the upvalues of a function.
+//
+// Acceptable indices serve to avoid extra tests against the stack top when querying
+// the stack. For instance, a Go function can query its third argument without the
+// need to first check wheter there is a third argument, that is, without the need
+// to check whether 3 is a valid index.
+//
+// For functions that can be called with acceptable indices, any non-valid index is
+// treated as if it contains a value of a virtual type "none", which behaves like a
+// nil value.
+func (state *State) get(index int) Value {
+	switch frame := state.frame(); {
+		//
+		// Positive stack index
+		//
+		case index > 0:
+			if index > cap(frame.locals) {
+				state.errorf("unacceptable index (%d)", index)
+			}
+			if index > frame.gettop() {
+				return None
+			}
+			return frame.get(index-1)
+		//
+		// Negative stack index
+		//
+		case !isPseudoIndex(index):
+			//state.Logf("get %d (absolute = %d)", index, frame.absindex(index))
+			// Debug(state)
+			if index = frame.absindex(index); index < 1 || index > frame.gettop() {
+				state.errorf("invalid index (%d)", index)
+			}
+			return frame.get(index-1)
+		//
+		// Registry pseudo index
+		//
+		case index == RegistryIndex:
+			return state.global.registry
+		//
+		// Upvalues pseudo index
+		//
+		default:
+			if index = RegistryIndex - index; index >= MaxUpValues {
+				state.errorf("upvalue index too large (%d)", index)
+			}
+			if nups := len(frame.closure.upvals); nups == 0 || nups > index {
+				return None
+			}
+			return frame.getUp(index-1).get()
+	}
+}
+
+func (state *State) set(index int, value Value) {
+	switch frame := state.frame(); {
+		//
+		// Positive stack index
+		//
+		case index > 0:
+			if index > cap(frame.locals) {
+				state.errorf("unacceptable index (%d)", index)
+			}
+			if index > frame.gettop() {
+				return
+			}
+			frame.set(index-1, value)
+			return
+		//
+		// Negative stack index
+		//
+		case !isPseudoIndex(index):
+			if index = frame.absindex(index); index < 1 || index > frame.gettop() {
+				state.errorf("invalid index (%d)", index)
+			}
+			frame.set(index-1, value)
+			return
+		//
+		// Registry pseudo index
+		//
+		case index == RegistryIndex:
+			state.global.registry = value.(*Table)
+			return
+
+		//
+		// Upvalues pseudo index
+		//
+		default:
+			if index = RegistryIndex - index; index >= MaxUpValues {
+				state.errorf("upvalue index too large (%d)", index)
+			}
+			if nups := len(frame.closure.upvals); nups == 0 || nups > index {
+				return
+			}			
+			frame.setUp(index-1, value)
+			return
+	}
+}
+
+// converts an integer to a "floating point byte", represented as (eeeeexxx), where the real
+// value is (1xxx) * 2^(eeeee - 1) if eeeee != 0 and (xxx) otherwise.
+func i2fb(i int) int {
+	var (
+		u = uint8(i)
+		e int = 0 // exponent
+	)
+	if u < 8 {
+		return i
+	}
+	for u >= (8 << 4) {    // coarse steps
+		u = (u + 0xF) >> 4 // x = ceil(x/16)
+		e += 4
+	}
+	for u >= (8 << 1) {  // fine steps
+		u = (u + 1) >> 1 // x = ceil(x/2)
+		e++
+	}
+	return ((e + 1) << 3) | (int(i) - 8)
+}
+
+// converts a "floating point byte" to an integer.
+func fb2i(i int) int {
+	if i < 8 {
+		return i
+	}
+	return ((i & 7) + 8) << ((uint8(i) >> 3) - 1)
+}
+
+// When a function is created, it is possible to associate some values with it, thus creating
+// a closure (see PushClosure); these values are called upvalues and are accessible to the
+// function whenever it is called.
+//
+// Whenever a function is called, its upvalues are located at specific pseudo-indices.
+// These pseudo-indices are produced by the macro UpValueIndex.
+//
+// The first upvalue associated with a function is at index UpValueIndex(1), and so on.
+// Any access to UpValueIndex(n), where n is greater than the number of upvalues of the
+// current function (but not greater than 256, which is one plus the maximum number of
+// upvalues in a closure), produces an acceptable but invalid index.
+func UpValueIndex(index int) int { return RegistryIndex - index }
+
+// IsUpValueIndex reports true if the index represents an upvalue index.
+func isUpValueIndex(index int) bool { return index < RegistryIndex }
+
+// IsStackIndex reports true if the index represents a stack index.
+//
+// Tests for valid but not pseudo index.
+func isStackIndex(index int) bool { return !isPseudoIndex(index) }
+
+// isPseudoIndex reports whether the Index index represents a pseudo-index; that is, an index
+// that represents registers that are accessible to host code but that are not in the stack.
+//
+// Pseudo-indices are used to access the registry and the upvalues of a function.
+func isPseudoIndex(index int) bool { return index <= RegistryIndex }

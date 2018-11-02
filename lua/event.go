@@ -430,34 +430,45 @@ func metaOf(state *State, v Value) *Table {
 func tryMetaNewIndex(state *State, object, key, value Value) error {
     const event = metaNewIndex
 
+    // fmt.Printf("__newindex(%v, %v, %v)\n", object, key, value)
     for loop, meta, object := 0, Value(None), object; loop < metaLoopMax; loop++ {
-        if table, ok := object.(*Table); ok {
-            if !IsNone(table.Get(key)) {
-                table.Set(key, value)
-                return nil
-            }
-        } else {
-            if meta = state.metafield(object, event.ID()); IsNone(meta) {
-                if !ok {
-                    return fmt.Errorf("attempt to index a %s value", object.Type())
-                }
-                table.Set(key, value)
-                return nil
+        // if table, ok := object.(*Table); ok && table.exists(key) {
+        //     table.set(key, value)
+        //     return nil
+        // }
+        // if meta = state.metafield(object, event.ID()); IsNone(meta) {
+        //      if !ok {
+        //         return fmt.Errorf("attempt to index a %s value", object.Type())
+        //      }
+        //      table.set(key, value)
+        //       return nil
+        // }
+        if meta = state.metafield(object, event.ID()); !IsNone(meta) {
+            switch meta := meta.(type) {
+                case *Closure:
+                    state.frame().push(meta)
+                    state.frame().push(object)
+                    state.frame().push(key)
+                    state.frame().push(value)
+                    state.Call(3, 0)
+                    return nil
+                case *Table:
+                    // if value := meta.get(key); !IsNone(value) {
+                    //     meta.set(key, value)
+                    //     return nil
+                    // }
+                    object = meta
+                    continue
+                default:
+                    return fmt.Errorf("meta method '__newindex' not a table or function")
             }
         }
-        switch meta := meta.(type) {
-            case *Closure:
-                state.frame().push(meta)
-                state.frame().push(object)
-                state.frame().push(key)
-                state.frame().push(value)
-                state.Call(3, 0)
-                return nil
-            case *Table:
-               object = meta
+        if table, ok := object.(*Table); ok {
+            table.set(key, value)
+            return nil
         }
     }
-    return fmt.Errorf("'__bewindex' chain too long; possible loop")
+    return fmt.Errorf("'__newindex' chain too long; possible loop")
 }
 
 // tryMetaIndex performs the indexing access operation table[key]. This event
@@ -472,24 +483,14 @@ func tryMetaNewIndex(state *State, object, key, value Value) error {
 func tryMetaIndex(state *State, object, key Value) (Value, error) {
     const event = metaIndex
 
-    // defer func() {
-    //     if r := recover(); r != nil {
-    //         fmt.Println(r)
-    //         state.Debug(true)
-    //     }
-    // }()
-
-    for loop, meta := 0, Value(None); loop < metaLoopMax; loop++ {
+    // for loop, meta := 0, Value(None); loop < metaLoopMax; loop++ {
+    for loop := 0; loop < metaLoopMax; loop++ {
         if table, ok := object.(*Table); ok {
-            if meta = state.metafield(table.meta, event.ID()); IsNone(meta) {
-                return None, nil
-            }
-        } else {
-            if meta = state.metafield(object, event.ID()); IsNone(meta) {
-                return None, fmt.Errorf("attempt to index a %s value", object.Type())
+            if table.exists(key) {
+                return table.get(key), nil
             }
         }
-        switch meta := meta.(type) {
+        switch meta := state.metafield(object, event.ID()).(type) {
             case *Closure:
                 state.frame().push(meta)
                 state.frame().push(object)
@@ -497,9 +498,10 @@ func tryMetaIndex(state *State, object, key Value) (Value, error) {
                 state.Call(2, 1)
                 return state.frame().pop(), nil
             case *Table:
-                if value := meta.Get(key); !IsNone(value) {
-                    return value, nil
-                }
+                object = meta
+                continue
+            default:
+                return None, nil
         }
     }
     return None, fmt.Errorf("'__index' chain too long; possible loop")
@@ -513,8 +515,8 @@ func tryMetaIndex(state *State, object, key Value) (Value, error) {
 // operands as arguments, and the result of the call (adjusted to one value) is
 // the result of the operation. Otherwise, it raises an error.
 func tryMetaBinary(state *State, lhs, rhs Value, event metaEvent) (Value, error) {
-    if lhs := state.metafield(lhs, event.ID()); !IsNone(lhs) { // try lhs operand
-        if cls, ok := lhs.(*Closure); ok {
+    if meta := state.metafield(lhs, event.ID()); !IsNone(meta) { // try lhs operand
+        if cls, ok := meta.(*Closure); ok {
             state.frame().push(cls)
             state.frame().push(lhs)
             state.frame().push(rhs)
@@ -522,8 +524,8 @@ func tryMetaBinary(state *State, lhs, rhs Value, event metaEvent) (Value, error)
             return state.frame().pop(), nil
         }
     }
-    if rhs := state.metafield(rhs, event.ID()); !IsNone(rhs) { // try rhs operand
-        if cls, ok := rhs.(*Closure); ok {
+    if meta := state.metafield(rhs, event.ID()); !IsNone(meta) { // try rhs operand
+        if cls, ok := meta.(*Closure); ok {
             state.frame().push(cls)
             state.frame().push(lhs)
             state.frame().push(rhs)
@@ -534,14 +536,62 @@ func tryMetaBinary(state *State, lhs, rhs Value, event metaEvent) (Value, error)
     return None, fmt.Errorf("attempt to apply %s on %v %v value", event.ID(), lhs.Type(), rhs.Type())
 }
 
+// tryMetaCompare performs one of the follow Lua comparison metamethods: __lt, __le, __eq
+//
+// __lt: the less than (<) operation. Behavior similar to the addition operation, except that
+// Lua will try a metamethod only when the values being compared are neither both numbers nor
+// both strings. The result of the call is always converted to a boolean.
+//
+// __le: the less equal (<=) operation. Unlike other operations, the less-equal operation can
+// use two different events. First, Lua looks for the __le metamethod in both operands, like in
+// the less than operation. If it cannot find such a metamethod, then it will try the __lt metamethod,
+// assuming that a <= b is equivalent to (not b < a). As with the other comparison operators, the result
+// is always a boolean. (This use of the __lt event can be removed in future versions; it is also slower
+// than a real __le metamethod.)
+//
+// __eq: the equal (==) operation. Behavior similar to the addition operation, except that Lua will try a
+// metamethod only when the values being compared are either both tables or both full userdata and they are
+// not primitively equal. The result of the call is always converted to a boolean.
+//
+// See https://www.lua.org/manual/5.3/manual.html#2.4
+func tryMetaCompare(state *State, lhs, rhs Value, event metaEvent) (cmp bool, err error) {
+    if meta := state.metafield(lhs, event.ID()); !IsNone(meta) { // try lhs operand
+        if cls, ok := meta.(*Closure); ok {
+            state.frame().push(cls)
+            state.frame().push(lhs)
+            state.frame().push(rhs)
+            state.Call(2, 1)
+            cmp = state.ToBool(-1)
+            state.Pop()
+            return cmp, nil
+        }
+    }
+    if meta := state.metafield(rhs, event.ID()); !IsNone(meta) { // try rhs operand
+        if cls, ok := meta.(*Closure); ok {
+            state.frame().push(cls)
+            state.frame().push(lhs)
+            state.frame().push(rhs)
+            state.Call(2, 1)
+            cmp = state.ToBool(-1)
+            state.Pop()
+            return cmp, nil
+        }
+    }
+    if event == metaLe {
+        cmp, err = tryMetaCompare(state, rhs, lhs, metaLt)
+        return !cmp, err
+    }
+    return false, fmt.Errorf("attempt to compare %s with %s", lhs.Type(), rhs.Type())
+}
+
 // tryMetaConcat (__concat) performs the concatenation (..) operation. Behavior similar
 // to the addition operation, except that Lua will try a metamethod if any operand is
 // neither a string nor a number (which is always coercible to a string).
 func tryMetaConcat(state *State, lhs, rhs Value) (Value, error) {
     const event = metaConcat
 
-    if lhs := state.metafield(lhs, event.ID()); !IsNone(lhs) { // try lhs operand
-        if cls, ok := lhs.(*Closure); ok {
+    if meta := state.metafield(lhs, event.ID()); !IsNone(meta) { // try lhs operand
+        if cls, ok := meta.(*Closure); ok {
             state.frame().push(cls)
             state.frame().push(lhs)
             state.frame().push(rhs)
@@ -549,8 +599,8 @@ func tryMetaConcat(state *State, lhs, rhs Value) (Value, error) {
             return state.frame().pop(), nil
         }
     }
-    if rhs := state.metafield(rhs, event.ID()); !IsNone(rhs) { // try rhs operand
-        if cls, ok := rhs.(*Closure); ok {
+    if meta := state.metafield(rhs, event.ID()); !IsNone(meta) { // try rhs operand
+        if cls, ok := meta.(*Closure); ok {
             state.frame().push(cls)
             state.frame().push(lhs)
             state.frame().push(rhs)
@@ -559,6 +609,23 @@ func tryMetaConcat(state *State, lhs, rhs Value) (Value, error) {
         }
     }
     return None, fmt.Errorf("attempt to apply %s on %v and %v values", event.ID(), lhs.Type(), rhs.Type())
+}
+
+// tryMetaLength (__len) performs the length (#) operation. If the object is not a string, Lua
+// will try its metamethod. If there is a metamethod, Lua calls it with the object as argument,
+// and the result of the call (always adjusted to one value) is the result of the operation.
+// If there is no metamethod but the object is a table, then Lua uses the table length operation
+// (see §3.4.7). Otherwise, Lua raises an error.
+func tryMetaLength(state *State, obj Value) (Value, error) {
+    if meta := state.metafield(obj, "__len"); !IsNone(meta) {
+        if cls, ok := meta.(*Closure); ok {
+            state.frame().push(cls)
+            state.frame().push(obj)
+            state.Call(1, 1)
+            return state.frame().pop(), nil
+        }
+    }
+    return nil, fmt.Errorf("attempt to get length of %v value", obj.Type())
 }
 
 // tryMetaCall performs the call operation func(args). This event happens when

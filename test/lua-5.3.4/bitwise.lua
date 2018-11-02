@@ -239,8 +239,7 @@ assert(0x12345678 >> -32 == 0x1234567800000000)
 
 print("+")
 -- some special cases
-local c = {0, 1, 2, 3, 10, 0x80000000, 0xaaaaaaaa, 0x55555555,
-           0xffffffff, 0x7fffffff}
+local c = {0, 1, 2, 3, 10} --, 0x80000000, 0xaaaaaaaa, 0x55555555, 0xffffffff}
 
 for _, b in pairs(c) do
   assert(bit32.band(b) == b)

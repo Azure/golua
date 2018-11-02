@@ -1,6 +1,7 @@
 package lua
 
 import (
+	"math/big"
 	"runtime"
 	"reflect"
 	"fmt"
@@ -9,10 +10,9 @@ import (
 type Type int
 
 const (
-	NilType   	 Type = iota
-	IntType
+	NoneType   	 Type = iota
+	NilType
 	BoolType
-	FloatType
 	NumberType
 	StringType
 	FuncType
@@ -20,15 +20,12 @@ const (
 	ThreadType
 	TableType
 	maxTypeID
-	NoneType
 )
 
 var types = [...]string{
 	NoneType: 	  "no value",
 	NilType: 	  "nil",
-	IntType: 	  "int",
 	BoolType: 	  "boolean",
-	FloatType:    "float",
 	NumberType:   "number",
 	StringType:   "string",
 	FuncType:     "function",
@@ -87,7 +84,7 @@ func (x *Object) Unwrap() interface{} { return x.data }
 func (x *Object) String() string { return fmt.Sprintf("userdata: %p", x) }
 func (x *Object) Type() Type { return UserDataType }
 
-type Table struct { table }
+type Table struct { *table }
 func (x *Table) String() string { return fmt.Sprintf("table: %p", x) }
 func (x *Table) Type() Type { return TableType }
 
@@ -108,8 +105,8 @@ func (x *Table) Type() Type { return TableType }
 //func (x *Table) RawSetStr(key string, value Value) {}
 
 type Float float64
-func (x Float) String() string { return fmt.Sprintf("%v", float64(x)) }
-func (x Float) Type() Type { return FloatType }
+func (x Float) String() string { return fmt.Sprintf("%.14g", float64(x)) }
+func (x Float) Type() Type { return NumberType }
 func (Float) number() {}
 
 type String string
@@ -126,7 +123,7 @@ func (x Bool) Type() Type { return BoolType }
 
 type Int int64
 func (x Int) String() string { return fmt.Sprintf("%v", int64(x)) }
-func (x Int) Type() Type { return IntType }
+func (x Int) Type() Type { return NumberType }
 func (Int) number() {}
 
 type Nil byte
@@ -176,6 +173,10 @@ func (x *Table) ForEach(fn func(k, v Value)) {
 	}
 }
 
+func ValueOf(state *State, value interface{}) Value {
+	return valueOf(state, value)
+}
+
 func valueOf(state *State, value interface{}) Value {
 	switch value := value.(type) {
 		case func(*State)int:
@@ -207,9 +208,9 @@ func valueOf(state *State, value interface{}) Value {
 }
 
 func IsNumber(value Value) bool { return IsFloat(value) || IsInt(value) }
-func IsFloat(value Value) bool { return value.Type() == FloatType }
-func IsNone(value Value) bool { return value == nil || value == None || !isNil(value) }
-func IsInt(value Value) bool { return value.Type() == IntType }
+func IsFloat(value Value) bool { _, ok := value.(Float); return ok }
+func IsInt(value Value) bool { _, ok := value.(Int); return ok }
+func IsNone(value Value) bool { return value == nil || value == None || !isNil(value) || value.Type() == NilType }
 func isNil(value Value) bool { return reflect.ValueOf(value).IsValid() }//IsNil() }
 
 func Truth(value Value) bool { return bool(truth(value)) }
@@ -229,11 +230,12 @@ func toString(value Value) (string, bool) {
 			return s, true
 		case Nil:
 			return value.String(), true
-		default:
-			return value.String(), true
 	}
 	return "", false
 }
+
+func (x Float) rational() *big.Rat { return new(big.Rat).SetFloat64(float64(x)) }
+func (x Int) rational() *big.Rat { return new(big.Rat).SetInt64(int64(x)) }
 
 // truth returns true for any Lua value different from false
 // and None (or nil), otherwise returns false.

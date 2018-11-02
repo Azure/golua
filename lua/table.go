@@ -32,7 +32,7 @@ type table struct {
 
 // newtable returns a new table initialized using the provided sizes
 // arrayN and hashN to create the underlying hash and array part.
-func newTable(state *State, arrayN, hashN int) table {
+func newTable(state *State, arrayN, hashN int) *table {
 	t := table{state: state}
 	if arrayN > 0 {
 		t.list = make([]Value, arrayN)
@@ -42,10 +42,10 @@ func newTable(state *State, arrayN, hashN int) table {
 	} else {
 		t.hash = make(map[Value]Value)
 	}
-	return t
+	return &t
 }
 
-func (t *table) Set(k, v Value) {
+func (t *table) set(k, v Value) {
 	if IsNone(k) {
 		return
 	}
@@ -53,6 +53,10 @@ func (t *table) Set(k, v Value) {
 		i := arrayIndex(n) - 1
 		if i >= 0 && i < len(t.list) {
 			t.list[i] = v
+			return
+		}
+		if i == len(t.list) {
+			t.list = append(t.list, v)
 			return
 		}
 		// TODO: resize & rehash
@@ -64,12 +68,13 @@ func (t *table) Set(k, v Value) {
 	t.hash[k] = v
 }
 
-func (t *table) Get(k Value) Value {
+func (t *table) get(k Value) Value {
 	if IsNone(k) {
 		return None
 	}
 	if n, ok := k.(Number); ok {
 		i := arrayIndex(n) - 1
+		// fmt.Printf("table[%v] (%T) @ %d\n", k, k, i)
 		if i >= 0 && i < len(t.list) {
 			return t.list[i]
 		}
@@ -92,23 +97,36 @@ func (t *table) String() string {
 }
 
 func (t *table) getStr(key string) Value {
-	return t.Get(String(key)) 
+	return t.get(String(key)) 
 }
 
 func (t *table) getInt(key int64) Value {
-	return t.Get(Int(key))
+	return t.get(Int(key))
 }
 
 func (t *table) setStr(key string, value Value) {
-	t.Set(String(key), value)
+	t.set(String(key), value)
 }
 
 func (t *table) setInt(key int64, value Value) {
-	t.Set(Int(key), value)
+	t.set(Int(key), value)
 }
 
 func (t *table) exists(key Value) bool {
-	return !IsNone(t.Get(key))
+	return !IsNone(t.get(key))
+}
+
+func (t *table) length() int {
+	// TODO
+	return len(t.list)
+}
+
+func (t *table) shrink() {
+	for i := len(t.list) - 1; i >= 0; i-- {
+		if IsNone(t.list[i]) {
+			t.list = t.list[0:i]
+		}
+	}
 }
 
 func (t *table) next(key Value) (k, v Value, more bool) {
@@ -121,9 +139,13 @@ func (t *table) next(key Value) (k, v Value, more bool) {
 		}
 	}
 	if index := t.iterKey(key); index < len(t.list) {
-		k = Int(index + 1)
-		v = t.list[index]
-		return k, v, true
+		for index++; index <= len(t.list); index++ {
+			if !IsNone(t.list[index-1]) {
+				k = Int(index)
+				v = t.list[index-1]
+				return k, v, true
+			}
+		}
 	} else {
 		if index = index - len(t.list); index < len(t.iter) {
 			k := t.iter[index]

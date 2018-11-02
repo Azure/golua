@@ -55,7 +55,7 @@ const (
 	// in a program.
 	//
 	// Value must be < 255.
-	MaxCalls = 200
+	MaxCalls = 255
 
 	// Number of list items to accumulate before a SETLIST instruction.
 	FieldsPerFlush = 50

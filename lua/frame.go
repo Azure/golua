@@ -4,11 +4,25 @@ import (
     "fmt"
     "os"
     
-    "github.com/Azure/golua/lua/ir"
+    "github.com/Azure/golua/lua/vm"
 )
 
 var _ = fmt.Println
 var _ = os.Exit
+
+type callStatus uint
+
+const (
+    callStatusAllowHook = 1 << iota // original value of 'allowhook'
+    callStatusLua                   // call is running a Lua function
+    callStatusHooked                // call is running a debug hook
+    callStatusFresh                 // call is running on a fresh invocation of exec
+    callStatusYieldPCall            // call is yieldable protected call
+    callStatusTail                  // call was tail called
+    callStatusHookYield             // last hook called yielded
+    callStatusLEQ                   // using __lt for __le
+    callStatusFinalizer             // call is running a finalizer
+)
 
 type (
     // CallInfo holds information about a call.
@@ -28,12 +42,14 @@ type (
         closure  *Closure         // frame closure
         vararg   []Value          // variable arguments
         locals   []Value          // frame stack locals
+        errFn    errorFn          // error function called in protected mode
         state    *State           // thread state
         depth    int              // call frame ID
         fnID     int              // function index
         rets     int              // # expected returns
         pc       int              // last executed instruction pc
         up       map[int]*upValue // map of open upvalues
+        status   callStatus       // callinfo status
     }
 )
 
@@ -217,10 +233,10 @@ func (fr *Frame) findUp(index int) *upValue {
 // closeUp closes upvalues below the index upto.
 func (fr *Frame) closeUp(upto int) {
     for i, up := range fr.up {
-        if i <= upto {
+        // if i < upto {
             delete(fr.up, i)
             up.close()
-        }
+        // }
     }
 }
 
@@ -293,8 +309,8 @@ func (fr *Frame) popN(n int) (vs []Value) {
 // current instruction pointer and increments by n.
 //
 // TODO: bounds check
-func (fr *Frame) step(n int) ir.Instr {
-    i := ir.Instr(fr.closure.binary.Code[fr.pc])
+func (fr *Frame) step(n int) vm.Instr {
+    i := vm.Instr(fr.closure.binary.Code[fr.pc])
     fr.pc += n
     return i
 }
@@ -302,8 +318,8 @@ func (fr *Frame) step(n int) ir.Instr {
 // code returns the instruction for pc.
 //
 // TODO: bounds check
-func (fr *Frame) code(pc int) ir.Instr {
-    return ir.Instr(fr.closure.binary.Code[pc])
+func (fr *Frame) code(pc int) vm.Instr {
+    return vm.Instr(fr.closure.binary.Code[pc])
 }
 
 // set sets the frame local value at index to value.
@@ -311,6 +327,7 @@ func (fr *Frame) code(pc int) ir.Instr {
 // TODO: pseudo & upvalue indices.
 // TODO: bounds and stack check.
 func (fr *Frame) set(index int, value Value) {
+    // fmt.Printf("set(%d) <- %v\n", index, value)
     if fr.gettop() == 0 || fr.gettop() == index {
         fr.push(value)
         return

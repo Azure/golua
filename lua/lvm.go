@@ -3,8 +3,7 @@ package lua
 import (
 	"fmt"
 
-	//"github.com/Azure/golua/pkg/luautil"
-	"github.com/Azure/golua/lua/ir"
+	"github.com/Azure/golua/lua/vm"
 )
 
 var _ = fmt.Println
@@ -18,7 +17,7 @@ var _ = fmt.Println
 // @args A B
 //
 // R(A) := R(B)
-func (vm *v53) move(instr ir.Instr) {
+func (vm *v53) move(instr vm.Instr) {
 	rb := vm.frame().get(instr.B())
 	vm.frame().set(instr.A(), rb)
 }
@@ -28,7 +27,7 @@ func (vm *v53) move(instr ir.Instr) {
 // @args A Bx
 //
 // R(A) := Kst(Bx)
-func (vm *v53) loadk(instr ir.Instr) {
+func (vm *v53) loadk(instr vm.Instr) {
 	kst := vm.constant(instr.BX())
 	vm.frame().set(instr.A(), kst)
 }
@@ -39,7 +38,7 @@ func (vm *v53) loadk(instr ir.Instr) {
 // @args A
 //
 // R(A) := Kst(extra arg)
-func (vm *v53) loadkx(instr ir.Instr) {
+func (vm *v53) loadkx(instr vm.Instr) {
 	extra := vm.frame().step(1).AX()
 	ra := vm.constant(extra)
 	vm.frame().set(instr.A(), ra)
@@ -50,7 +49,7 @@ func (vm *v53) loadkx(instr ir.Instr) {
 // @args A B C
 //
 // R(A) := (Bool)B; if (C) pc++
-func (vm *v53) loadbool(instr ir.Instr) {
+func (vm *v53) loadbool(instr vm.Instr) {
 	vm.frame().set(instr.A(), Bool(instr.B() == 1))
 	if instr.C() != 0 { vm.frame().step(1) }
 }
@@ -60,7 +59,7 @@ func (vm *v53) loadbool(instr ir.Instr) {
 // @args A B
 //
 // R(A), R(A+1), ..., R(A+B) := nil
-func (vm *v53) loadnil(instr ir.Instr) {
+func (vm *v53) loadnil(instr vm.Instr) {
 	var (
 		a = instr.A()
 		b = instr.B()
@@ -75,7 +74,7 @@ func (vm *v53) loadnil(instr ir.Instr) {
 // @args A B
 //       
 // R(A) := UpValue[B]
-func (vm *v53) getupval(instr ir.Instr) {
+func (vm *v53) getupval(instr vm.Instr) {
 	var (
 		a = instr.A()
 		b = instr.B()
@@ -89,7 +88,7 @@ func (vm *v53) getupval(instr ir.Instr) {
 // @args A B
 //
 // UpValue[B] := R(A)
-func (vm *v53) setupval(instr ir.Instr) {
+func (vm *v53) setupval(instr vm.Instr) {
 	var (
 		a = instr.A()
 		b = instr.B()
@@ -103,7 +102,7 @@ func (vm *v53) setupval(instr ir.Instr) {
 // @args A B C
 //
 // R(A) := R(B)[RK(C)]
-func (vm *v53) gettable(instr ir.Instr) {
+func (vm *v53) gettable(instr vm.Instr) {
 	var (
 		a = instr.A()
 		b = instr.B()
@@ -120,7 +119,7 @@ func (vm *v53) gettable(instr ir.Instr) {
 // @args A B C
 //
 // R(A)[RK(B)] := RK(C)
-func (vm *v53) settable(instr ir.Instr) {
+func (vm *v53) settable(instr vm.Instr) {
 	obj := vm.frame().get(instr.A())
 	key := vm.rk(instr.B())
 	val := vm.rk(instr.C())
@@ -132,7 +131,7 @@ func (vm *v53) settable(instr ir.Instr) {
 // @args A B C
 //   
 // R(A) := UpValue[B][RK(C)]
-func (vm *v53) gettabup(instr ir.Instr) {
+func (vm *v53) gettabup(instr vm.Instr) {
 	up := vm.frame().getUp(instr.B()).get()
 	rc := vm.rk(instr.C())
 	ra := vm.State.gettable(up, rc, false)
@@ -144,7 +143,7 @@ func (vm *v53) gettabup(instr ir.Instr) {
 // @args A B C
 //
 // UpValue[A][RK(B)] := RK(C) 
-func (vm *v53) settabup(instr ir.Instr) {
+func (vm *v53) settabup(instr vm.Instr) {
 	up := vm.frame().getUp(instr.A()).get()
 	rb := vm.rk(instr.B())
 	rc := vm.rk(instr.C())
@@ -173,7 +172,7 @@ func (vm *v53) settabup(instr ir.Instr) {
 // @args A B C
 //
 // R(A) := {} (size = B,C)
-func (vm *v53) newtable(instr ir.Instr) {
+func (vm *v53) newtable(instr vm.Instr) {
 	var (
 		a = instr.A()
 		b = instr.B()
@@ -188,7 +187,7 @@ func (vm *v53) newtable(instr ir.Instr) {
 // @args A B C
 //
 // R(A+1) := R(B); R(A) := R(B)[RK(C)] 
-func (vm *v53) self(instr ir.Instr) {
+func (vm *v53) self(instr vm.Instr) {
 	var (
 		obj = vm.frame().get(instr.B())
 		key = vm.rk(instr.C())
@@ -203,7 +202,7 @@ func (vm *v53) self(instr ir.Instr) {
 // @args A B C
 //
 // R(A) := RK(B) + RK(C)               
-func (vm *v53) add(instr ir.Instr) {
+func (vm *v53) add(instr vm.Instr) {
 	var (
 		rb = vm.rk(instr.B())
 		rc = vm.rk(instr.C())
@@ -217,7 +216,7 @@ func (vm *v53) add(instr ir.Instr) {
 // @args A B C
 //
 // R(A) := RK(B) - RK(C)
-func (vm *v53) sub(instr ir.Instr) {
+func (vm *v53) sub(instr vm.Instr) {
 	var (
 		rb = vm.rk(instr.B())
 		rc = vm.rk(instr.C())
@@ -231,7 +230,7 @@ func (vm *v53) sub(instr ir.Instr) {
 // @args A B C
 //    
 // R(A) := RK(B) * RK(C)
-func (vm *v53) mul(instr ir.Instr) {
+func (vm *v53) mul(instr vm.Instr) {
 	var (
 		rb = vm.rk(instr.B())
 		rc = vm.rk(instr.C())
@@ -245,7 +244,7 @@ func (vm *v53) mul(instr ir.Instr) {
 // @args A B C
 //
 // R(A) := RK(B) % RK(C)                
-func (vm *v53) mod(instr ir.Instr) {
+func (vm *v53) mod(instr vm.Instr) {
 	var (
 		rb = vm.rk(instr.B())
 		rc = vm.rk(instr.C())
@@ -259,7 +258,7 @@ func (vm *v53) mod(instr ir.Instr) {
 // @args A B C
 //
 // R(A) := RK(B) ^ RK(C)               
-func (vm *v53) pow(instr ir.Instr) {
+func (vm *v53) pow(instr vm.Instr) {
 	var (
 		rb = vm.rk(instr.B())
 		rc = vm.rk(instr.C())
@@ -273,7 +272,7 @@ func (vm *v53) pow(instr ir.Instr) {
 // @args A B C
 //
 // R(A) := RK(B) / RK(C)
-func (vm *v53) div(instr ir.Instr) {
+func (vm *v53) div(instr vm.Instr) {
 	var (
 		rb = vm.rk(instr.B())
 		rc = vm.rk(instr.C())
@@ -287,7 +286,7 @@ func (vm *v53) div(instr ir.Instr) {
 // @args A B
 //
 // R(A) := -R(B)
-func (vm *v53) unm(instr ir.Instr) {
+func (vm *v53) unm(instr vm.Instr) {
 	var (
 		rb = vm.rk(instr.B())
 		ra = vm.arith(OpMinus, rb, None)
@@ -300,7 +299,7 @@ func (vm *v53) unm(instr ir.Instr) {
 // @args A B
 //
 // R(A) := not R(B)
-func (vm *v53) not(instr ir.Instr) {
+func (vm *v53) not(instr vm.Instr) {
 	rb := vm.frame().get(instr.B())
 	vm.frame().set(instr.A(), !truth(rb))
 }
@@ -310,9 +309,9 @@ func (vm *v53) not(instr ir.Instr) {
 // @args A B
 //
 // R(A) := length of R(B) 
-func (vm *v53) length(instr ir.Instr) {
+func (vm *v53) length(instr vm.Instr) {
 	rb := vm.frame().get(instr.B())
-	vm.frame().set(instr.A(), Int(vm.State.length(rb)))
+	vm.frame().set(instr.A(), vm.State.length(rb))
 }
 
 // CONCAT: Concatenate a range of registers.
@@ -320,7 +319,7 @@ func (vm *v53) length(instr ir.Instr) {
 // @args A B C
 //
 // R(A) := R(B).. ... ..R(C)
-func (vm *v53) concat(instr ir.Instr) {
+func (vm *v53) concat(instr vm.Instr) {
 	var (
 		a = instr.A()
 		b = instr.B()
@@ -335,7 +334,7 @@ func (vm *v53) concat(instr ir.Instr) {
 // @args A sBx
 //
 // pc+=sBx; if (A) close all upvalues >= R(A-1)
-func (vm *v53) jmp(instr ir.Instr) {
+func (vm *v53) jmp(instr vm.Instr) {
 	vm.frame().step(instr.SBX())
 	if a := instr.A(); a != 0 {
 		vm.frame().closeUp(a-1)
@@ -347,13 +346,13 @@ func (vm *v53) jmp(instr ir.Instr) {
 // @args A B C
 //
 // if ((RK(B) == RK(C)) ~= A) then pc++
-func (vm *v53) eq(instr ir.Instr) {
+func (vm *v53) eq(instr vm.Instr) {
 	var (
 		rb = vm.rk(instr.B())
 		rc = vm.rk(instr.C())
 		aa = (instr.A() != 0)
 	)
-	if vm.compare(OpEq, rb, rc) != aa {
+	if vm.compare(OpEq, rb, rc, false) != aa {
 		vm.frame().step(1)
 	}
 }
@@ -363,13 +362,13 @@ func (vm *v53) eq(instr ir.Instr) {
 // @args A B C
 //
 // if ((RK(B) <  RK(C)) ~= A) then pc++
-func (vm *v53) lt(instr ir.Instr) {
+func (vm *v53) lt(instr vm.Instr) {
 	var (
 		rb = vm.rk(instr.B())
 		rc = vm.rk(instr.C())
 		aa = (instr.A() == 1)
 	)
-	if vm.compare(OpLt, rb, rc) != aa {
+	if vm.compare(OpLt, rb, rc, false) != aa {
 		vm.frame().step(1)
 	}
 }
@@ -379,13 +378,13 @@ func (vm *v53) lt(instr ir.Instr) {
 // @args A B C
 //
 // if ((RK(B) <= RK(C)) ~= A) then pc++
-func (vm *v53) le(instr ir.Instr) {
+func (vm *v53) le(instr vm.Instr) {
 	var (
 		rb = vm.rk(instr.B())
 		rc = vm.rk(instr.C())
 		aa = (instr.A() == 1)
 	)
-	if vm.compare(OpLe, rb, rc) != aa {
+	if vm.compare(OpLe, rb, rc, false) != aa {
 		vm.frame().step(1)
 	}
 }
@@ -395,7 +394,7 @@ func (vm *v53) le(instr ir.Instr) {
 // @args A C 
 //
 // if not (R(A) <=> C) then pc++          
-func (vm *v53) test(instr ir.Instr) {
+func (vm *v53) test(instr vm.Instr) {
 	var (
 		ra = vm.frame().get(instr.A())
 		cc = (instr.C() == 1)
@@ -410,7 +409,7 @@ func (vm *v53) test(instr ir.Instr) {
 // @args A B C
 //
 // if (R(B) <=> C) then R(A) := R(B) else pc++
-func (vm *v53) testset(instr ir.Instr) {
+func (vm *v53) testset(instr vm.Instr) {
 	var (
 		rb = vm.frame().get(instr.B())
 		cc = (instr.C() == 1)
@@ -449,7 +448,7 @@ func (vm *v53) testset(instr ir.Instr) {
 // @args A B C
 //
 // R(A), ... ,R(A+C-2) := R(A)(R(A+1), ... ,R(A+B-1))  
-func (vm *v53) call(instr ir.Instr) {
+func (vm *v53) call(instr vm.Instr) {
 	var (
 		a = instr.A()
 		b = instr.B()
@@ -492,7 +491,7 @@ func (vm *v53) call(instr ir.Instr) {
 // @args A B C
 //
 // return R(A)(R(A+1), ... ,R(A+B-1))
-func (vm *v53) tailcall(instr ir.Instr) {
+func (vm *v53) tailcall(instr vm.Instr) {
 	var (
 		a = instr.A()
 		b = instr.B()
@@ -533,7 +532,7 @@ func (vm *v53) tailcall(instr ir.Instr) {
 // @args A B
 // 
 // return R(A), ... ,R(A+B-2)
-func (vm *v53) returns(instr ir.Instr) {
+func (vm *v53) returns(instr vm.Instr) {
 	var (
 		a = instr.A()
 		b = instr.B()
@@ -575,7 +574,7 @@ func (vm *v53) returns(instr ir.Instr) {
 // @args A sBx 
 //
 // R(A)+=R(A+2); if R(A) <?= R(A+1) then { pc+=sBx; R(A+3)=R(A) }                     
-func (vm *v53) forloop(instr ir.Instr) {
+func (vm *v53) forloop(instr vm.Instr) {
 	var (
 		item = vm.frame().get(instr.A())
 		upto = vm.frame().get(instr.A()+1)
@@ -609,7 +608,7 @@ func (vm *v53) forloop(instr ir.Instr) {
 // @args A sBx 
 //
 // R(A)-=R(A+2); pc+=sBx
-func (vm *v53) forprep(instr ir.Instr) {
+func (vm *v53) forprep(instr vm.Instr) {
 	var (
 		init = vm.frame().get(instr.A())
 		upto = vm.frame().get(instr.A()+1)
@@ -622,6 +621,7 @@ func (vm *v53) forprep(instr ir.Instr) {
 		i3, ok3 = toInteger(step)
 	)
 	if ok1 && ok2 && ok3 {
+		// TODO: Try converting forlimit to an integer rounding if possible.
 		vm.frame().set(instr.A(), i1-i3)
 		vm.frame().set(instr.A()+1, i2)
 		vm.frame().set(instr.A()+2, i3)
@@ -662,7 +662,7 @@ func (vm *v53) forprep(instr ir.Instr) {
 // @args A C
 //
 // R(A+3), ... ,R(A+2+C) := R(A)(R(A+1), R(A+2))
-func (vm *v53) tforcall(instr ir.Instr) {
+func (vm *v53) tforcall(instr vm.Instr) {
 	// tforcall expects the for variables below to be at a fixed
 	// position in the stack for every iteration, so we need to
 	// adjust the stack to ensure this to avoid side effects.
@@ -697,7 +697,7 @@ func (vm *v53) tforcall(instr ir.Instr) {
 // @args A sBx 
 //
 // if R(A+1) ~= nil then { R(A)=R(A+1); pc += sBx } 
-func (vm *v53) tforloop(instr ir.Instr) {
+func (vm *v53) tforloop(instr vm.Instr) {
 	if ctrl := vm.frame().get(instr.A()+1); !IsNone(ctrl) {
 		vm.frame().set(instr.A(), ctrl)
 		vm.frame().step(instr.SBX())
@@ -712,7 +712,7 @@ func (vm *v53) tforloop(instr ir.Instr) {
 // @args A B C
 //
 // R(A)[(C-1)*FPF+i] := R(A+i), 1 <= i <= B
-func (vm *v53) setlist(instr ir.Instr) {
+func (vm *v53) setlist(instr vm.Instr) {
 	var (
 		a = instr.A()
 		b = instr.B()
@@ -732,7 +732,7 @@ func (vm *v53) setlist(instr ir.Instr) {
 // @args A Bx
 // 
 // R(A) := closure(KPROTO[Bx])
-func (vm *v53) closure(instr ir.Instr) {
+func (vm *v53) closure(instr vm.Instr) {
 	cls := newLuaClosure(vm.prototype(instr.BX()))
 	vm.frame().openUp(cls)
 	vm.frame().push(cls)
@@ -748,7 +748,7 @@ func (vm *v53) closure(instr ir.Instr) {
 // @args A B
 //
 // R(A), R(A+1), ..., R(A+B-2) = vararg
-func (vm *v53) vararg(instr ir.Instr) {
+func (vm *v53) vararg(instr vm.Instr) {
 	var (
 		a = instr.A()
 		b = instr.B()
@@ -764,7 +764,7 @@ func (vm *v53) vararg(instr ir.Instr) {
 // @args A B C
 //
 // R(A) := RK(B) // RK(C)
-func (vm *v53) idiv(instr ir.Instr) {
+func (vm *v53) idiv(instr vm.Instr) {
 	var (
 		rb = vm.rk(instr.B())
 		rc = vm.rk(instr.C())
@@ -778,7 +778,7 @@ func (vm *v53) idiv(instr ir.Instr) {
 // @args A B C
 //
 // R(A) := RK(B) & RK(C)
-func (vm *v53) band(instr ir.Instr) {
+func (vm *v53) band(instr vm.Instr) {
 	var (
 		rb = vm.rk(instr.B())
 		rc = vm.rk(instr.C())
@@ -792,7 +792,7 @@ func (vm *v53) band(instr ir.Instr) {
 // @args A B C
 //
 // R(A) := RK(B) | RK(C) 
-func (vm *v53) bor(instr ir.Instr) {	
+func (vm *v53) bor(instr vm.Instr) {	
 	var (
 		rb = vm.rk(instr.B())
 		rc = vm.rk(instr.C())
@@ -806,7 +806,7 @@ func (vm *v53) bor(instr ir.Instr) {
 // @args A B C
 //
 // R(A) := RK(B) ~ RK(C)
-func (vm *v53) bxor(instr ir.Instr) {
+func (vm *v53) bxor(instr vm.Instr) {
 	var (
 		rb = vm.rk(instr.B())
 		rc = vm.rk(instr.C())
@@ -820,7 +820,7 @@ func (vm *v53) bxor(instr ir.Instr) {
 // @args A B C
 //
 // R(A) := RK(B) << RK(C) 
-func (vm *v53) shl(instr ir.Instr) {
+func (vm *v53) shl(instr vm.Instr) {
 	var (
 		rb = vm.rk(instr.B())
 		rc = vm.rk(instr.C())
@@ -834,7 +834,7 @@ func (vm *v53) shl(instr ir.Instr) {
 // @args A B C
 //
 // R(A) := RK(B) >> RK(C)
-func (vm *v53) shr(instr ir.Instr) {
+func (vm *v53) shr(instr vm.Instr) {
 	var (
 		rb = vm.rk(instr.B())
 		rc = vm.rk(instr.C())
@@ -848,7 +848,7 @@ func (vm *v53) shr(instr ir.Instr) {
 // @args A B
 // 
 // R(A) := ~R(B)
-func (vm *v53) bnot(instr ir.Instr) {
+func (vm *v53) bnot(instr vm.Instr) {
 	var (
 		rb = vm.rk(instr.B())
 		ra = vm.arith(OpNot, rb, None)
@@ -859,7 +859,7 @@ func (vm *v53) bnot(instr ir.Instr) {
 // EXTRAARG: Extra (larger) argument for previous opcode.
 //
 // @args Ax
-func (vm *v53) extraarg(instr ir.Instr) {
+func (vm *v53) extraarg(instr vm.Instr) {
 	// This op func should never execute directly.
 	unimplemented(instr.String())
 }

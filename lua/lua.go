@@ -28,7 +28,7 @@ func (state *State) DumpStack(w io.Writer) {
 //
 // This function never shrinks the stack; if the stack already has space for the extra slots, it
 // is left unchanged.
-func (state *State) EnsureStack(needed int) bool {
+func (state *State) CheckStack(needed int) bool {
     return state.frame().checkstack(needed)
 }
 
@@ -205,6 +205,8 @@ func (state *State) Register(name string, fn Func) {
 }
 
 // AtPanic sets a new panic function and returns the old one (see §4.6).
+//
+// See https://www.lua.org/manual/5.3/manual.html#lua_atpanic
 func (state *State) AtPanic(panicFn Func) Func {
     prevFn := state.global.panicFn
     state.global.panicFn = panicFn
@@ -218,31 +220,41 @@ func (state *State) AtPanic(panicFn Func) Func {
 // 
 // You can only call functions in threads with status LUA_OK. You can resume threads with
 // status LUA_OK (to start a new coroutine) or LUA_YIELD (to resume a coroutine).
+//
+// See https://www.lua.org/manual/5.3/manual.html#lua_status
 func (state *State) Status() ThreadStatus { unimplemented("Status"); return ThreadError }
 
 // Generates a Lua error, using the value at the top of the stack as the error object.
 // 
 // This function does a long jump, and therefore never returns (see luaL_error).
-func (state *State) Error() { unimplemented("Error") }
+//
+// See https://www.lua.org/manual/5.3/manual.html#lua_error
+func (state *State) Error() int {
+    return state.errorf("%v", state.frame().pop())
+}
 
 // Destroys all objects in the given Lua state (calling the corresponding garbage-collection metamethods, if any) and
 // frees all dynamic memory used by this state. In several platforms, you may not need to call this function, because
 // all resources are naturally released when the host program ends. On the other hand, long-running programs that create
 // multiple states, such as daemons or web servers, will probably need to close states as soon as they are not needed.
-func (state *State) Close() { unimplemented("Close") }
+//
+// See https://www.lua.org/manual/5.3/manual.html#lua_close
+func (state *State) Close() { fmt.Println("lua: state.Close(): TODO") }
 
 // Returns the address of the version number (a C static variable) stored in the Lua core. When called with a valid lua_State,
 // returns the address of the version used to create that state. When called with NULL, returns the address of the version
 // running the call.
+//
+// See https://www.lua.org/manual/5.3/manual.html#lua_version
 func (state *State) Version() *float64 { unimplemented("Version"); return nil }
 
-// Exchange exchanges values between different threads of the same state.
+// XMove exchanges values between different threads of the same state.
 //
 // This function pops N values from the state's stack, and pushes them onto
 // the state dst's stack.
 //
 // See https://www.lua.org/manual/5.3/manual.html#lua_xmove
-func (state *State) Exchange(dst *State, n int) {
+func (state *State) XMove(dst *State, n int) {
     dst.frame().pushN(state.frame().popN(n))
 }
 
@@ -297,7 +309,7 @@ func (state *State) Length(index int) int { unimplemented("Length"); return 0 }
 //      * LUA_OPLT: compares for less than (<)
 //      * LUA_OPLE: compares for less or equal (<=)
 func (state *State) Compare(op Op, i1, i2 int) bool {
-   return state.compare(op, state.get(i1), state.get(i2))
+   return state.compare(op, state.get(i1), state.get(i2), false)
 }
 
 // Pushes onto the stack the value of the global name.
@@ -345,19 +357,18 @@ func (state *State) NewTable() { state.NewTableSize(0, 0) }
 // See function "next" for the caveats of modifying the table during its traversal.
 //
 // See https://www.lua.org/manual/5.3/manual.html#lua_next
-func (state *State) Next(index int) bool {
+func (state *State) Next(index int) (more bool) {
     tbl, ok := state.get(index).(*Table)
     if !ok {
         state.errorf("table expected")
     }
-    k, v, more := tbl.next(state.frame().pop())
-    // fmt.Printf("next: (%v,%v) (%t)\n", k, v, more)
-    if more {
+    var k, v Value
+    if k, v, more = tbl.next(state.frame().pop()); more {
+        // fmt.Printf("next: key=%v, value=%v (more = %t)\n", k, v, more)
         state.frame().push(k)
         state.frame().push(v)
-        return true
     }
-    return false
+    return
 }
 
 // If the value at the given index has a metatable, the function pushes that metatable onto
@@ -445,6 +456,8 @@ func (state *State) SetField(index int, field string) {
 // As in Lua, this function may trigger a metamethod for the "index" event (see §2.4).
 // 
 // Returns the type of the pushed value.
+//
+// See https://www.lua.org/manual/5.3/manual.html#lua_geti
 func (state *State) GetI(index int, entry int64) Type {
     obj := state.get(index)
     key := Int(entry)
@@ -459,11 +472,18 @@ func (state *State) GetI(index int, entry int64) Type {
 // This function pops the value from the stack.
 //
 // As in Lua, this function may trigger a metamethod for the "newindex" event (see §2.4).
-func (state *State) SetI(index, entry int) {
-    unimplemented("SetI")
+//
+// See https://www.lua.org/manual/5.3/manual.html#lua_seti
+func (state *State) SetI(index int, entry int64) {
+    tbl := state.get(index)
+    key := Int(entry)
+    val := state.frame().pop()
+    state.settable(tbl, key, val, false)
 }
 
 // Similar to lua_gettable, but does a raw access (i.e., without metamethods).
+//
+// See https://www.lua.org/manual/5.3/manual.html#lua_rawget
 func (state *State) RawGet(index int) Type {
     var (
         key = state.frame().pop()
@@ -475,6 +495,8 @@ func (state *State) RawGet(index int) Type {
 }
 
 // Similar to lua_settable, but does a raw assignment (i.e., without metamethods).
+//
+// See https://www.lua.org/manual/5.3/manual.html#lua_rawset
 func (state *State) RawSet(index int) {
     var (
         val = state.frame().pop()
@@ -484,11 +506,29 @@ func (state *State) RawSet(index int) {
     state.settable(obj, key, val, true)
 }
 
+// RawLen returns the raw "length" of the value at the given index: for strings, this
+// is the string length; for tables, this is the result of the length operator ('#')
+// with no metamethods; for userdata, this is the size of the block of memory allocated
+// for the userdata; for other values, it is 0.
+//
+// See https://www.lua.org/manual/5.3/manual.html#lua_rawlen
+func (state *State) RawLen(index int) int {
+    switch v := state.get(index).(type) {
+        case String:
+            return len(v)
+        case *Table:
+            return len(v.list)
+    }
+    return 0
+}
+
 // Pushes onto the stack the value t[n], where t is the table at the given index.
 //
 // The access is raw, that is, it does not invoke the __index metamethod.
 // 
 // Returns the type of the pushed value.
+//
+// See https://www.lua.org/manual/5.3/manual.html#lua_rawgeti
 func (state *State) RawGetI(index int, entry int) Type {
     var (
         obj = state.get(index)
@@ -505,6 +545,8 @@ func (state *State) RawGetI(index int, entry int) Type {
 // The access is raw; that is, it does not invoke the __index metamethod.
 // 
 // Returns the type of the pushed value.
+//
+// See https://www.lua.org/manual/5.3/manual.html#lua_rawgetp
 func (state *State) RawGetP(index int, udata *Object) Type {
     unimplemented("RawGetP")
     return NilType
@@ -516,6 +558,8 @@ func (state *State) RawGetP(index int, udata *Object) Type {
 // This function pops the value from the stack.
 //
 // The assignment is raw, that is, it does not invoke __newindex metamethod.
+//
+// See https://www.lua.org/manual/5.3/manual.html#lua_rawsetp
 func (state *State) RawSetP(index int, udata *Object) {
     unimplemented("RawSetP")
 }
@@ -541,26 +585,55 @@ func (state *State) RawSetI(index int, entry int) {
 // (that is, without calling the __eq metamethod).
 //
 // Otherwise returns false. or if any of the indices are not valid.
+//
+// See https://www.lua.org/manual/5.3/manual.html#lua_rawequal
 func (state *State) RawEqual(i1, i2 int) bool {
-    unimplemented("RawEquals")
-    return false
+    if !state.isValid(i1) || !state.isValid(i2) {
+        return false
+    }
+    return state.compare(OpEq, state.get(i1), state.get(i2), true)
 }
 
-// CallMeta calls a metamethod.
+// PCall calls a function in protected mode.
 //
-// If the object at index obj has a metatable and this metatable has a field event,
-// this function calls this field passing the object as its only argument. In this
-// case this function returns true and pushes onto the stack the value returned by
-// the call. If there is no metatable or no metamethod, this function returns false
-// (without pushing any value on the stack).
+// Both nargs and nresults have the same meaning as in lua_call. If there are no errors during the call,
+// lua_pcall behaves exactly like lua_call. However, if there is any error, lua_pcall catches it, pushes
+// a single value on the stack (the error object), and returns an error code. Like lua_call, lua_pcall
+// always removes the function and its arguments from the stack.
 //
-// [-0, +(0|1), e]
-func (state *State) CallMeta(index int, event string) bool {
-    unimplemented("CallMeta")
-    return false
+// If msgh is 0, then the error object returned on the stack is exactly the original error object.
+// Otherwise, msgh is the stack index of a message handler. (This index cannot be a pseudo-index.)
+// In case of runtime errors, this function will be called with the error object and its return value
+// will be the object returned on the stack by lua_pcall.
+//
+// Typically, the message handler is used to add more debug information to the error object, such as a
+// stack traceback. Such information cannot be gathered after the return of lua_pcall, since by then the
+// stack has unwound.
+//
+// The lua_pcall function returns one of the following constants (defined in lua.h):
+//
+//  LUA_OK (0): success.
+//  LUA_ERRRUN: a runtime error.
+//  LUA_ERRMEM: memory allocation error. For such errors, Lua does not call the message handler.
+//  LUA_ERRERR: error while running the message handler.
+//  LUA_ERRGCMM: error while running a __gc metamethod. For such errors, Lua does not call
+//               the message handler (as this kind of error typically has no relation with
+//               the function being called).
+//
+// See https://www.lua.org/manual/5.3/manual.html#lua_pcall
+func (state *State) PCall(args, rets, msgh int) (err error) {
+    defer func(err *error) {
+        if r := recover(); r != nil {
+            if e, ok := r.(error); ok {
+                *err = e
+            }
+        }
+    }(&err)
+    state.Call(args, rets)
+    return
 }
 
-// Calls a function.
+// Call calls a function.
 //
 // To call a function you must use the following protocol: first, the function to be called is pushed onto the stack;
 // then, the arguments to the function are pushed in direct order; that is, the first argument is pushed first.
@@ -585,7 +658,7 @@ func (state *State) Call(args, rets int) {
     state.Logf("call (func @ %d) %v (# args = %d, # rets = %d)\n", funcID, value, args, rets)
     
     if !ok && !tryMetaCall(state, value, funcID, args, rets) {
-        panic(runtimeErr(fmt.Errorf("attempt to call a %s value", value.Type())))
+        state.errorf("attempt to call a %s value", value.Type())
     } else {
         state.call(&Frame{closure: c, fnID: funcID, rets: rets})
     }
@@ -604,13 +677,6 @@ func (state *State) SetFuncs(funcs map[string]Func, nups uint8) {
         state.SetField(-2, name)
     }
 }
-
-// Errorf raises an error with message formatted using the format string and provided
-// arguments. The error message is prefixed with the file name and line number where
-// the error occurred, if this information is available. This function never returns.
-//
-// [-0, +0, v]
-func (state *State) Errorf(format string, args ...interface{}) { state.errorf(format, args...) }
 
 // Exec loads and runs a Lua chunk returning the result (if any) or an error (if any).
 //
@@ -638,7 +704,6 @@ func (state *State) Exec(filename string, source interface{}, mode Mode) error {
 // Leaves a copy of the module on the stack.
 func Require(state *State, module string, loader Func, global bool) {
     state.Logf("require %q (global = %t)", module, global)
-
     state.GetSubTable(RegistryIndex, LoadedKey)
     state.GetField(-1, module)        // LOADED[module]
 
