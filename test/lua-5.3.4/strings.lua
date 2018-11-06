@@ -90,13 +90,13 @@ assert(string.byte("hi", 2, 1) == nil)
 assert(string.char() == "")
 assert(string.char(0, 255, 0) == "\0\255\0")
 assert(string.char(0, string.byte("\xe4"), 0) == "\0\xe4\0")
-assert(string.char(string.byte("\xe4l\0óu", 1, -1)) == "\xe4l\0óu")
-assert(string.char(string.byte("\xe4l\0óu", 1, 0)) == "")
-assert(string.char(string.byte("\xe4l\0óu", -10, 100)) == "\xe4l\0óu")
+assert(string.char(string.byte("\xe4l\0ï¿½u", 1, -1)) == "\xe4l\0ï¿½u")
+assert(string.char(string.byte("\xe4l\0ï¿½u", 1, 0)) == "")
+assert(string.char(string.byte("\xe4l\0ï¿½u", -10, 100)) == "\xe4l\0ï¿½u")
 assert(string.upper("ab\0c") == "AB\0C")
 assert(string.lower("\0ABCc%$") == "\0abcc%$")
 assert(string.rep('teste', 0) == '')
-assert(string.rep('tés\00tê', 2) == 'tés\0têtés\000tê')
+assert(string.rep('tï¿½s\00tï¿½', 2) == 'tï¿½s\0tï¿½tï¿½s\000tï¿½')
 assert(string.rep('', 10) == '')
 
 -- if string.packsize("i") == 4 then
@@ -148,20 +148,20 @@ else   -- compatible coercion
   assert(tostring(-1203 + 0.0) == "-1203")
 end
 
--- x = '"ílo"\n\\'
--- assert(string.format('%q%s', x, x) == '"\\"ílo\\"\\\n\\\\""ílo"\n\\')
--- assert(string.format('%q', "\0") == [["\0"]])
--- assert(load(string.format('return %q', x))() == x)
--- x = "\0\1\0023\5\0009"
--- assert(load(string.format('return %q', x))() == x)
--- assert(string.format("\0%c\0%c%x\0", string.byte("\xe4"), string.byte("b"), 140) ==
---               "\0\xe4\0b8c\0")
+x = '"ï¿½lo"\n\\'
+assert(string.format('%q%s', x, x) == '"\\"ï¿½lo\\"\\\n\\\\""ï¿½lo"\n\\')
+assert(string.format('%q', "\0") == [["\0"]])
+assert(load(string.format('return %q', x))() == x)
+x = "\0\1\0023\5\0009"
+assert(load(string.format('return %q', x))() == x)
+assert(string.format("\0%c\0%c%x\0", string.byte("\xe4"), string.byte("b"), 140) ==
+              "\0\xe4\0b8c\0")
 assert(string.format('') == "")
 assert(string.format("%c",34)..string.format("%c",48)..string.format("%c",90)..string.format("%c",100) ==
        string.format("%c%c%c%c", 34, 48, 90, 100))
--- assert(string.format("%s\0 is not \0%s", 'not be', 'be') == 'not be\0 is not \0be')
--- assert(string.format("%%%d %010d", 10, 23) == "%10 0000000023")
--- assert(tonumber(string.format("%f", 10.3)) == 10.3)
+assert(string.format("%s\0 is not \0%s", 'not be', 'be') == 'not be\0 is not \0be')
+assert(string.format("%%%d %010d", 10, 23) == "%10 0000000023")
+assert(tonumber(string.format("%f", 10.3)) == 10.3)
 x = string.format('"%-50s"', 'a')
 assert(#x == 52)
 assert(string.sub(x, 1, 4) == '"a  ')
@@ -171,25 +171,25 @@ assert(string.format("-%.20s.20s", string.rep("%", 2000)) ==
 assert(string.format('"-%20s.20s"', string.rep("%", 2000)) ==
        string.format("%q", "-"..string.rep("%", 2000)..".20s"))
 
--- do
---   local function checkQ (v)
---     local s = string.format("%q", v)
---     local nv = load("return " .. s)()
---     assert(v == nv and math.type(v) == math.type(nv))
---   end
---   checkQ("\0\0\1\255\u{234}")
---   checkQ(math.maxinteger)
+do
+  local function checkQ (v)
+    local s = string.format("%q", v)
+    local nv = load("return " .. s)()
+    assert(v == nv and math.type(v) == math.type(nv))
+  end
+  checkQ("\0\0\1\255\u{234}")
+  checkQ(math.maxinteger)
 --   checkQ(math.mininteger)
---   checkQ(math.pi)
---   checkQ(0.1)
---   checkQ(true)
---   checkQ(nil)
---   checkQ(false)
---   checkerror("no literal", string.format, "%q", {})
--- end
+  checkQ(math.pi)
+  checkQ(0.1)
+  checkQ(true)
+  checkQ(nil)
+  checkQ(false)
+  checkerror("no literal", string.format, "%q", {})
+end
 
 assert(string.format("\0%s\0", "\0\0\1") == "\0\0\0\1\0")
--- checkerror("contains zeros", string.format, "%10s", "\0")
+checkerror("contains zeros", string.format, "%10s", "\0")
 
 -- format x tostring
 assert(string.format("%s %s", nil, true) == "nil true")
@@ -197,9 +197,9 @@ assert(string.format("%s %.4s", false, true) == "false true")
 assert(string.format("%.3s %.3s", false, true) == "fal tru")
 local m = setmetatable({}, {__tostring = function () return "hello" end,
                             __name = "hi"})
--- assert(string.format("%s %.10s", m, m) == "hello hello")
+assert(string.format("%s %.10s", m, m) == "hello hello")
 getmetatable(m).__tostring = nil   -- will use '__name' from now on
--- assert(string.format("%.4s", m) == "hi: ")
+assert(string.format("%.4s", m) == "hi: ")
 
 getmetatable(m).__tostring = function () return {} end
 checkerror("'__tostring' must return a string", tostring, m)
@@ -212,18 +212,18 @@ assert(string.format("%+08d", 31501) == "+0031501")
 assert(string.format("%+08d", -30927) == "-0030927")
 
 
--- do    -- longest number that can be formatted
---   local i = 1
---   local j = 10000
---   while i + 1 < j do   -- binary search for maximum finite float
---     local m = (i + j) // 2
---     if 10^m < math.huge then i = m else j = m end
---   end
---   assert(10^i < math.huge and 10^j == math.huge)
---   local s = string.format('%.99f', -(10^i))
---   assert(string.len(s) >= i + 101)
---   assert(tonumber(s) == -(10^i))
--- end
+do    -- longest number that can be formatted
+  local i = 1
+  local j = 10000
+  while i + 1 < j do   -- binary search for maximum finite float
+    local m = (i + j) // 2
+    if 10^m < math.huge then i = m else j = m end
+  end
+  assert(10^i < math.huge and 10^j == math.huge)
+  local s = string.format('%.99f', -(10^i))
+  assert(string.len(s) >= i + 101)
+  assert(tonumber(s) == -(10^i))
+end
 
 
 -- testing large numbers for format
@@ -236,7 +236,7 @@ do   -- assume at least 32 bits
   assert(string.format("%d", min) == "-2147483648")
   assert(string.format("%u", 0xffffffff) == "4294967295")
   assert(string.format("%o", 0xABCD) == "125715")
-
+  
   max, min = 0x7fffffffffffffff, -0x8000000000000000
   if max > 2.0^53 then  -- only for 64 bits
     assert(string.format("%x", (2^52 | 0) - 1) == "fffffffffffff")
@@ -289,49 +289,49 @@ end
 
 -- errors in format
 
--- local function check (fmt, msg)
---   checkerror(msg, string.format, fmt, 10)
--- end
+local function check (fmt, msg)
+  checkerror(msg, string.format, fmt, 10)
+end
 
--- local aux = string.rep('0', 600)
--- check("%100.3d", "too long")
--- check("%1"..aux..".3d", "too long")
--- check("%1.100d", "too long")
--- check("%10.1"..aux.."004d", "too long")
--- check("%t", "invalid option")
--- check("%"..aux.."d", "repeated flags")
--- check("%d %d", "no value")
-
-
--- assert(load("return 1\n--comment without ending EOL")() == 1)
+local aux = string.rep('0', 600)
+check("%100.3d", "too long")
+check("%1"..aux..".3d", "too long")
+check("%1.100d", "too long")
+check("%10.1"..aux.."004d", "too long")
+check("%t", "invalid option")
+check("%"..aux.."d", "repeated flags")
+check("%d %d", "no value")
 
 
--- checkerror("table expected", table.concat, 3)
--- assert(table.concat{} == "")
--- assert(table.concat({}, 'x') == "")
--- assert(table.concat({'\0', '\0\1', '\0\1\2'}, '.\0.') == "\0.\0.\0\1.\0.\0\1\2")
--- local a = {}; for i=1,300 do a[i] = "xuxu" end
--- assert(table.concat(a, "123").."123" == string.rep("xuxu123", 300))
--- assert(table.concat(a, "b", 20, 20) == "xuxu")
--- assert(table.concat(a, "", 20, 21) == "xuxuxuxu")
--- assert(table.concat(a, "x", 22, 21) == "")
--- assert(table.concat(a, "3", 299) == "xuxu3xuxu")
--- assert(table.concat({}, "x", maxi, maxi - 1) == "")
--- assert(table.concat({}, "x", mini + 1, mini) == "")
--- assert(table.concat({}, "x", maxi, mini) == "")
--- assert(table.concat({[maxi] = "alo"}, "x", maxi, maxi) == "alo")
--- assert(table.concat({[maxi] = "alo", [maxi - 1] = "y"}, "-", maxi - 1, maxi)
---        == "y-alo")
+assert(load("return 1\n--comment without ending EOL")() == 1)
 
--- assert(not pcall(table.concat, {"a", "b", {}}))
 
--- a = {"a","b","c"}
--- assert(table.concat(a, ",", 1, 0) == "")
--- assert(table.concat(a, ",", 1, 1) == "a")
--- assert(table.concat(a, ",", 1, 2) == "a,b")
--- assert(table.concat(a, ",", 2) == "b,c")
--- assert(table.concat(a, ",", 3) == "c")
--- assert(table.concat(a, ",", 4) == "")
+checkerror("table expected", table.concat, 3)
+assert(table.concat{} == "")
+assert(table.concat({}, 'x') == "")
+assert(table.concat({'\0', '\0\1', '\0\1\2'}, '.\0.') == "\0.\0.\0\1.\0.\0\1\2")
+local a = {}; for i=1,300 do a[i] = "xuxu" end
+assert(table.concat(a, "123").."123" == string.rep("xuxu123", 300))
+assert(table.concat(a, "b", 20, 20) == "xuxu")
+assert(table.concat(a, "", 20, 21) == "xuxuxuxu")
+assert(table.concat(a, "x", 22, 21) == "")
+assert(table.concat(a, "3", 299) == "xuxu3xuxu")
+assert(table.concat({}, "x", maxi, maxi - 1) == "")
+assert(table.concat({}, "x", mini + 1, mini) == "")
+assert(table.concat({}, "x", maxi, mini) == "")
+assert(table.concat({[maxi] = "alo"}, "x", maxi, maxi) == "alo")
+assert(table.concat({[maxi] = "alo", [maxi - 1] = "y"}, "-", maxi - 1, maxi)
+       == "y-alo")
+
+assert(not pcall(table.concat, {"a", "b", {}}))
+
+a = {"a","b","c"}
+assert(table.concat(a, ",", 1, 0) == "")
+assert(table.concat(a, ",", 1, 1) == "a")
+assert(table.concat(a, ",", 1, 2) == "a,b")
+assert(table.concat(a, ",", 2) == "b,c")
+assert(table.concat(a, ",", 3) == "c")
+assert(table.concat(a, ",", 4) == "")
 
 -- if not _port then
 
@@ -348,14 +348,14 @@ end
 --   end
 
 --   if trylocale("collate")  then
---     assert("alo" < "álo" and "álo" < "amo")
+--     assert("alo" < "ï¿½lo" and "ï¿½lo" < "amo")
 --   end
 
 --   if trylocale("ctype") then
---     assert(string.gsub("áéíóú", "%a", "x") == "xxxxx")
---     assert(string.gsub("áÁéÉ", "%l", "x") == "xÁxÉ")
---     assert(string.gsub("áÁéÉ", "%u", "x") == "áxéx")
---     assert(string.upper"áÁé{xuxu}ção" == "ÁÁÉ{XUXU}ÇÃO")
+--     assert(string.gsub("ï¿½ï¿½ï¿½ï¿½ï¿½", "%a", "x") == "xxxxx")
+--     assert(string.gsub("ï¿½ï¿½ï¿½ï¿½", "%l", "x") == "xï¿½xï¿½")
+--     assert(string.gsub("ï¿½ï¿½ï¿½ï¿½", "%u", "x") == "ï¿½xï¿½x")
+--     assert(string.upper"ï¿½ï¿½ï¿½{xuxu}ï¿½ï¿½o" == "ï¿½ï¿½ï¿½{XUXU}ï¿½ï¿½O")
 --   end
 
 --   os.setlocale("C")

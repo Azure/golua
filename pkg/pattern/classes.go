@@ -12,27 +12,28 @@ type class interface {
 
 func (i item) matches(r rune) (match bool) {
 	if i.typ == itemText { return i.val == string(r) }
-	
+
 	switch strings.ToLower(i.val) {
 		case "a":
-			match = unicode.IsLetter(r)
+			match = isalpha(r)
 		case "c":
-			match = unicode.IsControl(r)
+			match = iscntrl(r)
 		case "d":
-			match = unicode.IsDigit(r)
+			match = isdigit(r)
 		case "g":
-			match = unicode.IsPrint(r)
+			match = isgraph(r)
 		case "l":
-			match = unicode.IsLower(r)
+			match = islower(r)
 		case "p":
-			match = unicode.IsPunct(r)
+			match = ispunct(r)
 		case "s":
-			match = unicode.IsSpace(r)
+			match = isspace(r)
 		case "u":
-			match = unicode.IsUpper(r)
+			match = isupper(r)
 		case "w":
-			match = unicode.IsLetter(r) || unicode.IsDigit(r)
-		// case "x": TODO: hexadecimal characters
+			match = isalnum(r)
+		case "x":
+			match = isxdigit(r)
 		case ".":
 			return true
 		default:
@@ -79,3 +80,15 @@ func classID(item item) (id string) {
 	}
 	return id
 }
+
+func ispunct(r rune) bool { return isprint(r) && !isalnum(r) && !isspace(r) }
+func isalpha(r rune) bool { return islower(r) || isupper(r) }
+func isalnum(r rune) bool { return isalpha(r) || isdigit(r) }
+func iscntrl(r rune) bool { return unicode.IsControl(r) }
+func isspace(r rune) bool { return unicode.IsSpace(r) }
+func isprint(r rune) bool { return unicode.IsPrint(r) }
+func isdigit(r rune) bool { return '0' <= r && r <= '9' }
+func isgraph(r rune) bool { return '!' <= r && r <= '~' }
+func islower(r rune) bool { return 'a' <= r && r <= 'z' }
+func isupper(r rune) bool { return 'A' <= r && r <= 'Z' }
+func isxdigit(r rune) bool { return isdigit(r) || ('a' <= r && r <= 'f') ||  ('A' <= r && r <= 'F') }

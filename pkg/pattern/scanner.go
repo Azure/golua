@@ -147,9 +147,6 @@ func (scan *scanner) run() {
 	for state := scanText; state != nil; {
 		state = state(scan)
 	}
-	// if scan.pos > scan.start {
-	// 	scan.emit(itemText, 0)
-	// }
 	if scan.ncap > 0 {
 		scan.errorf("unfinished capture")
 	}

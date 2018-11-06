@@ -29,7 +29,7 @@ type state struct {
 }
 
 func (patt *pattern) MatchIndexAll(src string, limit int) (captures [][]int) {
-	for start, count := 0, 0; start <= len(src) && !patt.head; start++ {
+	for start, count := 0, 0; start <= len(src); start++ {
 		if end, match := patt.match(src, start, 0); match {
 			captures = append(captures, []int{start, end})
 			for _, cap := range patt.caps {
@@ -44,18 +44,24 @@ func (patt *pattern) MatchIndexAll(src string, limit int) (captures [][]int) {
 			}
 			start = end
 		}
+		if patt.head {
+			break
+		}
 	}
 	return captures
 }
 
 func (patt *pattern) MatchIndex(src string) (captures []int) {
-	for sp := 0; sp <= len(src) && !patt.head; sp++ {
+	for sp := 0; sp <= len(src); sp++ {
 		if pos, match := patt.match(src, sp, 0); match {
 			captures = append(captures, sp, pos)
 			for _, cap := range patt.caps {
 				captures = append(captures, cap[0], cap[1])
 			}
 			return captures
+		}
+		if patt.head {
+			break
 		}
 	}
 	return nil
@@ -73,20 +79,6 @@ func (patt *pattern) MatchAll(src string, limit int) (captures [][]string) {
 }
 
 func (patt *pattern) Match(src string) (captures []string) {
-	// // for ip, inst := range patt.inst {
-	// // 	fmt.Printf("[%d] %v\n", ip, inst)
-	// // }
-	// for sp := 0; sp <= len(src) && !patt.head; sp++ {
-	// 	// fmt.Printf("match (sp = %d)\n", sp)
-	// 	if pos, match := patt.match(src, sp, 0); match {
-	// 		// fmt.Printf("MATCH(%d,%d)\n", sp, pos)
-	// 		for _, cap := range patt.caps {
-	// 			captures = append(captures, src[cap[0]:cap[1]])
-	// 		}
-	// 		return sp, pos, captures
-	// 	}
-	// }
-	// return -1, -1, nil
 	if loc := patt.MatchIndex(src); loc != nil {
 		for i := 0; i < len(loc); i += 2 {
 			captures = append(captures, src[loc[i]:loc[i+1]])
@@ -107,6 +99,9 @@ func (patt *pattern) match(src string, sp, ip int, stack ...state) (pos int, ok 
 			ip++
 		case opMatch:
 			traceVM(src, sp, ip, inst)
+			if patt.tail {
+				return sp, sp == len(src)
+			}
 			return sp, true
 		case opStart:
 			traceVM(src, sp, ip, inst)

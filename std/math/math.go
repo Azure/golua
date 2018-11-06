@@ -57,7 +57,7 @@ func Open(state *lua.State) int {
     state.SetField(-2, "pi") // The value of π.
 
     // Set 'huge' field.
-    state.Push(math.MaxFloat64)
+    state.Push(lua.Float(math.Inf(1)))
     state.SetField(-2, "huge") // A value larger than any other numeric value.
 
     // Set 'maxinteger' field.
@@ -432,7 +432,7 @@ func mathType(state *lua.State) int {
         state.CheckAny(1)
         state.Push(nil)
     }
-    return 1
+	return 1
 }
 
 // math.ult (m, n)

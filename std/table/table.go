@@ -247,9 +247,9 @@ func checkTable(state *lua.State, index, ops int) {
 				n++	
 			}
 			state.PopN(n) // pop metatable and tested metamethods
+		} else {
+			state.CheckType(index, lua.TableType) // force an error.
 		}
-	} else {
-		state.CheckType(index, lua.TableType) // force an error.
 	}
 }
 

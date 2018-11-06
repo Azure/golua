@@ -40,7 +40,7 @@ func MatchAll(text, expr string, limit int) (captures [][]string) {
 // Match returns the first match found in str. If str is a pattern that
 // specifies captures, the captures are returned as well; otherwise ""
 // if no match was made and nil if no captures captured.
-func Match(text, expr string) (captures []string, matched bool) {
+func Match(text, expr string) (captures []string) {
 	return String(expr).Match(text)
 }
 

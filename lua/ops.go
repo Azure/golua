@@ -555,21 +555,6 @@ func (state *State) length(obj Value) Value {
 
 // concat returns the concatenation of values.
 func (state *State) concat(values []Value) Value {
-    // lhs := values[0]
-    // for i := 1; i < len(values); i++ {
-    //     rhs := values[i]
-    //     if s1, ok := toString(lhs); ok {
-    //         if s2, ok := toString(rhs); ok {
-    //             lhs = String(s1 + s2)
-    //             continue
-    //         }
-    //     }
-    //     var err error
-    //     if lhs, err = tryMetaConcat(state, lhs, rhs); err != nil {
-    //         state.errorf("%v", err)
-    //     }
-    // }
-    // return lhs
     rhs := values[len(values)-1]
     for i := len(values)-2; i >= 0; i-- {
         lhs := values[i]
@@ -577,8 +562,8 @@ func (state *State) concat(values []Value) Value {
             case String, Number:
                 if _, ok := rhs.(String); ok {
                     s1, _ := toString(lhs)
-                    s2, _ := toString(rhs)
-                    rhs = String(s1 + s2)
+					s2, _ := toString(rhs)
+					rhs = String(s1 + s2)
                     continue
                 }
                 if _, ok := rhs.(Number); ok {

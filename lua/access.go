@@ -149,7 +149,7 @@ func (state *State) ToStringMeta(index int) string {
 		if ok {
 			return s
 		}
-		panic(fmt.Errorf("'__tostring' must return a string"))
+		state.Errorf("'__tostring' must return a string")
 	} else {
 		switch kind := state.TypeAt(index); kind {
 			case NumberType:
@@ -165,8 +165,17 @@ func (state *State) ToStringMeta(index int) string {
 			case NilType:
 				state.Push("nil")
 			default:
-				// TODO: check __name metafield
-				state.Push(fmt.Sprintf("%s: %p", kind, state.get(index)))
+				var name string
+				tt := state.GetMetaField(index, "__name") // try __name
+				if tt == StringType {
+					name = state.ToString(-1)
+				} else {
+					name = kind.String()
+				}
+				state.Push(fmt.Sprintf("%s: %p", name, state.get(index)))
+				if tt != NilType {
+					state.Remove(-2) // remove '__name'
+				}
 		}
 	}
 	return state.ToString(-1)
@@ -299,7 +308,8 @@ func (state *State) IsGoFunc(index int) bool {
 // IsFloat returns true if the value at the given index is an float
 // (that is, the value is a number and is represented as a float),
 // and false otherwise.
-func (state *State) IsFloat(index int) bool { return IsFloat(state.get(index)) }
+func (state *State) IsFloat(index int) bool { return IsFloat(state.get(index))
+}
 
 // IsInt returns true if the value at the given index is an integer
 // (that is, the value is a number and is represented as an integer),

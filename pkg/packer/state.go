@@ -88,23 +88,22 @@ func (p *state) packValue(o option, v interface{}) error {
 
 func (p *state) packString(o option, v interface{}) error {
 	fmt.Println("pack: string")
-	// return binary.Write(w, opt.order, v)
+	// return p.pack(o, v)
 	return nil
 }
 
 func (p *state) packFloat(o option, v interface{}) error {
 	fmt.Println("pack: float")
-	// return binary.Write(w, opt.order, v)
+	// return p.pack(o, v)
 	return nil
 }
 
 func (p *state) packInt(o option, v interface{}) error {
 	// fmt.Printf("packInt (%t) => %T\n", o.typ == optUint, v)
-	// getIntValue(o, v)
 	if v, ok := v.(Packer); ok {
 		return v.Pack(p)
 	}
-
+	// return p.pack(o, v)
 	return nil
 }
 

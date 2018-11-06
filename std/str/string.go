@@ -1,10 +1,10 @@
 package str
 
 import (
-	gostrs "strings"
+	"strings"
 	"fmt"
 
-	"github.com/Azure/golua/pkg/strings"
+	strutil "github.com/Azure/golua/pkg/strings"
 	"github.com/Azure/golua/pkg/packer"
     "github.com/Azure/golua/lua"
 )
@@ -66,17 +66,14 @@ func createStrMetaTable(state *lua.State) {
 //
 // https://www.lua.org/manual/5.3/manual.html#pdf-string.byte
 func strByte(state *lua.State) int {
-	// s := state.CheckString(1)
-	// i := state.OptInt(2, 1)
-	// j := state.OptInt(3, i)
-	// bytes := strs.ByteSlice(s, int(i), int(j))
-	// for _, b := range bytes {
-	// 	state.Push(int64(b))
-	// }
-	// return len(bytes)
-	fmt.Println("string.byte: TODO")
-	state.Debug(true)
-	return 0
+	s := state.CheckString(1)
+	i := state.OptInt(2, 1)
+	j := state.OptInt(3, i)
+	b := byteSlice(s, int(i), int(j))
+	for _, c := range b {
+		state.Push(int64(c))
+	}
+	return len(b)
 }
 
 // string.char (···)
@@ -151,56 +148,17 @@ func strDump(state *lua.State) int {
 //
 // https://www.lua.org/manual/5.3/manual.html#pdf-string.format
 func strFormat(state *lua.State) int {
-	// args := make([]interface{}, state.Top()-1)
-	// for argc := state.Top()-1; argc >= 1; argc-- {
-	// 	args[argc-1] = state.Pop()
-	// }
-	// str, err := strs.Format(state.CheckString(1), args...)
-	// if err != nil {
-	// 	panic(err)
-	// }
-	// state.Push(str)
-	// state.Push(fmt.Sprintf(state.CheckString(1), args...))
-
-	// fmts := state.CheckString(1)
-
-	// if len(fmts) <= 1 || !strings.ContainsRune(fmts, rune('%')) {
-	// 	state.Push(fmts)
-	// 	return 1
-	// }
-	// if state.Top() < 2 {
-	// 	state.Push(fmts)
-	// 	return 1
-	// }
-	// state.Push(doFmt(state, fmts, state.Top()))
-	// return 1
-
-	// var (
-	// 	str strings.Builder
-	// 	arg = 2
-	// )
-	// for _, opt := range scanfmt(state.CheckString(1)) {
-	// 	if opt[0] == '%' {
-	// 		if opt == "%%" {
-	// 			str.WriteByte('%')
-	// 		} else {
-	// 			str.WriteString(fmtarg(state, opt, arg))
-	// 			arg++
-	// 		}
-	// 	} else {
-	// 		str.WriteString(opt)
-	// 	}
-	// }
-	// state.Push(str.String())
-	// return 1
-
-	// str := format(state, state.CheckString(1), state.Top())
-	// state.Push(str)
-	// return 1
-
-	fmt.Println("string.format: TODO")
-	state.Debug(true)
-	return 0
+	switch fmts := state.CheckString(1); {
+	case len(fmts) <= 1 || !strings.ContainsRune(fmts, rune('%')):
+		state.Push(fmts)
+		return 1
+	case state.Top() < 2:
+		state.Push(fmts)
+		return 1
+	default:
+		state.Push(format(state, fmts, state.Top()))
+		return 1
+	}
 }
 
 // string.gmatch (s, pattern)
@@ -261,46 +219,25 @@ func strGmatch(state *lua.State) int {
 //
 // https://www.lua.org/manual/5.3/manual.html#pdf-string.match
 func strMatch(state *lua.State) int {
-	// var (
-	// 	subj = state.CheckString(1)
-	// 	patt = state.CheckString(2)
-	// 	from = int(state.OptInt(3, 1))
-	// )
-	// if from < 0 {
-	// 	if from = len(subj) + (from + 1); from < 1 {
-	// 		from = 1
-	// 	}
-	// }
-	// switch m, err := strs.Match(subj, patt, from); {
-	// 	case err != nil:
-	// 		panic(err)
-	// 	case m == "":
-	// 		state.Push(nil)
-	// 	default:
-	// 		state.Push(m)
-	// }
-	// return 1
-	// s, p := state.CheckString(1), state.CheckString(2)
-	// init := strPos(len(s), int(state.OptInt(3, 1)))
-	// switch {
-	// 	case init > len(s) + 1:
-	// 		state.Push(nil)
-	// 		return 1
-	// 	case init < 1:
-	// 		init = 1
-	// }
-	// matches := match.Match(s[init-1:], p)
-	// if matches == nil {
-	// 	state.Push(nil)
-	// 	return 1
-	// }
-	// for _, matched := range matches {
-	// 	state.Push(matched[1:])
-	// }
-	// return len(matches)
-	fmt.Println("string.match: TODO")
-	state.Debug(true)
-	return 0
+	s, p := state.CheckString(1), state.CheckString(2)
+	init := strPos(len(s), int(state.OptInt(3, 1)))
+	switch {
+		case init > len(s) + 1:
+			state.Push(nil)
+			return 1
+		case init < 1:
+			init = 1
+	}
+	init--
+	caps := strutil.Match(s[init:], p)
+	for caps == nil {
+		state.Push(nil)
+		return 1
+	}
+	for _, match := range caps {
+		state.Push(match)
+	}
+	return len(caps)
 }
 
 // string.find (s, pattern [, init [, plain]])
@@ -323,60 +260,37 @@ func strMatch(state *lua.State) int {
 //
 // https://www.lua.org/manual/5.3/manual.html#pdf-string.find
 func strFind(state *lua.State) int {
-	// s, p := state.CheckString(1), state.CheckString(2)
-	// init := strPos(len(s), int(state.OptInt(3, 1)))
-	// switch {
-	// 	case init > len(s) + 1:
-	// 		state.Push(nil)
-	// 		return 1
-	// 	case init < 1:
-	// 		init = 1
-	// }
-	// loc := find(s, p, init, state.ToBool(4))
-	// if loc == nil {
-	// 	state.Push(nil)
-	// 	return 1
-	// }
-	// state.Push(loc[0])
+	s, p := state.CheckString(1), state.CheckString(2)
+	init := strPos(len(s), int(state.OptInt(3, 1)))
+	switch {
+		case init > len(s) + 1:
+			state.Push(nil)
+			return 1
+		case init < 1:
+			init = 1
+	}
+	init--
+	if state.ToBool(4) {
+		pos := strings.Index(s[init:], p)
+		if pos < 0 {
+			state.Push(nil)
+			return 1
+		}
+		state.Push(init+pos+1)
+		state.Push(init+pos+len(p))
+		return 2
+	}
+	start, end, caps, ok := find(s, p, init)
+	if !ok {
+		state.Push(nil)
+		return 1
+	}
+	state.Push(start)
+	state.Push(end)
+	_ = caps
+	// state.Push(init+loc[0]+1)
 	// state.Push(loc[1])
-	// return 2
-
-	fmt.Println("string.find: TODO")
-	state.Debug(true)
-	return 0
-
-	// var (
-	// 	subj = state.CheckString(1)
-	// 	patt = state.CheckString(2)
-	// 	init = int(state.OptInt(3, int64(len(subj))))
-	// )
-	// switch init = strPos(len(subj), init); {
-	// 	case init > len(subj) + 1:
-	// 		state.Push(nil)
-	// 		return 1
-	// 	case init < 1:
-	// 		init = 1
-	// }
-	// if plain || !strs.IsPattern(patt) {
-	// 	if pos := strings.Index(subj[index-1:], patt); pos != -1 {
-	// 		state.Push(pos+index)
-	// 		state.Push(pos+index+len(patt)-1)
-	// 		return 2
-	// 	}
-	// 	state.Push(nil)
-	// 	return 1
-	// }
-	// switch m, err := strs.Find(subj, patt, index-1); {
-	// 	case err != nil:
-	// 		panic(err)
-	// 	case m == nil:
-	// 		state.Push(nil)
-	// 		return 1
-	// 	default:
-	// 		state.Push(index+m[0])
-	// 		state.Push(index+m[1]-1)
-	// 		return 2
-	// }
+	return 2
 }
 
 // string.gsub (s, pattern, repl [, n])
@@ -437,7 +351,7 @@ func strGsub(state *lua.State) int {
 	switch state.TypeAt(3) {
 	case lua.StringType:
 		repl := state.CheckString(3)
-		s, n = strings.GsubStrAll(
+		s, n = strutil.GsubStrAll(
 			subj, 
 			patt,
 			repl,
@@ -472,7 +386,7 @@ func strLen(state *lua.State) int {
 //
 // https://www.lua.org/manual/5.3/manual.html#pdf-string.lower
 func strLower(state *lua.State) int {
-	state.Push(gostrs.ToLower(state.CheckString(1)))
+	state.Push(strings.ToLower(state.CheckString(1)))
 	return 1
 }
 
@@ -534,15 +448,12 @@ func strPack(state *lua.State) int {
 //
 // https://www.lua.org/manual/5.3/manual.html#pdf-string.rep
 func strRep(state *lua.State) int {
-	// s, err := repeat(state.CheckString(1), state.OptString(3, ""), state.CheckInt(2))
-	// if err != nil {
-	// 	panic(err)
-	// }
-	// state.Push(s)
-	// return 1
-	fmt.Println("string.rep: TODO")
-	state.Debug(true)
-	return 0
+	s, err := repeat(state.CheckString(1), state.OptString(3, ""), state.CheckInt(2))
+	if err != nil {
+		state.Errorf("%v", err)
+	}
+	state.Push(s)
+	return 1
 }
 
 // string.reverse (s)
@@ -551,13 +462,8 @@ func strRep(state *lua.State) int {
 //
 // https://www.lua.org/manual/5.3/manual.html#pdf-string.reverse
 func strReverse(state *lua.State) int {
-	// arg := state.CheckString(1)
-	// str := strs.Reverse(arg)
-	// state.Push(str)
-	// return 1
-	fmt.Println("string.reverse: TODO")
-	state.Debug(true)
-	return 0
+	state.Push(reverse(state.CheckString(1)))
+	return 1
 }
 
 // string.sub (s, i [, j])
@@ -577,14 +483,11 @@ func strReverse(state *lua.State) int {
 //
 // https://www.lua.org/manual/5.3/manual.html#pdf-string.sub
 func strSub(state *lua.State) int {
-	// s := state.CheckString(1)
-	// i := state.OptInt(2, 1)
-	// j := state.OptInt(3, -1)
-	// state.Push(strs.SubString(s, int(i), int(j)))
-	// return 1
-	fmt.Println("string.sub: TODO")
-	state.Debug(true)
-	return 0
+	s := state.CheckString(1)
+	i := int(state.OptInt(2, 1))
+	j := int(state.OptInt(3, -1))
+	state.Push(subStr(s, i, j))
+	return 1
 }
 
 // string.upper (s)
@@ -595,6 +498,6 @@ func strSub(state *lua.State) int {
 //
 // https://www.lua.org/manual/5.3/manual.html#pdf-string.upper
 func strUpper(state *lua.State) int {
-	state.Push(gostrs.ToUpper(state.CheckString(1)))
+	state.Push(strings.ToUpper(state.CheckString(1)))
 	return 1
 }

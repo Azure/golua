@@ -23,16 +23,8 @@ func (str String) MatchAll(text string, limit int) (captures [][]string) {
 // Match returns the first match found in str. If str is a pattern that
 // specifies captures, the captures are returned as well; otherwise ""
 // if no match was made and nil if no captures captured.
-func (str String) Match(text string) (captures []string, matched bool) {
-	// if loc := pattern.MatchIndex(text, string(str)); loc != nil {
-	// 	for i := 0; i < len(loc); i += 2 {
-	// 		captures = append(captures, text[loc[i]:loc[i+1]])
-	// 	}
-	// 	return captures, true
-	// }
-	// return nil, false
-	captures = pattern.Match(text, string(str))
-	return captures, captures != nil
+func (str String) Match(text string) (captures []string) {
+	return pattern.Match(text, string(str))
 }
 
 // FindAll returns the start and end position of the string text found in str.
