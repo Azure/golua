@@ -1,7 +1,19 @@
+//func (x *Table) Next(key Value) (Value, Value) {}
+//func (x *Table) Length() int {}
+//func (x *Table) Append(value Value) {}
+//func (x *Table) Insert(index int, value Value) {}
+//func (x *Table) Remove(index int) (value Value) {}
+//func (x *Table) RawGet(key Value) (value Value) {}
+//func (x *Table) RawGetInt(key int) (value Value) {}
+//func (x *Table) RawGetKey(key Value) (value Value) {}
+//func (x *Table) RawGetStr(key string) (value Value) {}
+//func (x *Table) RawSet(key, value Value) {}
+//func (x *Table) RawSetKey(key, value Value) {}
+//func (x *Table) RawSetInt(key int, value Value) {}
+//func (x *Table) RawSetStr(key string, value Value) {}
 package lua
 
 import (
-	"strings"
 	"math"
 	"fmt"
 )
@@ -22,13 +34,16 @@ type table struct {
 	// table state
 	hash map[Value]Value
 	list []Value
-	meta *Table
+	meta *table
 	size int
 
 	// iterator state
 	iter []Value
 	keys map[Value]int
 }
+
+func (x *table) String() string { return fmt.Sprintf("table: %p", x) }
+func (x *table) Type() Type { return TableType }
 
 // newtable returns a new table initialized using the provided sizes
 // arrayN and hashN to create the underlying hash and array part.
@@ -43,6 +58,15 @@ func newTable(state *State, arrayN, hashN int) *table {
 		t.hash = make(map[Value]Value)
 	}
 	return &t
+}
+
+func (x *table) foreach(fn func(k, v Value)) {
+	for i, v := range x.list {
+		fn(Int(i), v)
+	}
+	for k, v := range x.hash {
+		fn(k, v)
+	}
 }
 
 func (t *table) set(k, v Value) {
@@ -85,17 +109,6 @@ func (t *table) get(k Value) Value {
 	return None
 }
 
-func (t *table) String() string {
-	var b strings.Builder
-	for i, v := range t.list {
-		fmt.Fprintf(&b, "<%d,%v>", i, v)
-	}
-	for k, v := range t.hash {
-		fmt.Fprintf(&b, "<%v,%v>", k, v)
-	}
-	return b.String()
-}
-
 func (t *table) getStr(key string) Value {
 	return t.get(String(key)) 
 }
@@ -117,7 +130,6 @@ func (t *table) exists(key Value) bool {
 }
 
 func (t *table) length() int {
-	// TODO
 	return len(t.list)
 }
 

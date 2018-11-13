@@ -47,9 +47,9 @@ func Open(state *lua.State) int {
 
 	// Set global 'require' function with 'package' table as an upvalue.
 	var loadFuncs = map[string]lua.Func{
-		"require": lua.Func(Require),
+		"require": lua.Func(require),
 	}
-	state.Push(state.Globals())
+	state.PushGlobals()
 	state.PushIndex(-2)
 	state.SetFuncs(loadFuncs, 1)
 
@@ -86,7 +86,7 @@ func Open(state *lua.State) int {
 // the module, then require signals an error.
 //
 // See https://www.lua.org/manual/5.3/manual.html#pdf-require
-func Require(state *lua.State) int {
+func require(state *lua.State) int {
 	modname := state.CheckString(1) // name of module to require
 
 	// Push the LOADED table and check if module was already loaded.
@@ -182,7 +182,7 @@ func createSearchersTable(state *lua.State) {
 	for i := 0; i < len(searchers); i++ {
 		state.PushIndex(-2)
 		state.PushClosure(searchers[i], 1)
-		state.RawSetI(-2, i+1)
+		state.RawSetIndex(-2, i+1)
 	}
 
 	// Put it in field 'searchers'.
@@ -220,7 +220,7 @@ func searchLoader(state *lua.State, modname string) {
 	var errs strings.Builder
 
 	// Iterate over available searchers to find a loader.
-	for arr, at := state.Top(), 1; state.RawGetI(arr, at) != lua.NilType; at++ {
+	for arr, at := state.Top(), 1; state.RawGetIndex(arr, at) != lua.NilType; at++ {
       	// Push modname argument and call searcher.
 		state.Push(modname)
 		state.Call(1, 2)
@@ -263,7 +263,7 @@ func searchLua(state *lua.State) int {
 		// Module not found in this path.
 		return 1
 	}
-	if err := state.Load(filename, nil, 0); err != nil {
+	if err := state.LoadChunk(filename, nil, 0); err != nil {
 		// Module didn't load successfully.
 		state.Push(fmt.Sprintf("error loading module '%s' from file '%s':\n\t%v",
 			modname,

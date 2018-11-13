@@ -9,8 +9,9 @@ import (
 	"io"
 	"os"
 
+	// "github.com/Azure/golua/pkg/goutils"
     "github.com/Azure/golua/lua/binary"
-    "github.com/Azure/golua/lua/syntax"
+	"github.com/Azure/golua/lua/syntax"
 )
 
 var _ = os.Exit
@@ -44,12 +45,12 @@ func (status ThreadStatus) String() string {
 }
 
 // Lua execution thread.
-type Thread struct {
+type thread struct {
 	*State
 }
 
-func (x *Thread) String() string { return "thread" }
-func (x *Thread) Type() Type { return ThreadType }
+func (x *thread) String() string { return "thread" }
+func (x *thread) Type() Type { return ThreadType }
 
 type (
 	// 'per thread' state.
@@ -64,9 +65,9 @@ type (
 
 	// 'global state', shared by all threads of a main state.
 	global struct {
-		builtins [maxTypeID]*Table
+		builtins [maxTypeID]*table
 		version  *float64
-		registry *Table
+		registry *table
 		thread0  *State
 		config   *config
 		panicFn  Func
@@ -86,9 +87,9 @@ func NewState(opts ...Option) *State {
 
 	// Set up registry & globals table.
 	var (
-		registry = &Table{newTable(state, 8, 0)}
-		globals  = &Table{newTable(state, 0, 20)}
-		thread   = &Thread{state}
+		registry = newTable(state, 8, 0)
+		globals  = newTable(state, 0, 20)
+		thread   = &thread{state}
 	)
 	// Initialize registry.
 	registry.setInt(MainThreadIndex, thread)
@@ -105,6 +106,9 @@ func NewState(opts ...Option) *State {
 
 	return state
 }
+
+// String returns a printable string of the current executing thread state.
+func (ls *State) String() string { return fmt.Sprintf("%p", ls) }
 
 // traceback prints to w a stack trace from the current frame to the base.
 func (state *State) traceback(w io.Writer) {
@@ -135,17 +139,25 @@ func (state *State) traceback(w io.Writer) {
 // If the error is not a runtimeErr, recover repanics the
 // error up the stack.
 func (state *State) recover(err *error) {
+	// goutils.DumpStack(err, state.recover)
 	if r := recover(); r != nil {
+		state.Debug(false)
 		if e, ok := r.(runtimeErr); ok {
 			*err = e
-			// if state.global.config.debug {
-			// 	Debug(state)
-			// }
-			//return
 		}
 		panic(r)
 	}
 }
+
+// safely executes the function fn returning any errors recovered by the Lua
+// runtime
+func (ls *State) safely(fn func() error) (err error) {
+    defer ls.recover(&err)
+    return fn()
+}
+
+// value returns the Lua value at the valid index.
+func (state *State) value(index int) Value { return state.get(index) }
 
 // errorf reports a formatted error message.
 func (state *State) errorf(format string, args ...interface{}) int {
@@ -156,9 +168,7 @@ func (state *State) errorf(format string, args ...interface{}) int {
 // error object. This function panics, and never returns.
 //
 // See https://www.lua.org/manual/5.3/manual.html#lua_error
-func (state *State) panic(err error) int {
-	panic(err)
-}
+func (state *State) panic(err error) int { panic(err) }
 
 // enter enters a new call frame.
 func (state *State) enter(fr *Frame) *Frame {
@@ -171,11 +181,13 @@ func (state *State) enter(fr *Frame) *Frame {
 	fr.state = state
 	fr.depth = state.calls
 	state.calls++
+	fmt.Printf("enter frame #%d\n", fr.depth)
 	return fr
 }
 
 // leave leaves the current frame.
 func (state *State) leave(fr *Frame) *Frame {
+	fmt.Printf("leave frame #%d\n", fr.depth)
 	fr.prev.next = fr.next
 	fr.next.prev = fr.prev
 	fr.next  = nil // avoid memory leaks
@@ -191,6 +203,11 @@ func (state *State) reset() *State {
 	state.base.prev = &state.base
 	state.calls = 0
 	return state
+}
+
+// globals returns the globals table.
+func (state *State) globals() *table {
+	return state.global.registry.getInt(GlobalsIndex).(*table)
 }
 
 // frame returns the current frame or nil.
@@ -211,14 +228,39 @@ func (state *State) ensure() {
 // depth reports the current call depth.
 func (state *State) depth() int { return state.calls }
 
+// valueAt returns the Value at the given index if valid; otherwise None.
+func (state *State) valueAt(index int) Value {
+	if state.isValid(index) {
+		return state.get(index)
+	}
+	return None
+}
+
+// isValid reports whether the index points to a valid Value.
+func (state *State) isValid(index int) bool {
+	switch {
+		case index == RegistryIndex: // registry
+			index = UpValueIndex(index) - 1
+			cls := state.frame().closure
+			return cls != nil && index < len(cls.upvals)
+		case index < RegistryIndex: // upvalues
+			return true
+	}
+	var (
+		abs = state.frame().absindex(index)
+		top = state.frame().gettop()
+	)
+	return abs > 0 && abs <= top
+}
+
 // Calls a function (Go or Lua). The function to be called is at funcID in the stack.
 // The arguments are on the stack in direct order following the function.
-
+//
 // On return, all the results are on the stack, starting at the original function position.
 func (state *State) call(fr *Frame) {
 	// Check that we are below the recursion / call max.
 	if state.calls >= MaxCalls {
-		panic(runtimeErr(fmt.Errorf("go: call stack overflow")))
+		state.Errorf("go: call stack overflow")
 	}
 
 	// Ensure stack space for new call frame.
@@ -226,13 +268,14 @@ func (state *State) call(fr *Frame) {
 
 	// Push arguments and pop function.
 	args := state.frame().popN(state.frame().gettop()-fr.fnID+1)[1:]
+	fmt.Printf("frame #%d: push args %v\n", fr.depth, args)
 	fr.pushN(args)
 
-	// Enter frame and leave on return.
+	// Enter and leave frame on return.
 	defer state.leave(state.enter(fr))
-	
- 	// Is it a Lua closure?
-	if fr.closure.isLua() {
+
+	// Is it a Lua closure?
+	if fr.function().isLua() {
 		// Ensure stack has space.
 		fr.checkstack(fr.closure.binary.StackSize())
 
@@ -254,12 +297,11 @@ func (state *State) call(fr *Frame) {
 
 		// Execute the closure.
 		execute(&v53{state})
-		return
-	}
-
-	// Otherwise Go closure.
-	if rets := fr.popN(fr.closure.native(state)); fr.rets != 0 {
-		switch retc := len(rets); {
+		// state.returns()
+	} else if fr.function().isGo() {
+		// Otherwise Go closure.
+		if rets := fr.popN(fr.function().native(state)); fr.rets != 0 {
+			switch retc := len(rets); {
 			case retc < fr.rets:
 				for retc < fr.rets {
 					rets = append(rets, None)
@@ -269,14 +311,58 @@ func (state *State) call(fr *Frame) {
 				if fr.rets != MultRets {
 					rets = rets[:fr.rets]
 				}
+			}
+			fmt.Printf("go: frame #%d returning %v to frame #%d\n", fr.depth, rets, fr.caller().depth)
+			fr.caller().pushN(rets)
+			// fmt.Printf("go: frame #%d locals: %v\n", fr.caller().depth, fr.caller().locals)
 		}
-		fr.caller().pushN(rets)
 	}
+
+	// if rets := fr.popN(fr.function().native(state)); fr.rets != 0 {
+	// 	switch retc := len(rets); {
+	// 		case retc < fr.rets:
+	// 			for retc < fr.rets {
+	// 				rets = append(rets, None)
+	// 				retc++
+	// 			}
+	// 		case retc > fr.rets:
+	// 			if fr.rets != MultRets {
+	// 				rets = rets[:fr.rets]
+	// 			}
+	// 	}
+	// 	fr.caller().pushN(rets)
+	// }
 }
 
-func (state *State) init(g *global) {
+func (state *State) returns() {
+	caller := state.frame().caller()
+	callee := state.frame()
+	// callee.pushN(rets)
+
+	// fmt.Printf("frame #%d returning to #%d (rets = %d)\n", callee.depth, caller.depth, caller.rets)
+	// fmt.Printf("frame #%d locals: %v (want = %d)\n", callee.depth, callee.locals, callee.rets)
+	
+	// switch retc := len(rets); {
+	// case retc < fr.rets:
+	// 	for retc < fr.rets {
+	// 		rets = append(rets, None)
+	// 		retc++
+	// 	}
+	// case retc > fr.rets:
+	// 	if fr.rets != MultRets {
+	// 		rets = rets[:fr.rets]
+	// 	}
+	// }
+	// fr.caller().pushN(rets)
+
+	fmt.Printf("frame #%d locals: %v (rets = %d)\n", callee.depth, callee.locals, callee.rets)
+	fmt.Printf("frame #%d locals: %v (rets = %d)\n", caller.depth, caller.locals, caller.rets)
+	caller.pushN(callee.popN(callee.rets))
+}
+
+func (state *State) init(global *global) {
 	state.frame().checkstack(InitialStackNew)
-	state.global = g
+	state.global = global
 }
 
 // EmitIR compiles the Lua script similarily to Compile but instead
@@ -323,10 +409,6 @@ func (state *State) load(filename string, source interface{}) (*Closure, error) 
 	    }
 	}
 
-	// if state.global.config.debug {
-	// 	state.emit(filename)
-	// }
-
 	chunk, err := binary.Load(src)
 	if err != nil {
 		return nil, err
@@ -341,44 +423,43 @@ func (state *State) load(filename string, source interface{}) (*Closure, error) 
 }
 
 func (state *State) gettable(obj, key Value, raw bool) Value {
-	// fmt.Printf("gettable(%v, %v, %t)\n", obj, key, raw)
-	if tbl, ok := obj.(*Table); ok {
+	// fmt.Printf("%v[%v] (%t)\n", obj, key, raw)
+	if tbl, ok := obj.(*table); ok {
 		if val := tbl.get(key); !IsNone(val) || raw || IsNone(state.metafield(tbl, "__index")) {
 			return val
 		}
 		val, err := tryMetaIndex(state, tbl, key)
 		if err != nil {
-			panic(err)
+			state.Errorf("%v", err)
 		}
 		return val
 	}
 	if !raw {
 		val, err := tryMetaIndex(state, obj, key)
 		if err != nil {
-			panic(err)
+			state.Errorf("%v", err)
 		}
 		return val
 	}
-	return nil
-	// fmt.Printf("gettable(%v, %v, %t): TODO\n", obj, key, raw)
-	// state.Debug(true)
-	// panic(runtimeErr(fmt.Errorf("table expected, got %v", obj)))
+	return None
 }
 
 func (state *State) settable(obj, key, val Value, raw bool) {
-	// fmt.Printf("settable(%v, %v, %v) (raw = %t)\n", obj, key, val, raw)
-	if tbl, ok := obj.(*Table); ok && (tbl.exists(key) || raw) {
+	// fmt.Printf("%v[%v] = %v (%t)\n", obj, key, val, raw)
+	if tbl, ok := obj.(*table); ok && (tbl.exists(key) || raw) {
 		tbl.set(key, val)
 		return
 	}
-	if err := tryMetaNewIndex(state, obj, key, val); err != nil {
-		panic(err)
+	if !raw {
+		if err := tryMetaNewIndex(state, obj, key, val); err != nil {
+			state.Errorf("%v", err)
+		}
 	}
 }
 
 func (state *State) metafield(value Value, event string) Value {
 	if obj := state.getmetatable(value, true); !IsNone(obj) {
-		if tbl, ok := obj.(*Table); ok && tbl != nil {
+		if tbl, ok := obj.(*table); ok && tbl != nil {
 			return tbl.getStr(event)
 		}
 	}
@@ -386,14 +467,14 @@ func (state *State) metafield(value Value, event string) Value {
 }
 
 func (state *State) setmetatable(value, meta Value) {
-	mt, ok := meta.(*Table)
+	mt, ok := meta.(*table)
 	if !ok && !IsNone(meta) {
 		state.errorf("metatable must be table or nil")
 	}
 	switch v := value.(type) {
 		case *Object:
 			v.meta = mt
-		case *Table:
+		case *table:
 			v.meta = mt
 		default:
 			state.global.builtins[v.Type()] = mt
@@ -407,7 +488,7 @@ func (state *State) getmetatable(value Value, rawget bool) Value {
 			if !IsNone(value.meta) && value.meta != nil {
 				meta = value.meta
 			}
-		case *Table:
+		case *table:
 			if !IsNone(value.meta) && value.meta != nil {
 				meta = value.meta
 			}
@@ -417,7 +498,7 @@ func (state *State) getmetatable(value Value, rawget bool) Value {
 			}
 	}
 	if !rawget && !IsNone(meta) && meta != nil {
-		if mt, ok := meta.(*Table); ok {
+		if mt, ok := meta.(*table); ok {
 			if mm := mt.getStr("__metatable"); !IsNone(mm) {
 				meta = mm
 			}
@@ -525,7 +606,7 @@ func (state *State) set(index int, value Value) {
 		// Registry pseudo index
 		//
 		case index == RegistryIndex:
-			state.global.registry = value.(*Table)
+			state.global.registry = value.(*table)
 			return
 
 		//

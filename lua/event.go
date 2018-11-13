@@ -291,9 +291,8 @@ func (evt metaEvent) ID() string { return "__" + event2name[evt] }
 
 func (evt metaEvent) name() string { return event2name[evt] }
 
-// TODO: idiv
-func metaOf(state *State, v Value) *Table {
-    events := &Table{newTable(state, 0, 0)}
+func metaOf(state *State, v Value) *table {
+    events := newTable(state, 0, 0)
     switch v := v.(type) {
         case *Object:
             var u interface{}
@@ -324,9 +323,6 @@ func metaOf(state *State, v Value) *Table {
                 })
                 events.setStr(metaIndex.ID(), newGoClosure(method, 0))
             }
-            // if o, ok := u.(HasLength); ok { // __len
-            //     events.setStr(metaLen.ID(), o)
-            // }
             if o, ok := u.(Callable); ok { // __call
                 method := Func(func(state *State) int {
                     args := state.frame().popN(state.frame().gettop())
@@ -340,7 +336,7 @@ func metaOf(state *State, v Value) *Table {
                     for _, v := range vs {
                         state.Push(v)
                     }
-                    return 1
+                    return len(vs)
                 })
                 events.setStr(metaCall.ID(), newGoClosure(method, 0))
             }
@@ -355,9 +351,7 @@ func metaOf(state *State, v Value) *Table {
                 })
                 events.setStr(metaConcat.ID(), newGoClosure(method, 0))
             }
-            // if o, ok := u.(HasMinus); ok { // __unm
-            //     events.setStr(metaUnm.ID(), o)
-            // }
+
             if o, ok := u.(HasAdd); ok { // __add
                 method := Func(func(state *State) int {
                     v, err := o.Add(state.frame().pop())
@@ -368,50 +362,7 @@ func metaOf(state *State, v Value) *Table {
                     return 1
                 })
                 events.setStr(metaAdd.ID(), newGoClosure(method, 0))
-            }
-            // if o, ok := u.(HasSub); ok { // __sub
-            //     events.setStr(metaSub.ID(), o)
-            // }
-            // if o, ok := u.(HasMul); ok { // __mul
-            //     events.setStr(metaMul.ID(), o)
-            // }
-            // if o, ok := u.(HasDiv); ok { // __div, __idiv
-            //     events.setStr(metaDiv.ID(), o)
-            //     events.setStr(metaIdiv.ID(), o)
-            // }
-            // if o, ok := u.(HasMod); ok { // __mod
-            //     events.setStr(metaMod.ID(), o)
-            // }
-            // if o, ok := u.(HasPow); ok { // __pow
-            //     events.setStr(metaPow.ID(), o)
-            // }
-            // if o, ok := u.(HasEquals); ok { // __eq
-            //     events.setStr(metaEq.ID(), o)
-            // }
-            // if o, ok := u.(HasLessThan); ok { // __lt
-            //     events.setStr(metaLt.ID(), o)
-            // }
-            // if o, ok := u.(HasLessEqual); ok { // __le
-            //     events.setStr(metaLe.ID(), o)
-            // }
-            // if o, ok := u.(HasAnd); ok { // __band
-            //     events.setStr(metaBand.ID(), o)
-            // }
-            // if o, ok := u.(HasOr); ok { // __bor
-            //     events.setStr(metaBor.ID(), o)
-            // }
-            // if o, ok := u.(HasXor); ok { // __bxor
-            //     events.setStr(metaBxor.ID(), o)
-            // }
-            // if o, ok := u.(HasNot); ok { // __bnot
-            //     events.setStr(metaBnot.ID(), o)
-            // }
-            // if o, ok := u.(HasShl); ok { // __shl
-            //     events.setStr(metaShl.ID(), o)
-            // }
-            // if o, ok := u.(HasShr); ok { // __shr
-            //     events.setStr(metaShr.ID(), o)
-            // }
+			}
     }
     return events
 }
@@ -430,19 +381,7 @@ func metaOf(state *State, v Value) *Table {
 func tryMetaNewIndex(state *State, object, key, value Value) error {
     const event = metaNewIndex
 
-    // fmt.Printf("__newindex(%v, %v, %v)\n", object, key, value)
     for loop, meta, object := 0, Value(None), object; loop < metaLoopMax; loop++ {
-        // if table, ok := object.(*Table); ok && table.exists(key) {
-        //     table.set(key, value)
-        //     return nil
-        // }
-        // if meta = state.metafield(object, event.ID()); IsNone(meta) {
-        //      if !ok {
-        //         return fmt.Errorf("attempt to index a %s value", object.Type())
-        //      }
-        //      table.set(key, value)
-        //       return nil
-        // }
         if meta = state.metafield(object, event.ID()); !IsNone(meta) {
             switch meta := meta.(type) {
                 case *Closure:
@@ -452,18 +391,14 @@ func tryMetaNewIndex(state *State, object, key, value Value) error {
                     state.frame().push(value)
                     state.Call(3, 0)
                     return nil
-                case *Table:
-                    // if value := meta.get(key); !IsNone(value) {
-                    //     meta.set(key, value)
-                    //     return nil
-                    // }
+                case *table:
                     object = meta
                     continue
                 default:
                     return fmt.Errorf("meta method '__newindex' not a table or function")
             }
         }
-        if table, ok := object.(*Table); ok {
+        if table, ok := object.(*table); ok {
             table.set(key, value)
             return nil
         }
@@ -483,9 +418,8 @@ func tryMetaNewIndex(state *State, object, key, value Value) error {
 func tryMetaIndex(state *State, object, key Value) (Value, error) {
     const event = metaIndex
 
-    // for loop, meta := 0, Value(None); loop < metaLoopMax; loop++ {
     for loop := 0; loop < metaLoopMax; loop++ {
-        if table, ok := object.(*Table); ok {
+        if table, ok := object.(*table); ok {
             if table.exists(key) {
                 return table.get(key), nil
             }
@@ -497,7 +431,7 @@ func tryMetaIndex(state *State, object, key Value) (Value, error) {
                 state.frame().push(key)
                 state.Call(2, 1)
                 return state.frame().pop(), nil
-            case *Table:
+            case *table:
                 object = meta
                 continue
             default:
@@ -608,7 +542,7 @@ func tryMetaConcat(state *State, lhs, rhs Value) (Value, error) {
             return state.frame().pop(), nil
         }
     }
-    return None, fmt.Errorf("attempt to apply %s on %v and %v values", event.ID(), lhs.Type(), rhs.Type())
+    return None, fmt.Errorf("attempt to apply '%s' on %v and %v values", event.ID(), lhs.Type(), rhs.Type())
 }
 
 // tryMetaLength (__len) performs the length (#) operation. If the object is not a string, Lua
@@ -635,18 +569,17 @@ func tryMetaLength(state *State, obj Value) (Value, error) {
 // origin call (args). All results of the call are the result of the operation.
 // This is the only metamethod that allows multiple results.
 func tryMetaCall(state *State, value Value, fnID, args, rets int) bool {
+	fmt.Println("tryMetaCall")
     const event = metaCall
 
-    if meta := state.metafield(value, event.ID()); !IsNone(meta) {
+	if meta := state.metafield(value, event.ID()); !IsNone(meta) {
         if cls, ok := meta.(*Closure); ok {
-            state.Push(cls)
-            state.Insert(-(args+2))
-            args += 1
-            state.call(&Frame{
-                closure: cls,
-                fnID:    fnID,
-                rets:    rets,
-            })
+			state.Push(cls)
+			state.Insert(-(args+2))
+			state.Debug(false)
+			args++
+			state.Call(args, rets)
+			state.Debug(false)
             return true
         }
     }

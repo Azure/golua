@@ -81,6 +81,7 @@ func classID(item item) (id string) {
 	return id
 }
 
+func isclass(r rune) bool { return strings.ContainsRune(classes, unicode.ToLower(r)) }
 func ispunct(r rune) bool { return isprint(r) && !isalnum(r) && !isspace(r) }
 func isalpha(r rune) bool { return islower(r) || isupper(r) }
 func isalnum(r rune) bool { return isalpha(r) || isdigit(r) }

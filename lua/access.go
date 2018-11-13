@@ -181,6 +181,17 @@ func (state *State) ToStringMeta(index int) string {
 	return state.ToString(-1)
 }
 
+// ToClosure converts the value at the given index to a Closure.
+//
+// Otherwise, returns nil.
+func (state *State) ToClosure(index int) *Closure {
+	cls, ok := state.get(index).(*Closure)
+	if !ok {
+		return nil
+	}
+	return cls
+}
+
 // ToNumber converts the Lua value at the given index to a Number. The Lua value must be a number or a string
 // convertible to a number (see §3.4.3); otherwise, otherwise, returns 0.
 //
@@ -208,6 +219,18 @@ func (state *State) ToString(index int) string {
 		state.set(index, String(s))
 	}
 	return s
+}
+
+// ToFunc converts the value at the given index to a Go function. The value must be a Go function;
+// otherwise, returns nil.
+//
+// See https://www.lua.org/manual/5.3/manual.html#lua_tocfunction
+func (state *State) ToFunc(index int) Func {
+	cls, ok := state.get(index).(*Closure)
+	if !ok || !cls.isLua() {
+		return nil
+	}
+	return cls.native
 }
 
 // ToInt converts the Lua value at the given index to an int64. The Lua value must be an integer,
@@ -241,7 +264,7 @@ func (state *State) ToBool(index int) bool {
 //
 // See https://www.lua.org/manual/5.3/manual.html#lua_tothread
 func (state *State) ToThread(index int) *State {
-	if v, ok := state.get(index).(*Thread); ok {
+	if v, ok := state.get(index).(*thread); ok {
 		return v.State
 	}
 	return nil

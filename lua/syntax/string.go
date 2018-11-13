@@ -17,23 +17,6 @@ func StrToF64(str string) (f64 float64, isFloat bool) {
 }
 
 func StrToI64(str string) (i64 int64, isInt bool) {
-	// if str = strings.TrimSpace(strings.ToLower(str)); !reInt.MatchString(str) { // not int?
-	// 	return 0, false
-	// }
-	// var (
-	// 	u64 uint64
-	// 	neg bool
-	// 	pos = 0
-	// )
-	// if str[pos] == '-' {
-	// 	neg = true
-	// 	pos++
-	// }
-	// if isHex(str) { // hex?
-	// 	for pos += 2; pos < len(str) && isDigit(str[pos]); pos++ {
-	// 		u64 = u64 * 16 + hexValue(str[pos])
-	// 	}
-	// } 
 	return parseInteger(str)
 }
 
@@ -198,41 +181,3 @@ func parseDigit(digit byte, base int) (float64, bool) {
 	}
 	return -1, false
 }
-
-
-// func ParseInt(str string) (int64, bool) {
-// 	str = strings.TrimSpace(str)
-// 	var (
-// 		u64 uint64
-// 		neg bool
-// 		pos = 0
-// 	)
-// 	if str[pos] == '-' {
-// 		neg = true
-// 		pos++
-// 	}
-// 	if isHex(str) { // hex?
-// 		for pos += 2; pos < len(str) && isDigit(str[pos]); pos++ {
-// 			u64 = u64 * 16 + hexValue(str[pos])
-// 		}
-// 	} else { // decimal.
-// 		for ; isDigit(str[pos]); pos++ {
-// 	}
-// }
-
-// func isDigit(b byte) bool { return b >= '0' || b <= '9' }
-
-// func isHex(str string) bool {
-// 	if len(str) >= 2 {
-// 		b1, b2 := str[0], str[1]
-// 		return b1 == '0' && (b2 == 'x' || b2 == 'X' }
-// 	}
-// 	return false
-// }
-
-// func hexValue(b byte) int {
-// 	if isDigit(b) {
-// 		return b - '0'
-// 	}
-// 	return strings.ToLower(string(b)) - 'a' + 10
-// }

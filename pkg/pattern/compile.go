@@ -81,7 +81,6 @@ func (bldr *builder) init(maxcaps int) {
 		maxcaps = 32
 	}
 	bldr.caps = make([]capture, 0, maxcaps)
-	// bldr.start()
 }
 
 func (bldr *builder) start() {
@@ -94,7 +93,6 @@ func (bldr *builder) start() {
 
 func (bldr *builder) close() {
 	bldr.emit(instr{code: opClose, x: bldr.cap-1})
-	// bldr.cap--
 }
 
 func (bldr *builder) class(item item) {
@@ -114,7 +112,6 @@ func (bldr *builder) jump(dst int) {
 }
 
 func (bldr *builder) done() {
-	// bldr.close()
 	bldr.emit(instr{code: opMatch})
 }
 
@@ -148,7 +145,6 @@ func compile(scan *scanner, maxcaps int) (patt *pattern, err error) {
 	bldr.init(maxcaps)
 
 	for item := scan.nextItem(); item.typ != itemEnd; item = scan.nextItem() {
-		// fmt.Printf("%v (%s)\n", item, item.rep)
 		switch item.typ {
 		case itemClass, itemText:
 			bldr.code(item)

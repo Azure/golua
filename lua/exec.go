@@ -48,7 +48,7 @@ func (vm *v53) constant(index int) Value {
 
 func (vm *v53) trace(instr vm.Instr) {
 	if vm.global.config.debug {
-		fmt.Printf("vm @ %02d : %v\n", vm.frame().pc, instr)
+		fmt.Printf("vm @ ip=%02d fp=%02d: %v\n", vm.frame().pc, vm.frame().depth, instr)
 	}
 }
 

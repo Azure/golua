@@ -48,7 +48,7 @@ func Open(state *lua.State) int {
     }
 
     // Open base library into globals table.
-    state.Push(state.Globals())
+    state.PushGlobals()
     state.SetFuncs(baseFuncs, 0)
 
     // Set global _G.
@@ -99,7 +99,7 @@ func baseDoFile(state *lua.State) int {
         file = "stdin"
         src = os.Stdin
     }
-    if err := state.Load(file, src, 0); err != nil {
+    if err := state.LoadChunk(file, src, 0); err != nil {
         panic(err)
     }
     state.Call(0, lua.MultRets)
@@ -150,7 +150,7 @@ func baseIPairs(state *lua.State) int {
     ipairs := func(state *lua.State) int { // iterator function
         i := state.CheckInt(2) + 1
         state.Push(i)
-        if t := state.GetI(1, i); t == lua.NilType || t == lua.NoneType {
+        if t := state.GetIndex(1, i); t == lua.NilType || t == lua.NoneType {
             return 1
         }
         return 2
@@ -180,7 +180,7 @@ func baseLoadFile(state *lua.State) int {
     if !state.IsNone(3) {
         env = 3
     }
-    if err := state.Load(name, nil, mode); err != nil {
+    if err := state.LoadChunk(name, nil, mode); err != nil {
         // error message is on top of the stack
         state.Push(nil)
         state.Push(err.Error())
@@ -225,7 +225,7 @@ func baseLoad(state *lua.State) int {
         // create reserved slot
         state.Debug(true)
     }
-    if err := state.Load(name, chunk, mode); err != nil {
+    if err := state.LoadChunk(name, chunk, mode); err != nil {
         // error message is on top of the stack
         state.Push(err.Error())
         state.Push(nil)

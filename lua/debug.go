@@ -251,7 +251,7 @@ func DBG(fr *Frame, halt bool) {
     fmt.Fprintf(&b, "            * returns = %d\n\n", fr.rets)
 
     fmt.Fprintf(&b, "            upvalues\n")
-    for i, upval := range fr.closure.upvals {
+    for i, upval := range fr.function().upvalues() {
             fmt.Fprintf(&b, "                [%d] %v\n", i, *upval)
     }
     fmt.Fprintf(&b, "            end\n\n")

@@ -103,8 +103,8 @@ func (state *State) compare(op Op, x, y Value, raw bool) bool {
                     if y, ok := y.(*Object); ok {
                         return x.data == y.data
                     }
-                case *Table:
-                    if y, ok := y.(*Table); ok && (x == y) {
+                case *table:
+                    if y, ok := y.(*table); ok && (x == y) {
                         return true
                     }
                 case String:
@@ -547,7 +547,7 @@ func (state *State) length(obj Value) Value {
     if err == nil {
         return val
     }
-    if tbl, ok := obj.(*Table); ok {
+    if tbl, ok := obj.(*table); ok {
         return Int(tbl.length())
     }
     panic(runtimeErr(err))
@@ -575,7 +575,7 @@ func (state *State) concat(values []Value) Value {
         }
         var err error
         if rhs, err = tryMetaConcat(state, lhs, rhs); err != nil {
-            panic(runtimeErr(err))
+            state.Errorf("%v", err)
         }
     }
     return rhs

@@ -2,7 +2,6 @@ package lua
 
 import (
     "fmt"
-    "io"
     "os"
 
     "github.com/Azure/golua/lua/binary"
@@ -11,134 +10,6 @@ import (
 var errNonBinaryChunk = fmt.Errorf("lua: execute: non-binary files not yet supported")
 
 var _ = os.Exit
-
-// DumpStack writes the Lua thread's current stack frame to w.
-func (state *State) DumpStack(w io.Writer) {
-    if fr := state.frame(); fr != nil {
-        for i := fr.gettop() - 1; i >= 0; i-- {
-            fmt.Fprintf(w, "[%d] %v\n", i+1, fr.locals[i])
-        }
-    }
-}
-
-// EnsureStack ensures that the stack has space for at least n extra slots (that is, that you can
-// safely push up to n values into it). It returns false if it cannot fulfill the request,
-// either because it would cause the stack to be larger than a fixed maximum size (typically
-// at least several thousand elements) or because it cannot allocate memory for the extra space.
-//
-// This function never shrinks the stack; if the stack already has space for the extra slots, it
-// is left unchanged.
-func (state *State) CheckStack(needed int) bool {
-    return state.frame().checkstack(needed)
-}
-
-// AbsIndex converts the acceptable index idx into an equivalent absolute index;
-// that is, one that does not depend on the stack top).
-func (state *State) AbsIndex(index int) int {
-    return state.frame().absindex(index)
-}
-
-// Safely executes the function fn returning any errors recovered by the Lua
-// runtime
-func (ls *State) Safely(fn func()) (err error) {
-    defer ls.recover(&err)
-    fn()
-    return
-}
-
-// String returns a printable string of the current executing thread state.
-func (ls *State) String() string {
-    return fmt.Sprintf("%p", ls)
-}
-
-// Pushes a new Go closure onto the stack.
-//
-// When a Go function is created, it is possible to associate some values with it,
-// thus creating a Go closure (see §4.4); these values are then accessible to the
-// function whenever it is called. To associate values with a Go function, first
-// these values must be pushed onto the stack (when there are multiple values, the
-// first value is pushed first). Then PushClosure is called to create and push the
-// Go function onto the stack, with the argument n telling how many values will be
-// associated with the function. PushClosure also pops these values from the stack.
-// 
-// The maximum value for nups is 255.
-//
-// When nups is zero, this function creates a light Go function, which is just a pointer
-// to the Go function. In that case, it never raises a memory error.
-//
-// See https://www.lua.org/manual/5.3/manual.html#lua_pushcclosure
-func (state *State) PushClosure(fn Func, nups uint8) {
-    cls := newGoClosure(fn, int(nups))
-    for nups > 0 {
-        cls.upvals[nups-1] = &upValue{
-            index: -1,
-            value: state.Pop(),
-        }
-        nups--
-    }
-    state.Push(cls)
-}
-
-// PushIndex pushes a copy of the element at the given index onto the stack.
-//
-// See https://www.lua.org/manual/5.3/manual.html#lua_pushvalue
-func (state *State) PushIndex(index int) {
-    state.frame().push(state.get(index))
-}
-
-// Removes the element at the given valid index, shifting down the elements
-// above this index to fill the gap.
-//
-// This function cannot be called with a pseudo-index, because a pseudo-index
-// is not an actual stack position.
-//
-// See https://www.lua.org/manual/5.3/manual.html#lua_remove
-func (state *State) Remove(index int) { state.frame().remove(index) }
-
-// Insert moves the top element into the given valid index, shifting up the elements
-// above this index to open space.
-//
-// This function cannot be called with a pseudo-index, because a pseudo-index is not
-// an actual stack position.
-//
-// See https://www.lua.org/manual/5.3/manual.html#lua_insert
-func (state *State) Insert(index int) { state.frame().rotate(index, 1) }
-
-// Value returns the Lua value at the valid index.
-func (state *State) Value(index int) Value { return state.get(index) }
-
-// SetTop accepts any index, or 0, and sets the stack top to this index. If the new top
-// is larger than the old one, then the new elements are filled with nil. If index is 0,
-// then all stack elements are removed.
-//
-// See https://www.lua.org/manual/5.3/manual.html#lua_settop
-func (state *State) SetTop(top int) {
-    if top = state.frame().absindex(top); top < 0 {
-        panic(runtimeErr(fmt.Errorf("stack underflow!")))
-    }
-    state.frame().settop(top)
-}
-
-// Top returns the index of the top element in the stack.
-//
-// Because indices start at 1, this result is equal to the number
-// of elements in the stack; in particular, 0 means an empty stack.
-//
-// See https://www.lua.org/manual/5.3/manual.html#lua_gettop
-func (state *State) Top() int { return state.frame().gettop() }
-
-// Push pushes any value onto the stack first boxing it by the equivalent
-// Lua value, returning its position in the frame's local stack (top - 1).
-func (state *State) Push(any interface{}) int {
-    state.frame().push(valueOf(state, any))
-    return state.Top() - 1
-}
-
-// PopN pops the top n values from the Lua thread's current frame stack.
-func (state *State) PopN(n int) []Value { return state.frame().popN(n) }
-
-// Pop pops the top value from the Lua thread's current frame stack.
-func (state *State) Pop() Value { return state.frame().pop() }
 
 // Dump dumps a function as a binary chunk. Receives a Lua function on top of the
 // stack and produces a binary chunk that, if loaded again, results in a function
@@ -155,11 +26,6 @@ func (state *State) Dump(strip bool) []byte {
         }
     }
     return nil
-}
-
-// PushGlobals pushes onto the stack the globals table.
-func (state *State) Globals() *Table {
-    return state.global.registry.getInt(GlobalsIndex).(*Table)
 }
 
 // SetUpValue sets the value of a closure's upvalue. It assigns the value at the top
@@ -189,12 +55,28 @@ func (state *State) SetUpValue(fnIndex, upIndex int) (name string) {
 // the global environment stored at index LUA_RIDX_GLOBALS in the registry (see §4.5).
 // When loading main chunks, this upvalue will be the _ENV variable (see §2.2). Other
 // upvalues are initialized with nil.
-func (state *State) Load(filename string, source interface{}, mode Mode) error {
+func (state *State) LoadChunk(filename string, source interface{}, mode Mode) error {
     cls, err := state.load(filename, source)
     if err != nil {
         return err
     }
     state.frame().push(cls)
+    return nil
+}
+
+// Exec loads and runs a Lua chunk returning the result (if any) or an error (if any).
+//
+// The Lua chunk may be provided via the filename of the source file, or via the
+// source parameter.
+//
+// If source != nil, Do loads the source from source and the filename is only used
+// recording position information.
+func (state *State) ExecChunk(filename string, source interface{}, mode Mode) error {
+    if err := state.LoadChunk(filename, source, mode); err != nil {
+        return err
+	}
+	state.Call(0, -1)
+	fmt.Printf("frame #%d locals: %v\n", state.frame().depth, state.frame().locals)
     return nil
 }
 
@@ -229,9 +111,7 @@ func (state *State) Status() ThreadStatus { unimplemented("Status"); return Thre
 // This function does a long jump, and therefore never returns (see luaL_error).
 //
 // See https://www.lua.org/manual/5.3/manual.html#lua_error
-func (state *State) Error() int {
-    return state.errorf("%v", state.frame().pop())
-}
+func (state *State) Error() int { return state.errorf("%v", state.frame().pop()) }
 
 // Destroys all objects in the given Lua state (calling the corresponding garbage-collection metamethods, if any) and
 // frees all dynamic memory used by this state. In several platforms, you may not need to call this function, because
@@ -239,7 +119,7 @@ func (state *State) Error() int {
 // multiple states, such as daemons or web servers, will probably need to close states as soon as they are not needed.
 //
 // See https://www.lua.org/manual/5.3/manual.html#lua_close
-func (state *State) Close() { fmt.Println("lua: state.Close(): TODO") }
+func (state *State) Close() { /* TODO */ }
 
 // Returns the address of the version number (a C static variable) stored in the Lua core. When called with a valid lua_State,
 // returns the address of the version used to create that state. When called with NULL, returns the address of the version
@@ -247,16 +127,6 @@ func (state *State) Close() { fmt.Println("lua: state.Close(): TODO") }
 //
 // See https://www.lua.org/manual/5.3/manual.html#lua_version
 func (state *State) Version() *float64 { unimplemented("Version"); return nil }
-
-// XMove exchanges values between different threads of the same state.
-//
-// This function pops N values from the state's stack, and pushes them onto
-// the state dst's stack.
-//
-// See https://www.lua.org/manual/5.3/manual.html#lua_xmove
-func (state *State) XMove(dst *State, n int) {
-    dst.frame().pushN(state.frame().popN(n))
-}
 
 // Performs an arithmetic or bitwise operation over the two values (or one, in the case of negations) at the top of the
 // stack, with the value at the top being the second operand, pops these values, and pushes the result of the operation.
@@ -277,7 +147,13 @@ func (state *State) XMove(dst *State, n int) {
 //      * LUA_OPBXOR: performs bitwise exclusive OR (~)
 //      * LUA_OPSHL: performs left shift (<<)
 //      * LUA_OPSHR: performs right shift (>>)
-func (state *State) Arith(op Op) { unimplemented("Arith") }
+//
+// See https://www.lua.org/manual/5.3/manual.html#lua_arith
+func (state *State) Arith(op Op) {
+	y := state.frame().pop()
+	x := state.frame().pop()
+	state.frame().push(state.arith(op, x, y))
+}
 
 // Concatenates the n values at the top of the stack, pops them, and leaves the result at the top. If n is 1, the result
 // is the single value on the stack (that is, the function does nothing); if n is 0, the result is the empty string.
@@ -316,8 +192,7 @@ func (state *State) Compare(op Op, i1, i2 int) bool {
 // 
 // Returns the type of that value.
 func (state *State) GetGlobal(name string) Type {
-    obj := state.global.registry.getInt(GlobalsIndex)
-    val := state.gettable(obj, String(name), false)
+    val := state.gettable(state.globals(), String(name), false)
     state.frame().push(val)
     return val.Type()
 }
@@ -325,10 +200,7 @@ func (state *State) GetGlobal(name string) Type {
 // Pops a value from the stack and sets it as the new value of global name.
 //func (state *State) SetGlobal(name string, value Value) {
 func (state *State) SetGlobal(name string) {
-    key := String(name)
-    val := state.Pop()
-    state.settable(state.Globals(), key, val, false)
-    //state.settable(state.Globals(), String(name), value, 1)
+    state.settable(state.globals(), String(name), state.Pop(), false)
 }
 
 // Creates a new empty table and pushes it onto the stack. Parameter narr is a hint for how
@@ -337,8 +209,7 @@ func (state *State) SetGlobal(name string) {
 // This preallocation is useful for performance when you know in advance how many elements the table
 // will have. Otherwise you can use the function lua_newtable.
 func (state *State) NewTableSize(narr, nrec int) {
-    tbl := &Table{newTable(state, narr, nrec)}
-    state.frame().push(tbl)
+    state.frame().push(newTable(state, narr, nrec))
 }
 
 // Creates a new empty table and pushes it onto the stack.
@@ -358,7 +229,7 @@ func (state *State) NewTable() { state.NewTableSize(0, 0) }
 //
 // See https://www.lua.org/manual/5.3/manual.html#lua_next
 func (state *State) Next(index int) (more bool) {
-    tbl, ok := state.get(index).(*Table)
+    tbl, ok := state.get(index).(*table)
     if !ok {
         state.errorf("table expected")
     }
@@ -386,9 +257,7 @@ func (state *State) GetMetaTableAt(index int) bool {
 // Pops a table from the stack and sets it as the new metatable for the value at the given index.
 //
 // See https://www.lua.org/manual/5.3/manual.html#lua_setmetatable
-func (state *State) SetMetaTableAt(index int) {
-    state.setmetatable(state.get(index), state.frame().pop())
-}
+func (state *State) SetMetaTableAt(index int) { state.setmetatable(state.get(index), state.frame().pop()) }
 
 // GetTable pushes onto the stack the value t[k], where t is the value at the given index
 // and k is the value at the top of the stack.
@@ -458,7 +327,7 @@ func (state *State) SetField(index int, field string) {
 // Returns the type of the pushed value.
 //
 // See https://www.lua.org/manual/5.3/manual.html#lua_geti
-func (state *State) GetI(index int, entry int64) Type {
+func (state *State) GetIndex(index int, entry int64) Type {
     obj := state.get(index)
     key := Int(entry)
     val := state.gettable(obj, key, false)
@@ -474,7 +343,7 @@ func (state *State) GetI(index int, entry int64) Type {
 // As in Lua, this function may trigger a metamethod for the "newindex" event (see §2.4).
 //
 // See https://www.lua.org/manual/5.3/manual.html#lua_seti
-func (state *State) SetI(index int, entry int64) {
+func (state *State) SetIndex(index int, entry int64) {
     tbl := state.get(index)
     key := Int(entry)
     val := state.frame().pop()
@@ -488,7 +357,7 @@ func (state *State) RawGet(index int) Type {
     var (
         key = state.frame().pop()
         obj = state.get(index)
-    )
+	)
     val := state.gettable(obj, key, true)
     state.frame().push(val)
     return val.Type()
@@ -516,7 +385,7 @@ func (state *State) RawLen(index int) int {
     switch v := state.get(index).(type) {
         case String:
             return len(v)
-        case *Table:
+        case *table:
             return len(v.list)
     }
     return 0
@@ -529,7 +398,7 @@ func (state *State) RawLen(index int) int {
 // Returns the type of the pushed value.
 //
 // See https://www.lua.org/manual/5.3/manual.html#lua_rawgeti
-func (state *State) RawGetI(index int, entry int) Type {
+func (state *State) RawGetIndex(index, entry int) Type {
     var (
         obj = state.get(index)
         key = Int(entry)
@@ -537,6 +406,23 @@ func (state *State) RawGetI(index int, entry int) Type {
     )
     state.frame().push(val)
     return val.Type()
+}
+
+// Does the equivalent of t[i] = v, where t is the table at the given index and
+// v is the value at the top of the stack.
+// 
+// This function pops the value from the stack.
+//
+// The assignment is raw, that is, it does not invoke the __newindex metamethod.
+//
+// See https://www.lua.org/manual/5.3/manual.html#lua_rawseti
+func (state *State) RawSetIndex(index, entry int) {
+    tbl, ok := state.get(index).(*table)
+    if !ok {
+        state.errorf("table expected")
+        return
+    }
+    tbl.setInt(int64(entry), state.Pop())
 }
 
 // Pushes onto the stack the value t[k], where t is the table at the given index and
@@ -547,8 +433,8 @@ func (state *State) RawGetI(index int, entry int) Type {
 // Returns the type of the pushed value.
 //
 // See https://www.lua.org/manual/5.3/manual.html#lua_rawgetp
-func (state *State) RawGetP(index int, udata *Object) Type {
-    unimplemented("RawGetP")
+func (state *State) RawGetPtr(index int, udata *Object) Type {
+    unimplemented("RawGetPtr")
     return NilType
 }
 
@@ -560,25 +446,8 @@ func (state *State) RawGetP(index int, udata *Object) Type {
 // The assignment is raw, that is, it does not invoke __newindex metamethod.
 //
 // See https://www.lua.org/manual/5.3/manual.html#lua_rawsetp
-func (state *State) RawSetP(index int, udata *Object) {
-    unimplemented("RawSetP")
-}
-
-// Does the equivalent of t[i] = v, where t is the table at the given index and
-// v is the value at the top of the stack.
-// 
-// This function pops the value from the stack.
-//
-// The assignment is raw, that is, it does not invoke the __newindex metamethod.
-//
-// See https://www.lua.org/manual/5.3/manual.html#lua_rawseti
-func (state *State) RawSetI(index int, entry int) {
-    tbl, ok := state.get(index).(*Table)
-    if !ok {
-        state.errorf("table expected")
-        return
-    }
-    tbl.setInt(int64(entry), state.Pop())
+func (state *State) RawSetPtr(index int, udata *Object) {
+    unimplemented("RawSetPtr")
 }
 
 // Returns true if the two values in indices index1 and index2 are primitively equal
@@ -653,15 +522,17 @@ func (state *State) Call(args, rets int) {
         funcID = state.frame().absindex(-(args+1))
         value  = state.frame().get(funcID-1)
         c, ok  = value.(*Closure)
-    )
+	)
 
-    state.Logf("call (func @ %d) %v (# args = %d, # rets = %d)\n", funcID, value, args, rets)
+	// state.Logf("call (func @ %d) %v (# args = %d, # rets = %d)\n", funcID, value, args, rets)
+	fmt.Printf("call (func @ %d) %v (# args = %d, # rets = %d)\n", funcID, value, args, rets)
     
     if !ok && !tryMetaCall(state, value, funcID, args, rets) {
-        state.errorf("attempt to call a %s value", value.Type())
+        state.errorf("attempt to call a %s value @ %d (%T)\n%v\n", value.Type(), funcID, value, state.frame().locals)
     } else {
-        state.call(&Frame{closure: c, fnID: funcID, rets: rets})
-    }
+		// fmt.Printf("call (func @ %d) %v (# args = %d, # rets = %d)\n", funcID, value, args, rets)
+		state.call(&Frame{closure: c, fnID: funcID, rets: rets})
+	}
 }
 
 // Registers all functions in the array l (see luaL_Reg) into the table on the top of the stack (below optional
@@ -678,21 +549,6 @@ func (state *State) SetFuncs(funcs map[string]Func, nups uint8) {
     }
 }
 
-// Exec loads and runs a Lua chunk returning the result (if any) or an error (if any).
-//
-// The Lua chunk may be provided via the filename of the source file, or via the
-// source parameter.
-//
-// If source != nil, Do loads the source from source and the filename is only used
-// recording position information.
-func (state *State) Exec(filename string, source interface{}, mode Mode) error {
-    if err := state.Load(filename, source, mode); err != nil {
-        return err
-    }
-    state.Call(0, 0)
-    return nil
-}
-
 // Require loads the module.
 //
 // If modname is not already present in package.loaded, calls function loader with string modname
@@ -702,7 +558,9 @@ func (state *State) Exec(filename string, source interface{}, mode Mode) error {
 // If global is true, also stores the module into global modname.
 //
 // Leaves a copy of the module on the stack.
-func Require(state *State, module string, loader Func, global bool) {
+//
+// See https://www.lua.org/manual/5.3/manual.html#luaL_requiref
+func (state *State) Require(module string, loader Func, global bool) {
     state.Logf("require %q (global = %t)", module, global)
     state.GetSubTable(RegistryIndex, LoadedKey)
     state.GetField(-1, module)        // LOADED[module]
@@ -722,12 +580,33 @@ func Require(state *State, module string, loader Func, global bool) {
     if global {
         state.PushIndex(-1)
         state.SetGlobal(module)
-        //state.SetGlobal(module, state.frame().pop())
     }
+}
+
+// Preload preloads a Lua module into the package.preload table.
+func (state *State) Preload(module string, loader Func) {
+	state.Logf("preload %q", module)
+
+	state.GetSubTable(RegistryIndex, PreloadKey)
+	state.GetField(-1, module) // PRELOAD
+
+	if !Truth(state.get(-1)) { 		 // package not already preloaded?
+		state.Pop() 		  		// remove field
+		state.PushClosure(loader, 0) // push loader
+		state.SetField(-2, module)   // PRELOAD[module] = loader
+	}
+	state.Remove(-2) // remove PRELOAD table
+}
+
+func (state *State) Main(args ...string) error {
+	return state.safely(func() error { // pmain
+		defer state.Close()
+		// TODO: open stdlib
+		return state.ExecFile(args[0])
+	})
 }
 
 //
 // TODO: remove me
 //
-
 func unimplemented(msg string) { panic(fmt.Errorf(msg)) }

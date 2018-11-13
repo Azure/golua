@@ -179,7 +179,7 @@ func (vm *v53) newtable(instr vm.Instr) {
 		c = instr.C()
 	)
 	t := newTable(vm.State, fb2i(b), fb2i(c))
-	vm.frame().set(a, &Table{t})
+	vm.frame().set(a, t)
 }
 
 // SELF: Prepare an object method for calling.  
@@ -449,6 +449,7 @@ func (vm *v53) testset(instr vm.Instr) {
 //
 // R(A), ... ,R(A+C-2) := R(A)(R(A+1), ... ,R(A+B-1))  
 func (vm *v53) call(instr vm.Instr) {
+	fmt.Printf("#### lvm.CALL: BEFORE (%d)\n", vm.frame().depth)
 	var (
 		a = instr.A()
 		b = instr.B()
@@ -458,19 +459,22 @@ func (vm *v53) call(instr vm.Instr) {
 	if b != 0 {
 		vm.frame().settop(a+b)
 		vm.State.Call(b-1, c-1)
+		fmt.Println("NEXT")
+		vm.State.Debug(false)
 	} else {
 		vm.State.Call(vm.frame().gettop()-a-1, c-1)
 	}
 	// returns
-	if c != 0 {
-		rets := vm.frame().popN(c-1)
-		for i, v := range rets {
+	fmt.Printf("lvm.CALL: C=%d\n", c)
+	fmt.Printf("frame #%d locals: %v (vm.call: rets = %d)\n", vm.frame().depth, vm.frame().locals, c)
+	if c--; c > 0 {
+		// fmt.Printf("frame #%d locals: %v (vm.call: rets = %d)\n", vm.frame().depth, vm.frame().locals, c)
+		for i, v := range vm.frame().popN(c) {
 			vm.frame().set(a+i, v)
 		}
-	} else {
-		// C=0 so return values indicated by 'top'
-		// TODO ??
-	}
+	} 
+	// C=0 so return values indicated by 'top'
+	fmt.Printf("#### lvm.CALL: AFTER (%d)\n", vm.frame().depth)
 }
 
 // TAILCALL: Perform a tail call.
@@ -492,19 +496,28 @@ func (vm *v53) call(instr vm.Instr) {
 //
 // return R(A)(R(A+1), ... ,R(A+B-1))
 func (vm *v53) tailcall(instr vm.Instr) {
-	var (
-		a = instr.A()
-		b = instr.B()
-		c = instr.C()
-	)
-	// TODO: optimize tailcalls (reuse frame)
-	// TODO: vm.frame().closeups()
-	if b != 0 {
-		vm.frame().settop(a+b)
-		vm.State.Call(b-1, c-1)
-	} else {
-		vm.State.Call(vm.frame().gettop()-a-1, c-1)	
-	}
+	// TODO: proper tail call elimination
+	panic(fmt.Errorf("lvm: tailcall: not yet supported"))
+	// var (
+	// 	a = instr.A()
+	// 	b = instr.B()
+	// 	c = instr.C()
+	// )
+	// // arguments
+	// if b != 0 {
+	// 	vm.frame().settop(a+b)
+	// 	vm.State.Call(b-1, c-1)
+	// } else {
+	// 	vm.State.Call(vm.frame().gettop()-a-1, c-1)
+	// }
+	// // returns
+	// if c != 0 {
+	// 	rets := vm.frame().popN(c-1)
+	// 	for i, v := range rets {
+	// 		vm.frame().set(a+i, v)
+	// 	}
+	// }
+	// C=0 so return values indicated by 'top'
 }
 
 // RETURN: Returns from function call.
@@ -537,14 +550,13 @@ func (vm *v53) returns(instr vm.Instr) {
 		a = instr.A()
 		b = instr.B()
 	)
-	//fmt.Printf("RETURN A=%d B=%d (want = %d)\n", a, b, vm.frame().rets)
-	//vm.State.Debug(false)
 	if want := vm.frame().rets; want != 0 {
+		b--
 		var (
-			retc int = b - 1
+			retc int = b
 			rets []Value
 		)
-		if b == 0 {
+		if b == -1 {
 			retc = vm.frame().gettop()-a
 		}
 		switch {
@@ -720,7 +732,7 @@ func (vm *v53) setlist(instr vm.Instr) {
 	)
 	if b == 0 { b = vm.frame().gettop() - a - 1}
 	o := (c-1) * FieldsPerFlush
-	t := vm.frame().get(a).(*Table)
+	t := vm.frame().get(a).(*table)
 	for i := 1; i <= b; i++ {
 		t.setInt(int64(o+i), vm.frame().get(a+i))
 	}

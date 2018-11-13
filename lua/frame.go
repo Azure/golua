@@ -108,9 +108,19 @@ func (fr *Frame) reverse(src, dst int) {
     }
 }
 
-// Replace moves the top element into the given valid index without shifting
+// function returns the frame closure.
+func (fr *Frame) function() *Closure {
+	if fr != nil && fr.closure != nil {
+		return fr.closure
+	}
+	return nil
+}
+
+// replace moves the top element into the given valid index without shifting
 // any element (therefore replacing the value at that given index), and then
 // pops the top element.
+//
+// See https://www.lua.org/manual/5.3/manual.html#lua_replace
 func (fr *Frame) replace(index int) {
     if v := fr.pop(); fr.gettop() == 0 {
         fr.push(v)
@@ -119,7 +129,7 @@ func (fr *Frame) replace(index int) {
     }
 }
 
-// Rotate rotates the stack elements between the valid index and the top of the stack.
+// rotate rotates the stack elements between the valid index and the top of the stack.
 //
 // The elements are rotated n positions in the direction of the top, if positive;
 // otherwise -n positions in the direction of the bottom, if negative.
@@ -162,7 +172,7 @@ func (fr *Frame) remove(index int) {
 //
 // This function cannot be called with a pseudo-index, because a pseudo-index
 // is not an actual stack position.
-//func (fr *Frame) insert(index int) { fr.rotate(index, 1) }
+func (fr *Frame) insert(index int) { fr.rotate(index, 1) }
 
 // caller returns the frame's caller frame.
 func (fr *Frame) caller() *Frame {
@@ -233,10 +243,8 @@ func (fr *Frame) findUp(index int) *upValue {
 // closeUp closes upvalues below the index upto.
 func (fr *Frame) closeUp(upto int) {
     for i, up := range fr.up {
-        // if i < upto {
-            delete(fr.up, i)
-            up.close()
-        // }
+        delete(fr.up, i)
+        up.close()
     }
 }
 
@@ -261,6 +269,7 @@ func (fr *Frame) local(index int) Value {
 //
 // TODO: ensure stack
 func (fr *Frame) pushN(vs []Value) {
+	fmt.Printf("frame #%d: push %v\n", fr.depth, vs)
     for _, v := range vs {
         fr.push(v)
     }
@@ -298,10 +307,12 @@ func (fr *Frame) pop() Value {
 //
 // TODO: ensure stack
 func (fr *Frame) popN(n int) (vs []Value) {
-    vs = make([]Value, n, n)
-    for i := n-1; i >= 0; i-- {
-        vs[i] = fr.pop()
-    }
+	if n > 0 {
+    	vs = make([]Value, n, n)
+    	for i := n-1; i >= 0; i-- {
+        	vs[i] = fr.pop()
+		}
+	}
     return vs
 }
 
@@ -327,7 +338,6 @@ func (fr *Frame) code(pc int) vm.Instr {
 // TODO: pseudo & upvalue indices.
 // TODO: bounds and stack check.
 func (fr *Frame) set(index int, value Value) {
-    // fmt.Printf("set(%d) <- %v\n", index, value)
     if fr.gettop() == 0 || fr.gettop() == index {
         fr.push(value)
         return

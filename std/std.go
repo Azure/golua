@@ -15,6 +15,9 @@ import (
     "github.com/Azure/golua/lua"
 )
 
+// Open opens all standard Lua libraries into the given state.
+//
+// See https://www.lua.org/manual/5.3/manual.html#luaL_openlibs
 func Open(state *lua.State) {
     var libs = []struct{ Name string; Open lua.Func }{
         {"_G",        lua.Func(base.Open)},
@@ -29,8 +32,8 @@ func Open(state *lua.State) {
         {"debug",     lua.Func(debug.Open)},
     }
     for _, lib := range libs {
-        state.Logf("open stdlib module %q", lib.Name)
-        lua.Require(state, lib.Name, lib.Open, true)
+		state.Logf("opening stdlib mode %q", lib.Name)
+        state.Require(lib.Name, lib.Open, true)
         state.Pop()
     }
 }

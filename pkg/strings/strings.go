@@ -1,27 +1,10 @@
-// format
-// find
-// byte
-// char
-// dump
-// gmatch
-// gsub
-// len
-// lower
-// match
-// pack
-// packsize
-// rep
-// reverse
-// sub
-// unpack
-// upper
 package strings
 
 import (
 	"strings"
 	"fmt"
 
-	"github.com/fibonacci1729/glue/pattern"
+	"github.com/Azure/golua/pkg/pattern"
 )
 
 var _ = fmt.Println

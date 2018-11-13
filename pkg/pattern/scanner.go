@@ -3,7 +3,6 @@ package pattern
 import (
 	"unicode/utf8"
 	"unicode"
-	"strings"
 	"fmt"
 )
 
@@ -185,12 +184,11 @@ func scanSingle(scan *scanner) stateFn {
 	trace("scanSingle")
 	switch r := scan.next(); r {
 	case '[':
-		return scanBracket
+		return scanUnion
 	case '.':
 		scan.item <- item{itemClass, scan.start, ".", scan.rep()}
 		scan.ignore()
 	default:
-		// scan.emit(itemText, scan.rep())
 		scan.item <- item{itemText, scan.start, string(r), scan.rep()}
 		scan.ignore()
 	}
@@ -215,7 +213,7 @@ func scanEscape(scan *scanner) stateFn {
 			lit string
 			pos int
 		)
-		if lit, pos = string(r), scan.start + 1; strings.ContainsRune(classes, unicode.ToLower(r)) {
+		if lit, pos = string(r), scan.start + 1; isclass(r) {
 			typ = itemClass
 			lit = string(r)
 			rep = scan.rep()
@@ -241,7 +239,24 @@ func scanCapture(scan *scanner) stateFn {
 	return scanText
 }
 
-func scanBracket(scan *scanner) stateFn {
-	trace("scanBracket")
-	return nil
+// [set]: represents the class which is the union of all characters in set.
+// A range of characters can be specified by separating the end characters
+// of the range, in ascending order, with a '-'. All classes %x described
+// above can also be used as components in set. All other characters in set
+// represent themselves. For example, [%w_] (or [_%w]) represents all
+// alphanumeric characters plus the underscore, [0-7] represents the octal
+// digits, and [0-7%l%-] represents the octal digits plus the lowercase
+// letters plus the '-' character.
+//
+// You can put a closing square bracket in a set by positioning it as the
+// first character in the set. You can put a hyphen in a set by positioning
+// it as the first or the last character in the set. (You can also use an
+// escape for both cases.)
+//
+// The interaction between ranges and classes is not defined. Therefore,
+// patterns like [%a-z] or [a-%%] have no meaning.
+//
+// [^set]: represents the complement of set, where set is interpreted as above.
+func scanUnion(scan *scanner) stateFn {
+	return scan.errorf("union set classses not implemented")
 }

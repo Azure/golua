@@ -72,7 +72,7 @@ type (
 // func (x *Thread) Format(fmts fmt.State, char rune) {}
 
 type Object struct {
-	meta *Table
+	meta *table
 	data interface{}
 }
 
@@ -83,26 +83,6 @@ func UserData(data interface{}) *Object {
 func (x *Object) Unwrap() interface{} { return x.data }
 func (x *Object) String() string { return fmt.Sprintf("userdata: %p", x) }
 func (x *Object) Type() Type { return UserDataType }
-
-type Table struct { *table }
-func (x *Table) String() string { return fmt.Sprintf("table: %p", x) }
-func (x *Table) Type() Type { return TableType }
-
-//func (x *Table) Next(key Value) (Value, Value) {}
-//func (x *Table) Length() int {}
-//func (x *Table) Append(value Value) {}
-//func (x *Table) Insert(index int, value Value) {}
-//func (x *Table) Remove(index int) (value Value) {}
-
-//func (x *Table) RawGet(key Value) (value Value) {}
-//func (x *Table) RawGetInt(key int) (value Value) {}
-//func (x *Table) RawGetKey(key Value) (value Value) {}
-//func (x *Table) RawGetStr(key string) (value Value) {}
-
-//func (x *Table) RawSet(key, value Value) {}
-//func (x *Table) RawSetKey(key, value Value) {}
-//func (x *Table) RawSetInt(key int, value Value) {}
-//func (x *Table) RawSetStr(key string, value Value) {}
 
 type Float float64
 func (x Float) String() string { return fmt.Sprintf("%.14g", float64(x)) }
@@ -139,9 +119,9 @@ func (x Nil) Type() Type {
 
 type Func func(*State)int
 
-func (x Func) Call(state *State) int {
-	return x(state)
-}
+// func (x Func) Call(state *State) int {
+// 	return x(state)
+// }
 
 func (x Func) Type() Type {
 	if x == nil {
@@ -163,15 +143,6 @@ func (x Func) String() string {
 //
 // Value APIs
 //
-
-func (x *Table) ForEach(fn func(k, v Value)) {
-	for i, v := range x.table.list {
-		fn(Int(i), v)
-	}
-	for k, v := range x.table.hash {
-		fn(k, v)
-	}
-}
 
 func ValueOf(state *State, value interface{}) Value {
 	return valueOf(state, value)

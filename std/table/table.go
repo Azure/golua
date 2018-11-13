@@ -58,12 +58,9 @@ func tableConcat(state *lua.State) int {
 	}
 	buf := make([]string, j-i+1)
 	for k := i; k > 0 && k <= j; k++ {
-		state.GetI(1, k)
+		state.GetIndex(1, k)
 		if !state.IsString(-1) {
-			panic(fmt.Errorf("invalid value (%s) at index %d in table for 'concat'",
-				state.TypeAt(-1).String(),
-				i,
-			))
+			state.Errorf("invalid value (%s) at index %d in table for 'concat'", state.TypeAt(-1).String(), i)
 		}
 		buf[k-i] = state.ToString(-1)
 		state.Pop()
@@ -90,15 +87,15 @@ func tableInsert(state *lua.State) int {
 				panic(fmt.Errorf("bad argument #2 to 'insert' (position out of bounds)"))
 			}
 			for i := len; i > pos; i-- { // move up elements
-				state.GetI(1, i-1)
-				state.SetI(1, i) // t[i] = t[i-1]
+				state.GetIndex(1, i-1)
+				state.SetIndex(1, i) // t[i] = t[i-1]
 			}
 		case 2: // called with 2 arguments
 			pos = len // insert new element at the end	
 		default:
 			panic(fmt.Errorf("wrong number of arguments to 'insert'"))
 	}
-	state.SetI(1, pos) // t[pos] = v
+	state.SetIndex(1, pos) // t[pos] = v
 	return 0
 }
 
@@ -114,7 +111,7 @@ func tablePack(state *lua.State) int {
 	state.NewTableSize(elemc, 1)
 	state.Insert(1)
 	for i := int64(elemc); i >= 1; i-- {
-		state.SetI(1, i)
+		state.SetIndex(1, i)
 	}
 	state.Push(elemc)
 	state.SetField(1, "n")
@@ -144,10 +141,10 @@ func tableUnpack(state *lua.State) int {
 		panic(fmt.Errorf("too many results to unpack"))
 	}
 	for i < j {
-		state.GetI(1, i)
+		state.GetIndex(1, i)
 		i++
 	}
-	state.GetI(1, j)
+	state.GetIndex(1, j)
 	return n
 }
 

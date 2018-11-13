@@ -36,7 +36,7 @@ func intError(state *State, argAt int) {
 
 func typeError(state *State, argAt int, want string) {
 	// TODO: stack analysis and debugging info if available.
-	panic(fmt.Errorf("%s expected @ %d, got %s", want, argAt, state.Value(argAt).Type()))
+	panic(fmt.Errorf("%s expected @ %d, got %s", want, argAt, state.valueAt(argAt).Type()))
 }
 
 // luaG_typerror 		"attempt to %s a %s value%s"

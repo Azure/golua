@@ -3,6 +3,7 @@ package lua
 import (
 	"syscall"
 	"fmt"
+	"io"
 )
 
 var _ = fmt.Println
@@ -51,6 +52,51 @@ func (state *State) FileResult(err error, filename string) int {
 	}
 	return 3
 }
+
+// ExecFrom uses Exec to load and execute the Lua chunk from the reader r.
+func (state *State) ExecFrom(r io.Reader) error {
+	return state.ExecChunk("?", r, BinaryMode|TextMode)
+}
+
+// ExecText uses Exec to load and execute the given string.
+//
+// See https://www.lua.org/manual/5.3/manual.html#luaL_dostring
+func (state *State) ExecText(text string) error {
+	return state.ExecChunk("?", text, BinaryMode|TextMode)
+}
+
+// ExecFile uses Exec to load and execute the given file.
+//
+// See https://www.lua.org/manual/5.3/manual.html#luaL_dofile
+func (state *State) ExecFile(file string) error {
+	return state.ExecChunk(file, nil, BinaryMode|TextMode)
+}
+
+// LoadFrom uses Load to load the Lua chunk from the reader r.
+//
+// See https://www.lua.org/manual/5.3/manual.html#luaL_loadbuffer
+// See https://www.lua.org/manual/5.3/manual.html#luaL_loadbufferx
+func (state *State) LoadFrom(r io.Reader) error {
+		return state.LoadChunk("?", r, BinaryMode|TextMode)
+}
+
+// LoadText uses Load to load a string as a Lua chunk.
+//
+// See https://www.lua.org/manual/5.3/manual.html#luaL_loadstring
+func (state *State) LoadText(text string) error {
+	return state.LoadChunk("?", text, BinaryMode|TextMode)
+}
+
+// LoadFile uses Load to load a file as a Lua chunk.
+//
+// See https://www.lua.org/manual/5.3/manual.html#luaL_loadfilex
+// See https://www.lua.org/manual/5.3/manual.html#luaL_loadfile
+func (state *State) LoadFile(file string) error {
+	return state.LoadChunk(file, nil, BinaryMode|TextMode)
+}
+
+// See https://www.lua.org/manual/5.3/manual.html#luaL_dofile
+// func (state *State) ExecFile(file string)
 
 // If the registry already has the key name, return false. Otherwise, creates a new table to
 // be used as a metatable for userdata, adds to this new table the pair __name = name, adds
@@ -187,6 +233,8 @@ func (state *State) Where(level int) {
 	//			return
 	//		}
 	// }
+
+	// TODO
 	state.Push("")
 }
 
@@ -203,27 +251,4 @@ func (state *State) Where(level int) {
 // See https://www.lua.org/manual/5.3/manual.html#luaL_error
 func (state *State) Errorf(format string, args ...interface{}) int {
 	return state.errorf(format, args...)
-}
-
-func (state *State) valueAt(index int) Value {
-	if state.isValid(index) {
-		return state.get(index)
-	}
-	return None
-}
-
-func (state *State) isValid(index int) bool {
-	switch {
-		case index == RegistryIndex: // registry
-			index = UpValueIndex(index) - 1
-			cls := state.frame().closure
-			return cls != nil && index < len(cls.upvals)
-		case index < RegistryIndex: // upvalues
-			return true
-	}
-	var (
-		abs = state.frame().absindex(index)
-		top = state.frame().gettop()
-	)
-	return abs > 0 && abs <= top
 }
