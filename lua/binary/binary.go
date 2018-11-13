@@ -1,15 +1,10 @@
 package binary
 
 import (
-	"encoding/binary"
 	"bytes"
 	"fmt"
 	"io"
-
-	//"go.azure/lua/lua/types"
 )
-
-var order = binary.LittleEndian
 
 var (
 	head = [...]byte{0x1B, 0x4C, 0x75, 0x61}
@@ -76,13 +71,13 @@ type (
 		Version    byte
 		Format     byte
 		LuacData   [6]byte
-		CintSize   byte
+		GoIntSize  byte
 		SizetSize  byte
 		InstrSize  byte
 		LuaIntSize byte
 		LuaNumSize byte
-		LuacInt    int64
-		LuacNum    float64
+		LuacIntEnc int64
+		LuacNumEnc float64
 	}
 
 	LocalVar struct {
@@ -113,7 +108,7 @@ func (upval *UpValue) AtIndex() int { return int(upval.Index) }
 
 func IsChunk(data []byte) bool { return len(data) > 4 && string(data[:4]) == LUA_SIGNATURE }
 
-func Unpack(data []byte) (chunk Chunk, err error) {
+func Load(data []byte) (chunk Chunk, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			if e, ok := r.(error); ok {
@@ -128,9 +123,13 @@ func Unpack(data []byte) (chunk Chunk, err error) {
 	return chunk, err
 }
 
-func Pack(proto *Prototype, strip bool) []byte {
-	b := new(bytes.Buffer)
-	encode(b, proto)
+func Dump(proto *Prototype, strip bool) []byte {
+	var b bytes.Buffer
+	w := &writer{b: &b}
+	w.writeHeader()
+	n := len(proto.UpValues)
+	w.writeByte(byte(n))
+	encodeProto(w, proto)
 	return b.Bytes()
 }
 

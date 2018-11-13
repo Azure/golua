@@ -1,6 +1,7 @@
 package lua
 
 import (
+	"math/big"
 	"runtime"
 	"reflect"
 	"fmt"
@@ -9,10 +10,9 @@ import (
 type Type int
 
 const (
-	NilType  	 Type = iota
-	IntType
+	NoneType   	 Type = iota
+	NilType
 	BoolType
-	FloatType
 	NumberType
 	StringType
 	FuncType
@@ -23,10 +23,9 @@ const (
 )
 
 var types = [...]string{
+	NoneType: 	  "no value",
 	NilType: 	  "nil",
-	IntType: 	  "int",
 	BoolType: 	  "boolean",
-	FloatType:    "float",
 	NumberType:   "number",
 	StringType:   "string",
 	FuncType:     "function",
@@ -62,8 +61,18 @@ type (
 	}
 )
 
+// func (x *Object) Format(fmts fmt.State, char rune) {}
+// func (x *Table) Format(fmts fmt.State, char rune) {}
+// func (x Float) Format(fmts fmt.State, char rune) {}
+// func (x String) Format(fmts fmt.State, char rune) {}
+// func (x Bool) Format(fmts fmt.State, char rune) {}
+// func (x Int) Format(fmts fmt.State, char rune) {}
+// func (x Nil) Format(fmts fmt.State, char rune) {}
+// func (x Func) Format(fmts fmt.State, char rune) {}
+// func (x *Thread) Format(fmts fmt.State, char rune) {}
+
 type Object struct {
-	meta *Table
+	meta *table
 	data interface{}
 }
 
@@ -75,29 +84,9 @@ func (x *Object) Unwrap() interface{} { return x.data }
 func (x *Object) String() string { return fmt.Sprintf("userdata: %p", x) }
 func (x *Object) Type() Type { return UserDataType }
 
-type Table struct { table }
-func (x *Table) String() string { return fmt.Sprintf("table: %p", x) }
-func (x *Table) Type() Type { return TableType }
-
-//func (x *Table) Next(key Value) (Value, Value) {}
-//func (x *Table) Length() int {}
-//func (x *Table) Append(value Value) {}
-//func (x *Table) Insert(index int, value Value) {}
-//func (x *Table) Remove(index int) (value Value) {}
-
-//func (x *Table) RawGet(key Value) (value Value) {}
-//func (x *Table) RawGetInt(key int) (value Value) {}
-//func (x *Table) RawGetKey(key Value) (value Value) {}
-//func (x *Table) RawGetStr(key string) (value Value) {}
-
-//func (x *Table) RawSet(key, value Value) {}
-//func (x *Table) RawSetKey(key, value Value) {}
-//func (x *Table) RawSetInt(key int, value Value) {}
-//func (x *Table) RawSetStr(key string, value Value) {}
-
 type Float float64
-func (x Float) String() string { return fmt.Sprintf("%v", float64(x)) }
-func (x Float) Type() Type { return FloatType }
+func (x Float) String() string { return fmt.Sprintf("%.14g", float64(x)) }
+func (x Float) Type() Type { return NumberType }
 func (Float) number() {}
 
 type String string
@@ -114,19 +103,25 @@ func (x Bool) Type() Type { return BoolType }
 
 type Int int64
 func (x Int) String() string { return fmt.Sprintf("%v", int64(x)) }
-func (x Int) Type() Type { return IntType }
+func (x Int) Type() Type { return NumberType }
 func (Int) number() {}
 
 type Nil byte
 const None = Nil(0)
+const nilValue = Nil(1)
 func (x Nil) String() string { return "nil" }
-func (x Nil) Type() Type { return NilType }
+func (x Nil) Type() Type {
+	if x == None {
+		return NoneType
+	}
+	return NilType
+}
 
 type Func func(*State)int
 
-func (x Func) Call(state *State) int {
-	return x(state)
-}
+// func (x Func) Call(state *State) int {
+// 	return x(state)
+// }
 
 func (x Func) Type() Type {
 	if x == nil {
@@ -149,13 +144,8 @@ func (x Func) String() string {
 // Value APIs
 //
 
-func (x *Table) ForEach(fn func(k, v Value)) {
-	for i, v := range x.table.list {
-		fn(Int(i), v)
-	}
-	for k, v := range x.table.hash {
-		fn(k, v)
-	}
+func ValueOf(state *State, value interface{}) Value {
+	return valueOf(state, value)
 }
 
 func valueOf(state *State, value interface{}) Value {
@@ -181,7 +171,7 @@ func valueOf(state *State, value interface{}) Value {
 		case Value:
 			return value
 		case nil:
-			return None
+			return Nil(1)
 	}
 	udata := &Object{data: value}
 	udata.meta = metaOf(state, udata)
@@ -189,9 +179,9 @@ func valueOf(state *State, value interface{}) Value {
 }
 
 func IsNumber(value Value) bool { return IsFloat(value) || IsInt(value) }
-func IsFloat(value Value) bool { return value.Type() == FloatType }
-func IsNone(value Value) bool { return value == nil || value == None || !isNil(value) }
-func IsInt(value Value) bool { return value.Type() == IntType }
+func IsFloat(value Value) bool { _, ok := value.(Float); return ok }
+func IsInt(value Value) bool { _, ok := value.(Int); return ok }
+func IsNone(value Value) bool { return value == nil || value == None || !isNil(value) || value.Type() == NilType }
 func isNil(value Value) bool { return reflect.ValueOf(value).IsValid() }//IsNil() }
 
 func Truth(value Value) bool { return bool(truth(value)) }
@@ -206,9 +196,17 @@ func toString(value Value) (string, bool) {
 		case Int:
 			s := fmt.Sprintf("%v", int64(value))
 			return s, true
+		case Bool:
+			s := fmt.Sprintf("%t", bool(value))
+			return s, true
+		case Nil:
+			return value.String(), true
 	}
 	return "", false
 }
+
+func (x Float) rational() *big.Rat { return new(big.Rat).SetFloat64(float64(x)) }
+func (x Int) rational() *big.Rat { return new(big.Rat).SetInt64(int64(x)) }
 
 // truth returns true for any Lua value different from false
 // and None (or nil), otherwise returns false.

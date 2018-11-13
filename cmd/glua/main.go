@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/Azure/golua/lua/stdlib"
+	stdlib "github.com/Azure/golua/std"
 	"github.com/Azure/golua/lua"
 )
 
@@ -28,6 +28,14 @@ func main() {
 	flag.BoolVar(&tests, "tests", trace, "execute tests")
 	flag.Parse()
 
+	// defer func() {
+	// 	if r := recover(); r != nil {
+	// 		if err, ok := r.(error); ok {
+	// 			must(err)
+	// 		}
+	// 	}
+	// }()
+
 	var opts = []lua.Option{lua.WithTrace(trace), lua.WithVerbose(debug)}
 
 	state := lua.NewState(opts...)
@@ -41,16 +49,14 @@ func main() {
 		state.Push(true)
 		state.SetGlobal("_U")	
 	}
-	must(state.Safely(func() {
-		stdlib.Load(state)
+	stdlib.Open(state)
 
-		mode := lua.BinaryMode|lua.TextMode
-		must(state.Exec(flag.Arg(0), nil, mode))
+	mode := lua.BinaryMode|lua.TextMode
+	must(state.Exec(flag.Arg(0), nil, mode))
 
-		if result := state.Pop(); result != lua.None {
-			fmt.Println(result)
-		}
-	}))
+	if result := state.Pop(); result != lua.None {
+		fmt.Println(result)
+	}
 }
 
 // func Main(state *lua.State) {

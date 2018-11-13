@@ -1,7 +1,6 @@
 package lua
 
 import (
-	"strings"
 	"fmt"
 
 	"github.com/Azure/golua/lua/binary"
@@ -49,19 +48,12 @@ func (x *Closure) Type() Type {
 }
 
 func (x *Closure) String() string {
-	if x == nil {
-		return "closure(none)"
-	}
-	var b strings.Builder
-	if x.isLua() {
-		fmt.Fprintf(&b, "closure(lua:func@%s:%d)", x.binary.Source, x.binary.SrcPos)
-	} else {
-		fmt.Fprintf(&b, "closure(go:%s)", x.native.String())
-	}
-	return b.String()
+	return fmt.Sprintf("function: %p", x)
 }
 
-func (x *Closure) isLua() bool { return x.binary != nil }
+func (cls *Closure) isLua() bool { return cls != nil && cls.binary != nil }
+
+func (cls *Closure) isGo() bool { return cls != nil && cls.native != nil }
 
 func (cls *Closure) numParams() int {
 	if !cls.isLua() {
@@ -70,15 +62,22 @@ func (cls *Closure) numParams() int {
 	return cls.binary.NumParams()
 }
 
+func (cls *Closure) upvalues() []*upValue {
+	if cls != nil {
+		return cls.upvals
+	}
+	return nil
+}
+
 func (cls *Closure) getUp(index int) *upValue {
-	if index < len(cls.upvals) {
+	if cls != nil && index < len(cls.upvals) {
 		return cls.upvals[index]
 	}
 	return nil
 }
 
 func (cls *Closure) setUp(index int, value Value) {
-	if index < len(cls.upvals) {
+	if cls != nil && index < len(cls.upvals) {
 		cls.upvals[index].set(value)
 	}
 }

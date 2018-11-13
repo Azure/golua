@@ -14,13 +14,13 @@ func decode(r *bytes.Buffer, c *Chunk) {
 	assert(h.Version == LUAC_VERSION, "version mismatch")
 	assert(h.Format == LUAC_FORMAT, "format mismatch")
 	assert(h.LuacData == tail, "corrupted")
-	assert(h.CintSize == CINT_SIZE, "int size mismatch")
+	assert(h.GoIntSize == CINT_SIZE, "int size mismatch")
 	assert(h.SizetSize == CSIZET_SIZE, "size_t size mismatch")
 	assert(h.InstrSize == INSTRUCTION_SIZE, "instruction size mismatch")
 	assert(h.LuaIntSize == LUA_INTEGER_SIZE, "lua integer size mismatch")
 	assert(h.LuaNumSize == LUA_NUMBER_SIZE, "lua number size mismatch")
-	assert(h.LuacInt == LUAC_INT, "endianess mismatch")
-	assert(h.LuacNum == LUAC_NUM, "float format mismatch")
+	assert(h.LuacIntEnc == LUAC_INT, "endianess mismatch")
+	assert(h.LuacNumEnc == LUAC_NUM, "float format mismatch")
 	c.Header = h
 
 	// decode size_upvalues (?)

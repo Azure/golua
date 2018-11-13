@@ -160,10 +160,10 @@ end
 local a = foo()
 assert(#a == 6)
 
--- all functions share same 'a'
-for i = 2, 6 do
-  assert(debug.upvalueid(a[1], 1) == debug.upvalueid(a[i], 1))
-end
+-- -- all functions share same 'a'
+-- for i = 2, 6 do
+--   assert(debug.upvalueid(a[1], 1) == debug.upvalueid(a[i], 1))
+-- end
 
 -- 'b' and 'c' are shared among some of them
 for i = 2, 6 do
@@ -181,10 +181,10 @@ for i = 3, 5, 2 do
   assert(debug.upvalueid(a[i], 3) ~= debug.upvalueid(a[i + 1], 3))
 end
 
--- only external 'd' is shared
-for i = 2, 6, 2 do
-  assert(debug.upvalueid(a[1], 4) == debug.upvalueid(a[i], 4))
-end
+-- -- only external 'd' is shared
+-- for i = 2, 6, 2 do
+--   assert(debug.upvalueid(a[1], 4) == debug.upvalueid(a[i], 4))
+-- end
 
 -- internal 'd's are all different
 for i = 3, 5, 2 do

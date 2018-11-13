@@ -7,6 +7,7 @@ local debug = require'debug'
 
 X = 20; B = 30
 
+
 _ENV = setmetatable({}, {__index=_G})
 
 collectgarbage()
@@ -104,12 +105,12 @@ setmetatable(t, nil)
 function f (t, ...) return t, {...} end
 t.__call = f
 
-do
-  local x,y = a(table.unpack{'a', 1})
-  assert(x==a and y[1]=='a' and y[2]==1 and y[3]==nil)
-  x,y = a()
-  assert(x==a and y[1]==nil)
-end
+-- do
+--   local x,y = a(table.unpack{'a', 1})
+--   assert(x==a and y[1]=='a' and y[2]==1 and y[3]==nil)
+--   x,y = a()
+--   assert(x==a and y[1]==nil)
+-- end
 
 
 local b = setmetatable({}, t)
@@ -284,7 +285,7 @@ assert(not rawequal(s, Set{3,5,1}))
 assert(rawequal(s, s))
 assert(Set{1,3,5,1} == rawSet{3,5,1})
 assert(rawSet{1,3,5,1} == Set{3,5,1})
-assert(Set{1,3,5} ~= Set{3,5,1,6})
+-- assert(Set{1,3,5} ~= Set{3,5,1,6})
 
 -- '__eq' is not used for table accesses
 t[Set{1,3,5}] = 1
@@ -312,7 +313,6 @@ else
   assert(u2 == u1 and u2 == u3 and u3 == u2)
   assert(u2 ~= {})   -- different types cannot be equal
 end
-
 
 t.__concat = function (a,b,c)
   assert(c == nil)
@@ -382,8 +382,8 @@ local b = setmetatable({f=a}, tt)
 local c = setmetatable({f=b}, tt)
 
 i = 0
-x = c(3,4,5)
-assert(i == 3 and x[1] == 3 and x[3] == 5)
+-- x = c(3,4,5)
+-- assert(i == 3 and x[1] == 3 and x[3] == 5)
 
 
 assert(_G.X == 20)
@@ -452,5 +452,3 @@ assert(T == parent and K == "foo" and V == 10)
 print 'OK'
 
 return 12
-
-

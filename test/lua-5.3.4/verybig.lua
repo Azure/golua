@@ -43,7 +43,6 @@ local function foo ()
   assert((function () return t.x end)() == 10)
 end
 
-
 foo()
 foo = nil
 
