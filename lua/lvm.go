@@ -18,8 +18,8 @@ var _ = fmt.Println
 //
 // R(A) := R(B)
 func (vm *v53) move(instr vm.Instr) {
-	rb := vm.frame().get(instr.B())
-	vm.frame().set(instr.A(), rb)
+	rb := vm.thread().frame().get(instr.B())
+	vm.thread().frame().set(instr.A(), rb)
 }
 
 // LOADK: Load a constant into a register.
@@ -29,7 +29,7 @@ func (vm *v53) move(instr vm.Instr) {
 // R(A) := Kst(Bx)
 func (vm *v53) loadk(instr vm.Instr) {
 	kst := vm.constant(instr.BX())
-	vm.frame().set(instr.A(), kst)
+	vm.thread().frame().set(instr.A(), kst)
 }
 
 // LOADKX: Load a constant into a register. The next 'instruction'
@@ -39,9 +39,9 @@ func (vm *v53) loadk(instr vm.Instr) {
 //
 // R(A) := Kst(extra arg)
 func (vm *v53) loadkx(instr vm.Instr) {
-	extra := vm.frame().step(1).AX()
+	extra := vm.thread().frame().step(1).AX()
 	ra := vm.constant(extra)
-	vm.frame().set(instr.A(), ra)
+	vm.thread().frame().set(instr.A(), ra)
 }
 
 // LOADBOOL: Load a boolean into a register.
@@ -50,8 +50,8 @@ func (vm *v53) loadkx(instr vm.Instr) {
 //
 // R(A) := (Bool)B; if (C) pc++
 func (vm *v53) loadbool(instr vm.Instr) {
-	vm.frame().set(instr.A(), Bool(instr.B() == 1))
-	if instr.C() != 0 { vm.frame().step(1) }
+	vm.thread().frame().set(instr.A(), Bool(instr.B() == 1))
+	if instr.C() != 0 { vm.thread().frame().step(1) }
 }
 
 // LOADNIL: Load nil values into a range of registers.
@@ -65,7 +65,7 @@ func (vm *v53) loadnil(instr vm.Instr) {
 		b = instr.B()
 	)
 	for i := a; i <= a + b; i++ {
-		vm.frame().set(i, Nil(1))
+		vm.thread().frame().set(i, Nil(1))
 	}
 }
 
@@ -79,8 +79,8 @@ func (vm *v53) getupval(instr vm.Instr) {
 		a = instr.A()
 		b = instr.B()
 	)
-	up := vm.frame().getUp(b)
-	vm.frame().set(a, up.get())
+	up := vm.thread().frame().getUp(b)
+	vm.thread().frame().set(a, up.get())
 }
 
 // SETUPVAL: Write a register value into an upvalue.
@@ -93,8 +93,8 @@ func (vm *v53) setupval(instr vm.Instr) {
 		a = instr.A()
 		b = instr.B()
 	)
-	ra := vm.frame().get(a)
-	vm.frame().setUp(b, ra)
+	ra := vm.thread().frame().get(a)
+	vm.thread().frame().setUp(b, ra)
 }
 
 // GETTABLE: Read a table element into a register (locals).
@@ -108,10 +108,10 @@ func (vm *v53) gettable(instr vm.Instr) {
 		b = instr.B()
 		c = instr.C()
 	)
-	t := vm.frame().get(b)
+	t := vm.thread().frame().get(b)
 	k := vm.rk(c)
-	v := vm.State.gettable(t, k, false)
-	vm.frame().set(a, v)
+	v := vm.thread().gettable(t, k, false)
+	vm.thread().frame().set(a, v)
 }
 
 // SETTABLE: Write a register value into a table element (locals).
@@ -120,10 +120,10 @@ func (vm *v53) gettable(instr vm.Instr) {
 //
 // R(A)[RK(B)] := RK(C)
 func (vm *v53) settable(instr vm.Instr) {
-	obj := vm.frame().get(instr.A())
+	obj := vm.thread().frame().get(instr.A())
 	key := vm.rk(instr.B())
 	val := vm.rk(instr.C())
-	vm.State.settable(obj, key, val, false)
+	vm.thread().settable(obj, key, val, false)
 }
 
 // GETTABUP: Read a value from table in up-value into a register (globals).
@@ -132,10 +132,10 @@ func (vm *v53) settable(instr vm.Instr) {
 //   
 // R(A) := UpValue[B][RK(C)]
 func (vm *v53) gettabup(instr vm.Instr) {
-	up := vm.frame().getUp(instr.B()).get()
+	up := vm.thread().frame().getUp(instr.B()).get()
 	rc := vm.rk(instr.C())
-	ra := vm.State.gettable(up, rc, false)
-	vm.frame().set(instr.A(), ra)
+	ra := vm.thread().gettable(up, rc, false)
+	vm.thread().frame().set(instr.A(), ra)
 }
 
 // SETTABUP: Write a register value into table in up-value (globals).
@@ -144,10 +144,10 @@ func (vm *v53) gettabup(instr vm.Instr) {
 //
 // UpValue[A][RK(B)] := RK(C) 
 func (vm *v53) settabup(instr vm.Instr) {
-	up := vm.frame().getUp(instr.A()).get()
+	up := vm.thread().frame().getUp(instr.A()).get()
 	rb := vm.rk(instr.B())
 	rc := vm.rk(instr.C())
-	vm.State.settable(up, rb, rc, false)
+	vm.thread().settable(up, rb, rc, false)
 }
 
 // NEWTABLE: Create a new table.
@@ -178,8 +178,8 @@ func (vm *v53) newtable(instr vm.Instr) {
 		b = instr.B()
 		c = instr.C()
 	)
-	t := newTable(vm.State, fb2i(b), fb2i(c))
-	vm.frame().set(a, t)
+	t := newTable(vm.thread(), fb2i(b), fb2i(c))
+	vm.thread().frame().set(a, t)
 }
 
 // SELF: Prepare an object method for calling.  
@@ -189,12 +189,12 @@ func (vm *v53) newtable(instr vm.Instr) {
 // R(A+1) := R(B); R(A) := R(B)[RK(C)] 
 func (vm *v53) self(instr vm.Instr) {
 	var (
-		obj = vm.frame().get(instr.B())
+		obj = vm.thread().frame().get(instr.B())
 		key = vm.rk(instr.C())
-		fn  = vm.State.gettable(obj, key, false)
+		fn  = vm.thread().gettable(obj, key, false)
 	)
-	vm.frame().set(instr.A(), fn)
-	vm.frame().set(instr.A()+1, obj)
+	vm.thread().frame().set(instr.A(), fn)
+	vm.thread().frame().set(instr.A()+1, obj)
 }
 
 // ADD: Addition operator.  
@@ -206,9 +206,9 @@ func (vm *v53) add(instr vm.Instr) {
 	var (
 		rb = vm.rk(instr.B())
 		rc = vm.rk(instr.C())
-		ra = vm.arith(OpAdd, rb, rc)
+		ra = vm.thread().arith(OpAdd, rb, rc)
 	)
-	vm.frame().set(instr.A(), ra)
+	vm.thread().frame().set(instr.A(), ra)
 }
 
 // SUB: Subtraction operator.
@@ -220,9 +220,9 @@ func (vm *v53) sub(instr vm.Instr) {
 	var (
 		rb = vm.rk(instr.B())
 		rc = vm.rk(instr.C())
-		ra = vm.arith(OpSub, rb, rc)
+		ra = vm.thread().arith(OpSub, rb, rc)
 	)
-	vm.frame().set(instr.A(), ra)
+	vm.thread().frame().set(instr.A(), ra)
 }
 
 // MUL: Multiplication operator.
@@ -234,9 +234,9 @@ func (vm *v53) mul(instr vm.Instr) {
 	var (
 		rb = vm.rk(instr.B())
 		rc = vm.rk(instr.C())
-		ra = vm.arith(OpMul, rb, rc)
+		ra = vm.thread().arith(OpMul, rb, rc)
 	)
-	vm.frame().set(instr.A(), ra)
+	vm.thread().frame().set(instr.A(), ra)
 }
 
 // MOD: Modulus (remainder) operator.
@@ -248,9 +248,9 @@ func (vm *v53) mod(instr vm.Instr) {
 	var (
 		rb = vm.rk(instr.B())
 		rc = vm.rk(instr.C())
-		ra = vm.arith(OpMod, rb, rc)
+		ra = vm.thread().arith(OpMod, rb, rc)
 	)
-	vm.frame().set(instr.A(), ra)
+	vm.thread().frame().set(instr.A(), ra)
 }
 
 // POW: Exponentation operator.
@@ -262,9 +262,9 @@ func (vm *v53) pow(instr vm.Instr) {
 	var (
 		rb = vm.rk(instr.B())
 		rc = vm.rk(instr.C())
-		ra = vm.arith(OpPow, rb, rc)
+		ra = vm.thread().arith(OpPow, rb, rc)
 	)
-	vm.frame().set(instr.A(), ra)
+	vm.thread().frame().set(instr.A(), ra)
 }
 
 // DIV: Division operator.         
@@ -276,9 +276,9 @@ func (vm *v53) div(instr vm.Instr) {
 	var (
 		rb = vm.rk(instr.B())
 		rc = vm.rk(instr.C())
-		ra = vm.arith(OpDiv, rb, rc)
+		ra = vm.thread().arith(OpDiv, rb, rc)
 	)
-	vm.frame().set(instr.A(), ra)
+	vm.thread().frame().set(instr.A(), ra)
 }
 
 // UNM: Unary minus.
@@ -289,9 +289,9 @@ func (vm *v53) div(instr vm.Instr) {
 func (vm *v53) unm(instr vm.Instr) {
 	var (
 		rb = vm.rk(instr.B())
-		ra = vm.arith(OpMinus, rb, None)
+		ra = vm.thread().arith(OpMinus, rb, None)
 	)
-	vm.frame().set(instr.A(), ra)
+	vm.thread().frame().set(instr.A(), ra)
 }
 
 // NOT: Logical NOT operator.  
@@ -300,8 +300,8 @@ func (vm *v53) unm(instr vm.Instr) {
 //
 // R(A) := not R(B)
 func (vm *v53) not(instr vm.Instr) {
-	rb := vm.frame().get(instr.B())
-	vm.frame().set(instr.A(), !truth(rb))
+	rb := vm.thread().frame().get(instr.B())
+	vm.thread().frame().set(instr.A(), !truth(rb))
 }
                   
 // LEN: Length operator.
@@ -310,8 +310,8 @@ func (vm *v53) not(instr vm.Instr) {
 //
 // R(A) := length of R(B) 
 func (vm *v53) length(instr vm.Instr) {
-	rb := vm.frame().get(instr.B())
-	vm.frame().set(instr.A(), vm.State.length(rb))
+	rb := vm.thread().frame().get(instr.B())
+	vm.thread().frame().set(instr.A(), vm.thread().length(rb))
 }
 
 // CONCAT: Concatenate a range of registers.
@@ -325,8 +325,8 @@ func (vm *v53) concat(instr vm.Instr) {
 		b = instr.B()
 		c = instr.C()
 	)
-	vm.State.Concat(c-b+1)
-	vm.frame().replace(a)
+	vm.thread().Concat(c-b+1)
+	vm.thread().frame().replace(a)
 }
 
 // JMP: Unconditional jump.
@@ -335,9 +335,9 @@ func (vm *v53) concat(instr vm.Instr) {
 //
 // pc+=sBx; if (A) close all upvalues >= R(A-1)
 func (vm *v53) jmp(instr vm.Instr) {
-	vm.frame().step(instr.SBX())
+	vm.thread().frame().step(instr.SBX())
 	if a := instr.A(); a != 0 {
-		vm.frame().closeUp(a-1)
+		vm.thread().frame().closeUp(a-1)
 	}
 }
 
@@ -352,8 +352,8 @@ func (vm *v53) eq(instr vm.Instr) {
 		rc = vm.rk(instr.C())
 		aa = (instr.A() != 0)
 	)
-	if vm.compare(OpEq, rb, rc, false) != aa {
-		vm.frame().step(1)
+	if vm.thread().compare(OpEq, rb, rc, false) != aa {
+		vm.thread().frame().step(1)
 	}
 }
 
@@ -368,8 +368,8 @@ func (vm *v53) lt(instr vm.Instr) {
 		rc = vm.rk(instr.C())
 		aa = (instr.A() == 1)
 	)
-	if vm.compare(OpLt, rb, rc, false) != aa {
-		vm.frame().step(1)
+	if vm.thread().compare(OpLt, rb, rc, false) != aa {
+		vm.thread().frame().step(1)
 	}
 }
 
@@ -384,8 +384,8 @@ func (vm *v53) le(instr vm.Instr) {
 		rc = vm.rk(instr.C())
 		aa = (instr.A() == 1)
 	)
-	if vm.compare(OpLe, rb, rc, false) != aa {
-		vm.frame().step(1)
+	if vm.thread().compare(OpLe, rb, rc, false) != aa {
+		vm.thread().frame().step(1)
 	}
 }
 
@@ -396,11 +396,11 @@ func (vm *v53) le(instr vm.Instr) {
 // if not (R(A) <=> C) then pc++          
 func (vm *v53) test(instr vm.Instr) {
 	var (
-		ra = vm.frame().get(instr.A())
+		ra = vm.thread().frame().get(instr.A())
 		cc = (instr.C() == 1)
 	)
 	if Truth(ra) != cc {
-		vm.frame().step(1)
+		vm.thread().frame().step(1)
 	}
 }
 
@@ -411,13 +411,13 @@ func (vm *v53) test(instr vm.Instr) {
 // if (R(B) <=> C) then R(A) := R(B) else pc++
 func (vm *v53) testset(instr vm.Instr) {
 	var (
-		rb = vm.frame().get(instr.B())
+		rb = vm.thread().frame().get(instr.B())
 		cc = (instr.C() == 1)
 	)
 	if Truth(rb) == cc {
-		vm.frame().set(instr.A(), rb)
+		vm.thread().frame().set(instr.A(), rb)
 	} else {
-		vm.frame().step(1)
+		vm.thread().frame().step(1)
 	} 
 }
 
@@ -449,7 +449,6 @@ func (vm *v53) testset(instr vm.Instr) {
 //
 // R(A), ... ,R(A+C-2) := R(A)(R(A+1), ... ,R(A+B-1))  
 func (vm *v53) call(instr vm.Instr) {
-	fmt.Printf("#### lvm.CALL: BEFORE (%d)\n", vm.frame().depth)
 	var (
 		a = instr.A()
 		b = instr.B()
@@ -457,24 +456,18 @@ func (vm *v53) call(instr vm.Instr) {
 	)
 	// arguments
 	if b != 0 {
-		vm.frame().settop(a+b)
-		vm.State.Call(b-1, c-1)
-		fmt.Println("NEXT")
-		vm.State.Debug(false)
+		vm.thread().frame().settop(a+b)
+		vm.thread().Call(b-1, c-1)
 	} else {
-		vm.State.Call(vm.frame().gettop()-a-1, c-1)
+		vm.thread().Call(vm.thread().frame().gettop()-a-1, c-1)
 	}
 	// returns
-	fmt.Printf("lvm.CALL: C=%d\n", c)
-	fmt.Printf("frame #%d locals: %v (vm.call: rets = %d)\n", vm.frame().depth, vm.frame().locals, c)
 	if c--; c > 0 {
-		// fmt.Printf("frame #%d locals: %v (vm.call: rets = %d)\n", vm.frame().depth, vm.frame().locals, c)
-		for i, v := range vm.frame().popN(c) {
-			vm.frame().set(a+i, v)
+		for i, v := range vm.thread().frame().popN(c) {
+			vm.thread().frame().set(a+i, v)
 		}
 	} 
 	// C=0 so return values indicated by 'top'
-	fmt.Printf("#### lvm.CALL: AFTER (%d)\n", vm.frame().depth)
 }
 
 // TAILCALL: Perform a tail call.
@@ -497,26 +490,24 @@ func (vm *v53) call(instr vm.Instr) {
 // return R(A)(R(A+1), ... ,R(A+B-1))
 func (vm *v53) tailcall(instr vm.Instr) {
 	// TODO: proper tail call elimination
-	panic(fmt.Errorf("lvm: tailcall: not yet supported"))
-	// var (
-	// 	a = instr.A()
-	// 	b = instr.B()
-	// 	c = instr.C()
-	// )
-	// // arguments
-	// if b != 0 {
-	// 	vm.frame().settop(a+b)
-	// 	vm.State.Call(b-1, c-1)
-	// } else {
-	// 	vm.State.Call(vm.frame().gettop()-a-1, c-1)
-	// }
-	// // returns
-	// if c != 0 {
-	// 	rets := vm.frame().popN(c-1)
-	// 	for i, v := range rets {
-	// 		vm.frame().set(a+i, v)
-	// 	}
-	// }
+	var (
+		a = instr.A()
+		b = instr.B()
+		c = instr.C()
+	)
+	// arguments
+	if b != 0 {
+		vm.thread().frame().settop(a+b)
+		vm.thread().Call(b-1, c-1)
+	} else {
+		vm.thread().Call(vm.thread().frame().gettop()-a-1, c-1)
+	}
+	// returns
+	if c--; c > 0 {
+		for i, v := range vm.thread().frame().popN(c) {
+			vm.thread().frame().set(a+i, v)
+		}
+	} 
 	// C=0 so return values indicated by 'top'
 }
 
@@ -550,19 +541,19 @@ func (vm *v53) returns(instr vm.Instr) {
 		a = instr.A()
 		b = instr.B()
 	)
-	if want := vm.frame().rets; want != 0 {
+	if want := vm.thread().frame().rets; want != 0 {
 		b--
 		var (
 			retc int = b
 			rets []Value
 		)
 		if b == -1 {
-			retc = vm.frame().gettop()-a
+			retc = vm.thread().frame().gettop()-a
 		}
 		switch {
 			case want > retc: // # wanted > # returned
 				for i := a; i < a + retc; i++ {
-					rets = append(rets, vm.frame().get(i))
+					rets = append(rets, vm.thread().frame().get(i))
 				}
 				for retc < want {
 					rets = append(rets, None)
@@ -574,10 +565,10 @@ func (vm *v53) returns(instr vm.Instr) {
 					want = retc
 				}
 				for i := a; i < a + want; i++ {
-					rets = append(rets, vm.frame().get(i))
+					rets = append(rets, vm.thread().frame().get(i))
 				}
 		}
-		vm.frame().caller().pushN(rets)
+		vm.thread().frame().caller().pushN(rets)
 	}
 }
 
@@ -588,9 +579,9 @@ func (vm *v53) returns(instr vm.Instr) {
 // R(A)+=R(A+2); if R(A) <?= R(A+1) then { pc+=sBx; R(A+3)=R(A) }                     
 func (vm *v53) forloop(instr vm.Instr) {
 	var (
-		item = vm.frame().get(instr.A())
-		upto = vm.frame().get(instr.A()+1)
-		step = vm.frame().get(instr.A()+2)
+		item = vm.thread().frame().get(instr.A())
+		upto = vm.thread().frame().get(instr.A()+1)
+		step = vm.thread().frame().get(instr.A()+2)
 	)
 	if isInteger(item) { // integer loop?
 		i1 := item.(Int) 
@@ -598,9 +589,9 @@ func (vm *v53) forloop(instr vm.Instr) {
 		i3 := step.(Int)
 		i1 += i3 // increment index
 		if (i3 > 0 && (i1 <= i2)) || (i3 < 0 && (i1 > i2)) {
-			vm.frame().set(instr.A(), i1)   // update internal index...
-			vm.frame().set(instr.A()+3, i1) // ... and external index
-			vm.frame().step(instr.SBX())    // jump back
+			vm.thread().frame().set(instr.A(), i1)   // update internal index...
+			vm.thread().frame().set(instr.A()+3, i1) // ... and external index
+			vm.thread().frame().step(instr.SBX())    // jump back
 		}
 	} else { // floating loop
 		f1 := item.(Float)
@@ -608,9 +599,9 @@ func (vm *v53) forloop(instr vm.Instr) {
 		f3 := step.(Float)
 		f1 += f3
 		if (f3 > 0 && (f1 <= f2)) || (f3 < 0 && (f1 > f2)) {
-			vm.frame().set(instr.A(), f1)   // update internal index...
-			vm.frame().set(instr.A()+3, f1) // ... and external index
-			vm.frame().step(instr.SBX())    // jump back
+			vm.thread().frame().set(instr.A(), f1)   // update internal index...
+			vm.thread().frame().set(instr.A()+3, f1) // ... and external index
+			vm.thread().frame().step(instr.SBX())    // jump back
 		}
 	}
 }
@@ -622,9 +613,9 @@ func (vm *v53) forloop(instr vm.Instr) {
 // R(A)-=R(A+2); pc+=sBx
 func (vm *v53) forprep(instr vm.Instr) {
 	var (
-		init = vm.frame().get(instr.A())
-		upto = vm.frame().get(instr.A()+1)
-		step = vm.frame().get(instr.A()+2)
+		init = vm.thread().frame().get(instr.A())
+		upto = vm.thread().frame().get(instr.A()+1)
+		step = vm.thread().frame().get(instr.A()+2)
 	)
 	// Try for values as integers.
 	var (
@@ -634,28 +625,28 @@ func (vm *v53) forprep(instr vm.Instr) {
 	)
 	if ok1 && ok2 && ok3 {
 		// TODO: Try converting forlimit to an integer rounding if possible.
-		vm.frame().set(instr.A(), i1-i3)
-		vm.frame().set(instr.A()+1, i2)
-		vm.frame().set(instr.A()+2, i3)
-		vm.frame().step(instr.SBX())
+		vm.thread().frame().set(instr.A(), i1-i3)
+		vm.thread().frame().set(instr.A()+1, i2)
+		vm.thread().frame().set(instr.A()+2, i3)
+		vm.thread().frame().step(instr.SBX())
 		return
 	}
 	// Try for values as numbers.
 	var f1, f2, f3 Float
 	if f1, ok1 = toFloat(init); !ok1 {
-		vm.State.errorf("'for' init must be a number")
+		vm.thread().errorf("'for' init must be a number")
 	}
 	if f2, ok2 = toFloat(upto); !ok2 {
-		vm.State.errorf("'for' limit must be a number")
+		vm.thread().errorf("'for' limit must be a number")
 	}
 	if f3, ok3 = toFloat(step); !ok3 {
-		vm.State.errorf("'for' step must be a number")
+		vm.thread().errorf("'for' step must be a number")
 	}
 	
-	vm.frame().set(instr.A(), f1-f3)
-	vm.frame().set(instr.A()+1, f2)
-	vm.frame().set(instr.A()+2, f3)
-	vm.frame().step(instr.SBX())
+	vm.thread().frame().set(instr.A(), f1-f3)
+	vm.thread().frame().set(instr.A()+1, f2)
+	vm.thread().frame().set(instr.A()+2, f3)
+	vm.thread().frame().step(instr.SBX())
 }
 
 // TFORCALL: Iterate a generic for loop.
@@ -685,22 +676,22 @@ func (vm *v53) tforcall(instr vm.Instr) {
 	)
 
 	var (
-		iter = vm.frame().get(a)   // iterator function
-		data = vm.frame().get(a+1) // state
-		ctrl = vm.frame().get(a+2) // control variable / initial value
+		iter = vm.thread().frame().get(a)   // iterator function
+		data = vm.thread().frame().get(a+1) // state
+		ctrl = vm.thread().frame().get(a+2) // control variable / initial value
 		base = instr.A()+3
 	)
 
-	vm.frame().push(iter)
-	vm.frame().push(data)
-	vm.frame().push(ctrl)
+	vm.thread().frame().push(iter)
+	vm.thread().frame().push(data)
+	vm.thread().frame().push(ctrl)
 
-	vm.State.Call(2, c)
+	vm.thread().Call(2, c)
 
 
-	rets := vm.frame().popN(c)
+	rets := vm.thread().frame().popN(c)
 	for i, v := range rets {
-		vm.frame().set(base+i, v)
+		vm.thread().frame().set(base+i, v)
 	}
 }
 
@@ -710,13 +701,13 @@ func (vm *v53) tforcall(instr vm.Instr) {
 //
 // if R(A+1) ~= nil then { R(A)=R(A+1); pc += sBx } 
 func (vm *v53) tforloop(instr vm.Instr) {
-	if ctrl := vm.frame().get(instr.A()+1); !IsNone(ctrl) {
-		vm.frame().set(instr.A(), ctrl)
-		vm.frame().step(instr.SBX())
+	if ctrl := vm.thread().frame().get(instr.A()+1); !IsNone(ctrl) {
+		vm.thread().frame().set(instr.A(), ctrl)
+		vm.thread().frame().step(instr.SBX())
 		return
 	}
 	// loop done, reset top
-	vm.frame().settop(instr.A())
+	vm.thread().frame().settop(instr.A())
 }
 
 // SETLIST: Set a range of array elements for a table.
@@ -730,13 +721,13 @@ func (vm *v53) setlist(instr vm.Instr) {
 		b = instr.B()
 		c = instr.C()
 	)
-	if b == 0 { b = vm.frame().gettop() - a - 1}
+	if b == 0 { b = vm.thread().frame().gettop() - a - 1}
 	o := (c-1) * FieldsPerFlush
-	t := vm.frame().get(a).(*table)
+	t := vm.thread().frame().get(a).(*table)
 	for i := 1; i <= b; i++ {
-		t.setInt(int64(o+i), vm.frame().get(a+i))
+		t.setInt(int64(o+i), vm.thread().frame().get(a+i))
 	}
-	vm.frame().popN(b)
+	vm.thread().frame().popN(b)
 }
 
 // CLOSURE: Create a closure of a function prototype.
@@ -746,9 +737,9 @@ func (vm *v53) setlist(instr vm.Instr) {
 // R(A) := closure(KPROTO[Bx])
 func (vm *v53) closure(instr vm.Instr) {
 	cls := newLuaClosure(vm.prototype(instr.BX()))
-	vm.frame().openUp(cls)
-	vm.frame().push(cls)
-	vm.frame().replace(instr.A())
+	vm.thread().frame().openUp(cls)
+	vm.thread().frame().push(cls)
+	vm.thread().frame().replace(instr.A())
 	// TODO: caching?
 }
 
@@ -765,9 +756,9 @@ func (vm *v53) vararg(instr vm.Instr) {
 		a = instr.A()
 		b = instr.B()
 	)
-	for i, v := range vm.frame().varargs(b-1) {
+	for i, v := range vm.thread().frame().varargs(b-1) {
 		if v == nil { v = None }
-		vm.frame().set(a+i, v)	
+		vm.thread().frame().set(a+i, v)	
 	}
 }
 
@@ -780,9 +771,9 @@ func (vm *v53) idiv(instr vm.Instr) {
 	var (
 		rb = vm.rk(instr.B())
 		rc = vm.rk(instr.C())
-		ra = vm.arith(OpQuo, rb, rc)
+		ra = vm.thread().arith(OpQuo, rb, rc)
 	)
-	vm.frame().set(instr.A(), ra)
+	vm.thread().frame().set(instr.A(), ra)
 }
 
 // BAND: Bit-wise AND operator.        
@@ -794,9 +785,9 @@ func (vm *v53) band(instr vm.Instr) {
 	var (
 		rb = vm.rk(instr.B())
 		rc = vm.rk(instr.C())
-		ra = vm.arith(OpAnd, rb, rc)
+		ra = vm.thread().arith(OpAnd, rb, rc)
 	)
-	vm.frame().set(instr.A(), ra)
+	vm.thread().frame().set(instr.A(), ra)
 }
 
 // BOR: Bit-wise OR operator.
@@ -808,9 +799,9 @@ func (vm *v53) bor(instr vm.Instr) {
 	var (
 		rb = vm.rk(instr.B())
 		rc = vm.rk(instr.C())
-		ra = vm.arith(OpOr, rb, rc)
+		ra = vm.thread().arith(OpOr, rb, rc)
 	)
-	vm.frame().set(instr.A(), ra)
+	vm.thread().frame().set(instr.A(), ra)
 }
 
 // BXOR: Bit-wise Exclusive OR operator.
@@ -822,9 +813,9 @@ func (vm *v53) bxor(instr vm.Instr) {
 	var (
 		rb = vm.rk(instr.B())
 		rc = vm.rk(instr.C())
-		ra = vm.arith(OpXor, rb, rc)
+		ra = vm.thread().arith(OpXor, rb, rc)
 	)
-	vm.frame().set(instr.A(), ra)
+	vm.thread().frame().set(instr.A(), ra)
 }
 
 // SHL: Shift bits left.         
@@ -836,9 +827,9 @@ func (vm *v53) shl(instr vm.Instr) {
 	var (
 		rb = vm.rk(instr.B())
 		rc = vm.rk(instr.C())
-		ra = vm.arith(OpLsh, rb, rc)
+		ra = vm.thread().arith(OpLsh, rb, rc)
 	)
-	vm.frame().set(instr.A(), ra)
+	vm.thread().frame().set(instr.A(), ra)
 }
 
 // SHR: Shift bits right.         
@@ -850,9 +841,9 @@ func (vm *v53) shr(instr vm.Instr) {
 	var (
 		rb = vm.rk(instr.B())
 		rc = vm.rk(instr.C())
-		ra = vm.arith(OpRsh, rb, rc)
+		ra = vm.thread().arith(OpRsh, rb, rc)
 	)
-	vm.frame().set(instr.A(), ra)
+	vm.thread().frame().set(instr.A(), ra)
 }
 
 // BNOT: Bit-wise NOT operator.        
@@ -863,9 +854,9 @@ func (vm *v53) shr(instr vm.Instr) {
 func (vm *v53) bnot(instr vm.Instr) {
 	var (
 		rb = vm.rk(instr.B())
-		ra = vm.arith(OpNot, rb, None)
+		ra = vm.thread().arith(OpNot, rb, None)
 	)
-	vm.frame().set(instr.A(), ra)
+	vm.thread().frame().set(instr.A(), ra)
 }
 
 // EXTRAARG: Extra (larger) argument for previous opcode.

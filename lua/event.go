@@ -569,17 +569,14 @@ func tryMetaLength(state *State, obj Value) (Value, error) {
 // origin call (args). All results of the call are the result of the operation.
 // This is the only metamethod that allows multiple results.
 func tryMetaCall(state *State, value Value, fnID, args, rets int) bool {
-	fmt.Println("tryMetaCall")
     const event = metaCall
 
 	if meta := state.metafield(value, event.ID()); !IsNone(meta) {
         if cls, ok := meta.(*Closure); ok {
 			state.Push(cls)
 			state.Insert(-(args+2))
-			state.Debug(false)
 			args++
 			state.Call(args, rets)
-			state.Debug(false)
             return true
         }
     }

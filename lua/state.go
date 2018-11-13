@@ -181,13 +181,11 @@ func (state *State) enter(fr *Frame) *Frame {
 	fr.state = state
 	fr.depth = state.calls
 	state.calls++
-	fmt.Printf("enter frame #%d\n", fr.depth)
 	return fr
 }
 
 // leave leaves the current frame.
 func (state *State) leave(fr *Frame) *Frame {
-	fmt.Printf("leave frame #%d\n", fr.depth)
 	fr.prev.next = fr.next
 	fr.next.prev = fr.prev
 	fr.next  = nil // avoid memory leaks
@@ -268,11 +266,11 @@ func (state *State) call(fr *Frame) {
 
 	// Push arguments and pop function.
 	args := state.frame().popN(state.frame().gettop()-fr.fnID+1)[1:]
-	fmt.Printf("frame #%d: push args %v\n", fr.depth, args)
-	fr.pushN(args)
 
 	// Enter and leave frame on return.
 	defer state.leave(state.enter(fr))
+
+	fr.pushN(args)
 
 	// Is it a Lua closure?
 	if fr.function().isLua() {
@@ -297,7 +295,7 @@ func (state *State) call(fr *Frame) {
 
 		// Execute the closure.
 		execute(&v53{state})
-		// state.returns()
+		return
 	} else if fr.function().isGo() {
 		// Otherwise Go closure.
 		if rets := fr.popN(fr.function().native(state)); fr.rets != 0 {
@@ -312,52 +310,10 @@ func (state *State) call(fr *Frame) {
 					rets = rets[:fr.rets]
 				}
 			}
-			fmt.Printf("go: frame #%d returning %v to frame #%d\n", fr.depth, rets, fr.caller().depth)
 			fr.caller().pushN(rets)
-			// fmt.Printf("go: frame #%d locals: %v\n", fr.caller().depth, fr.caller().locals)
 		}
+		return
 	}
-
-	// if rets := fr.popN(fr.function().native(state)); fr.rets != 0 {
-	// 	switch retc := len(rets); {
-	// 		case retc < fr.rets:
-	// 			for retc < fr.rets {
-	// 				rets = append(rets, None)
-	// 				retc++
-	// 			}
-	// 		case retc > fr.rets:
-	// 			if fr.rets != MultRets {
-	// 				rets = rets[:fr.rets]
-	// 			}
-	// 	}
-	// 	fr.caller().pushN(rets)
-	// }
-}
-
-func (state *State) returns() {
-	caller := state.frame().caller()
-	callee := state.frame()
-	// callee.pushN(rets)
-
-	// fmt.Printf("frame #%d returning to #%d (rets = %d)\n", callee.depth, caller.depth, caller.rets)
-	// fmt.Printf("frame #%d locals: %v (want = %d)\n", callee.depth, callee.locals, callee.rets)
-	
-	// switch retc := len(rets); {
-	// case retc < fr.rets:
-	// 	for retc < fr.rets {
-	// 		rets = append(rets, None)
-	// 		retc++
-	// 	}
-	// case retc > fr.rets:
-	// 	if fr.rets != MultRets {
-	// 		rets = rets[:fr.rets]
-	// 	}
-	// }
-	// fr.caller().pushN(rets)
-
-	fmt.Printf("frame #%d locals: %v (rets = %d)\n", callee.depth, callee.locals, callee.rets)
-	fmt.Printf("frame #%d locals: %v (rets = %d)\n", caller.depth, caller.locals, caller.rets)
-	caller.pushN(callee.popN(callee.rets))
 }
 
 func (state *State) init(global *global) {

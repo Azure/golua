@@ -76,7 +76,6 @@ func (state *State) ExecChunk(filename string, source interface{}, mode Mode) er
         return err
 	}
 	state.Call(0, -1)
-	fmt.Printf("frame #%d locals: %v\n", state.frame().depth, state.frame().locals)
     return nil
 }
 
@@ -525,12 +524,12 @@ func (state *State) Call(args, rets int) {
 	)
 
 	// state.Logf("call (func @ %d) %v (# args = %d, # rets = %d)\n", funcID, value, args, rets)
-	fmt.Printf("call (func @ %d) %v (# args = %d, # rets = %d)\n", funcID, value, args, rets)
     
-    if !ok && !tryMetaCall(state, value, funcID, args, rets) {
-        state.errorf("attempt to call a %s value @ %d (%T)\n%v\n", value.Type(), funcID, value, state.frame().locals)
+    if !ok {
+		if !tryMetaCall(state, value, funcID, args, rets) {
+			state.errorf("attempt to call a %s value @ %d (%T)\n%v\n", value.Type(), funcID, value, state.frame().locals)
+		}
     } else {
-		// fmt.Printf("call (func @ %d) %v (# args = %d, # rets = %d)\n", funcID, value, args, rets)
 		state.call(&Frame{closure: c, fnID: funcID, rets: rets})
 	}
 }
