@@ -12,20 +12,23 @@ var _ = fmt.Println
 var _ = os.Exit
 
 // v53 is the Lua 5.3 engine.
-type v53 struct { *State }
+type v53 struct { state *State }
 
 // prototype pushes onto the stack a closure for the function prototype
 // at index of the binary chunk
 func (vm *v53) prototype(index int) *binary.Prototype {
-	cls := vm.frame().closure
+	cls := vm.thread().frame().function()
 	return &cls.binary.Protos[index]
 }
 
 // constant pushes onto the stack the value of constant at index.
 func (vm *v53) constant(index int) Value {
-	cls := vm.frame().closure
-	return valueOf(vm.State, cls.binary.Consts[index])
+	cls := vm.thread().frame().function()
+	return valueOf(vm.thread(), cls.binary.Consts[index])
 }
+
+// thread returns the executing thread's state.
+func (vm *v53) thread() *State { return vm.state }
 
 // Try to convert a 'for' limit to an integer, preserving the semantics of the loop.
 // 
@@ -47,15 +50,19 @@ func (vm *v53) constant(index int) Value {
 // }
 
 func (vm *v53) trace(instr vm.Instr) {
-	if vm.global.config.debug {
-		fmt.Printf("vm @ ip=%02d fp=%02d: %v\n", vm.frame().pc, vm.frame().depth, instr)
+	if vm.thread().global.config.debug {
+		fmt.Printf("vm @ ip=%02d fp=%02d: %v\n",
+			vm.thread().frame().pc,
+			vm.thread().frame().depth,
+			instr,
+		)
 	}
 }
 
 // fetch returns the next opcode function and instruction to execute
 // incrementing the frame's instruction pointer (pc).
 func (vm *v53) fetch() (cmd, vm.Instr) {
-	i := vm.frame().step(1)
+	i := vm.thread().frame().step(1)
 	return ops[i.Code()], i
 }
 
@@ -66,8 +73,8 @@ func (vm *v53) rk(index int) Value {
 	if index > 0xFF { // Constant value
 		return vm.constant(index & 0xFF)
 	}
-	// Register value
-	return vm.frame().get(index)
+	// Registry value
+	return vm.thread().frame().get(index)
 }
 
 func execute(vm *v53) {

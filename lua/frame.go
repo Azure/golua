@@ -269,7 +269,7 @@ func (fr *Frame) local(index int) Value {
 //
 // TODO: ensure stack
 func (fr *Frame) pushN(vs []Value) {
-	fmt.Printf("frame #%d: push %v\n", fr.depth, vs)
+	// fmt.Printf("frame #%d: push %v\n", fr.depth, vs)
     for _, v := range vs {
         fr.push(v)
     }
