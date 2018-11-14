@@ -1,3 +1,4 @@
+WARNING! Please expect breaking changes and unstable APIs. Most of them are currently are at an early, experimental stage.
 
 # Contributing
 
