@@ -1,7 +1,10 @@
-#!/bin/sh
+#!/usr/bin/env bash
+set -euxo pipefail
 
-set -ex
+root_dir="$(cd "${BASH_SOURCE[0]%/*}/.." && pwd)"
+cd "$root_dir"
 
 go install github.com/Azure/golua/cmd/glua
-cd lua-5.3.4
+
+cd "test/lua-5.3.4"
 glua -tests all.lua | grep -q OK
