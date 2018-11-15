@@ -1,9 +1,9 @@
 package io
 
 import (
-	"strings"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/Azure/golua/lua"
 )
@@ -93,26 +93,26 @@ func mode2flags(mode string) (int, error) {
 		mode = mode[:end-1]
 	}
 	switch strings.TrimSpace(mode) {
- 		// append update mode, previous data is preserved, writing
-		// is only allowed at the end of the file.
-		case "a+":
-			return os.O_RDWR | os.O_CREATE | os.O_APPEND, nil
- 		// update mode, all previous data is preserved.
-		case "r+":
-			return os.O_RDWR, nil
-		// update mode, all previous data is erased.
-		case "w+":
-			return os.O_RDWR | os.O_CREATE | os.O_TRUNC, nil
-		// append mode.
-		case "a":
-			return os.O_WRONLY | os.O_CREATE | os.O_APPEND, nil
-		// read mode (the default).
-		case "r":
-			return os.O_RDONLY, nil
-		// write mode.
-		case "w":
-			return os.O_WRONLY | os.O_CREATE | os.O_TRUNC, nil
-		default:
-			return -1, os.ErrInvalid		
+	// append update mode, previous data is preserved, writing
+	// is only allowed at the end of the file.
+	case "a+":
+		return os.O_RDWR | os.O_CREATE | os.O_APPEND, nil
+		// update mode, all previous data is preserved.
+	case "r+":
+		return os.O_RDWR, nil
+	// update mode, all previous data is erased.
+	case "w+":
+		return os.O_RDWR | os.O_CREATE | os.O_TRUNC, nil
+	// append mode.
+	case "a":
+		return os.O_WRONLY | os.O_CREATE | os.O_APPEND, nil
+	// read mode (the default).
+	case "r":
+		return os.O_RDONLY, nil
+	// write mode.
+	case "w":
+		return os.O_WRONLY | os.O_CREATE | os.O_TRUNC, nil
+	default:
+		return -1, os.ErrInvalid
 	}
 }

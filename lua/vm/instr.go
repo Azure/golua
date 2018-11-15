@@ -5,8 +5,8 @@ import (
 )
 
 const (
-	MaxArgBX  = 1<<18-1
-	MaxArgSBX = MaxArgBX>>1
+	MaxArgBX  = 1<<18 - 1
+	MaxArgSBX = MaxArgBX >> 1
 )
 
 // Masks for instruction properties. The format is:
@@ -19,14 +19,14 @@ type OpArgMask uint8
 
 const (
 	OpArgN OpArgMask = iota // argument is not used
-	OpArgU 					// argument is used
-	OpArgR 					// argument is a register or a jump offset
-	OpArgK 					// argument is a constant or register/constant
+	OpArgU                  // argument is used
+	OpArgR                  // argument is a register or a jump offset
+	OpArgK                  // argument is a constant or register/constant
 )
 
 type Instr uint32
 
-func (instr Instr) Code() Code { return Code(int(instr&0x3F)) }
+func (instr Instr) Code() Code { return Code(int(instr & 0x3F)) }
 
 func (instr Instr) ABC() (a, b, c int) { return instr.A(), instr.B(), instr.C() }
 
@@ -46,23 +46,23 @@ func (instr Instr) String() string {
 	return fmt.Sprintf("%s %s", instr.Code(), args(instr))
 }
 
-func mask1(n, p uint) Instr { return ((^((^Instr(0))<<n))<<p) }
+func mask1(n, p uint) Instr { return ((^((^Instr(0)) << n)) << p) }
 func mask0(n, p uint) Instr { return ^(mask1(n, p)) }
 
-func indexk(x int) int { return x&^(1<<8) }
-func myk(x int) int { return -1 - x }
-func isk(x int) bool { return x&(1<<8)!=0 }
+func indexk(x int) int { return x &^ (1 << 8) }
+func myk(x int) int    { return -1 - x }
+func isk(x int) bool   { return x&(1<<8) != 0 }
 
 func args(instr Instr) string {
 	switch code := instr.Code(); code.Mode() {
-		case ModeABC:
-			return fmt.Sprintf("A=%d B=%d C=%d", instr.A(), instr.B(), instr.C())
-		case ModeABx:
-			return fmt.Sprintf("A=%d BX=%d", instr.A(), instr.BX())
-		case ModeAsBx:
-			return fmt.Sprintf("A=%d SBX=%d", instr.A(), instr.SBX())
-		case ModeAx:
-			return fmt.Sprintf("AX=%d", instr.AX())
+	case ModeABC:
+		return fmt.Sprintf("A=%d B=%d C=%d", instr.A(), instr.B(), instr.C())
+	case ModeABx:
+		return fmt.Sprintf("A=%d BX=%d", instr.A(), instr.BX())
+	case ModeAsBx:
+		return fmt.Sprintf("A=%d SBX=%d", instr.A(), instr.SBX())
+	case ModeAx:
+		return fmt.Sprintf("AX=%d", instr.AX())
 	}
 	panic(fmt.Sprintf("ir: unknown op mode: %d", instr.Code().Mode()))
 }

@@ -1,8 +1,8 @@
 package binary
 
 import (
-	"encoding/binary"
 	"bytes"
+	"encoding/binary"
 	"fmt"
 )
 
@@ -155,14 +155,14 @@ func decodeString(r *bytes.Buffer) string {
 	b, err := r.ReadByte()
 	must(err)
 	switch {
-		case b == 0x00:
-			return ""
-		case b == 0xFF:
-			var u64 uint64
-			must(binary.Read(r, order, &u64))
-			return string(r.Next(int(u64)-1))
-		default:
-			return string(r.Next(int(b)-1))
+	case b == 0x00:
+		return ""
+	case b == 0xFF:
+		var u64 uint64
+		must(binary.Read(r, order, &u64))
+		return string(r.Next(int(u64) - 1))
+	default:
+		return string(r.Next(int(b) - 1))
 	}
 }
 
@@ -170,31 +170,31 @@ func decodeConst(r *bytes.Buffer) interface{} {
 	t, err := r.ReadByte()
 	must(err)
 	switch t {
-		case LUA_TYPE_NIL: // NIL
-			return nil
-		case LUA_TYPE_BOOL: // BOOL
-			b, err := r.ReadByte()
-			must(err)
-			var v bool
-			if b == 0 {
-				v = false
-			} else if b == 1 {
-				v = true
-			} else {
-				panic(fmt.Errorf("invalid bool constant: %d", b))
-			}
-			return v
-		case LUA_NUM_INT: // INT
-			var i64 int64
-			must(binary.Read(r, order, &i64))
-			return i64
-		case LUA_NUM_FLOAT: // FLOAT
-			var f64 float64
-			must(binary.Read(r, order, &f64))
-			return f64
-		case LUA_STR_SHORT, LUA_STR_LONG: // STRING
-			return decodeString(r)
-		default:
-			panic(fmt.Errorf("unexpected constant type: %d", t))
+	case LUA_TYPE_NIL: // NIL
+		return nil
+	case LUA_TYPE_BOOL: // BOOL
+		b, err := r.ReadByte()
+		must(err)
+		var v bool
+		if b == 0 {
+			v = false
+		} else if b == 1 {
+			v = true
+		} else {
+			panic(fmt.Errorf("invalid bool constant: %d", b))
+		}
+		return v
+	case LUA_NUM_INT: // INT
+		var i64 int64
+		must(binary.Read(r, order, &i64))
+		return i64
+	case LUA_NUM_FLOAT: // FLOAT
+		var f64 float64
+		must(binary.Read(r, order, &f64))
+		return f64
+	case LUA_STR_SHORT, LUA_STR_LONG: // STRING
+		return decodeString(r)
+	default:
+		panic(fmt.Errorf("unexpected constant type: %d", t))
 	}
 }

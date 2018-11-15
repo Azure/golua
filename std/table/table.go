@@ -1,8 +1,9 @@
 package table
 
 import (
-	"strings"
 	"fmt"
+	"strings"
+
 	"github.com/Azure/golua/lua"
 )
 
@@ -10,7 +11,7 @@ import (
 // Lua Standard Library -- table
 //
 
-// Open opens the Lua standard Table library. 
+// Open opens the Lua standard Table library.
 //
 // This library provides generic functions for table manipulation.
 // It provides all its functions inside the table table.
@@ -23,7 +24,7 @@ import (
 func Open(state *lua.State) int {
 	// Create 'table' table.
 	var tableFuncs = map[string]lua.Func{
- 		"concat": lua.Func(tableConcat),
+		"concat": lua.Func(tableConcat),
 		"insert": lua.Func(tableInsert),
 		"pack":   lua.Func(tablePack),
 		"unpack": lua.Func(tableUnpack),
@@ -49,8 +50,8 @@ func Open(state *lua.State) int {
 func tableConcat(state *lua.State) int {
 	len := length(state, 1, opRead)
 	sep := state.OptString(2, "")
-	i   := state.OptInt(3, 1)
-	j   := state.OptInt(4, len)
+	i := state.OptInt(3, 1)
+	j := state.OptInt(4, len)
 
 	if i > j {
 		state.Push("")
@@ -79,21 +80,21 @@ func tableConcat(state *lua.State) int {
 func tableInsert(state *lua.State) int {
 	var (
 		len = length(state, 1, opReadWrite) + 1 // first empty element
-		pos int64 // where to insert new element
+		pos int64                               // where to insert new element
 	)
 	switch state.Top() {
-		case 3:
-			if pos = state.CheckInt(2); pos < 1 || pos > len {
-				panic(fmt.Errorf("bad argument #2 to 'insert' (position out of bounds)"))
-			}
-			for i := len; i > pos; i-- { // move up elements
-				state.GetIndex(1, i-1)
-				state.SetIndex(1, i) // t[i] = t[i-1]
-			}
-		case 2: // called with 2 arguments
-			pos = len // insert new element at the end	
-		default:
-			panic(fmt.Errorf("wrong number of arguments to 'insert'"))
+	case 3:
+		if pos = state.CheckInt(2); pos < 1 || pos > len {
+			panic(fmt.Errorf("bad argument #2 to 'insert' (position out of bounds)"))
+		}
+		for i := len; i > pos; i-- { // move up elements
+			state.GetIndex(1, i-1)
+			state.SetIndex(1, i) // t[i] = t[i-1]
+		}
+	case 2: // called with 2 arguments
+		pos = len // insert new element at the end
+	default:
+		panic(fmt.Errorf("wrong number of arguments to 'insert'"))
 	}
 	state.SetIndex(1, pos) // t[pos] = v
 	return 0
@@ -166,7 +167,7 @@ func tableRemove(state *lua.State) int {
 	// 	pos = state.OptInt(2, len)
 	// )
 	// if (pos != len) && (pos < 1 || pos >= len + 1) { // validate pos if given
-	// 	panic(fmt.Errorf("bad argument #2 to 'remove' (position out of bounds)"))	
+	// 	panic(fmt.Errorf("bad argument #2 to 'remove' (position out of bounds)"))
 	// }
 	// state.GetI(1, pos) // result = t[pos]
 	// for ; pos < len; pos++ {
@@ -225,23 +226,23 @@ const (
 	opRead      = 1
 	opWrite     = 2
 	opLength    = 4
-	opReadWrite = opRead|opWrite
+	opReadWrite = opRead | opWrite
 )
 
 // checkTable checks that 'arg' is either a table or can behave like one (that is,
 // it has a metatable with the required metamethods.)
 func checkTable(state *lua.State, index, ops int) {
 	if state.TypeAt(index) != lua.TableType { // not a table?
-		n := 1 // number of elements to pop
+		n := 1                           // number of elements to pop
 		if state.GetMetaTableAt(index) { // must have metatable
-			if !((ops&opRead!=0) || checkField(state, "__index", n)) {
-				n++	
+			if !((ops&opRead != 0) || checkField(state, "__index", n)) {
+				n++
 			}
-			if !((ops&opWrite!=0) || checkField(state, "__newindex", n)) {
-				n++	
+			if !((ops&opWrite != 0) || checkField(state, "__newindex", n)) {
+				n++
 			}
-			if !((ops&opRead!=0) || checkField(state, "__len", n)) {
-				n++	
+			if !((ops&opRead != 0) || checkField(state, "__len", n)) {
+				n++
 			}
 			state.PopN(n) // pop metatable and tested metamethods
 		} else {

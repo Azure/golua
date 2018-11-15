@@ -1,9 +1,9 @@
 package strings
 
 import (
-	"strings"
-	"regexp"
 	"fmt"
+	"regexp"
+	"strings"
 
 	"github.com/Azure/golua/pkg/pattern"
 )
@@ -32,7 +32,7 @@ func (str String) Match(text string) (captures []string) {
 // If str contains a pattern and a match is made with text, the captures
 // are returns as a slice of strings; otherwise if no match or no captures
 // then captures will be nil.
-func (str String) FindAll(text string, limit int) ([][]int) {
+func (str String) FindAll(text string, limit int) [][]int {
 	return pattern.MatchIndexAll(text, string(str), limit)
 }
 
@@ -41,26 +41,26 @@ func (str String) FindAll(text string, limit int) ([][]int) {
 // If str contains a pattern and a match is made with text, the captures
 // are returns as a slice of strings; otherwise if no match or no captures
 // then captures will be nil.
-func (str String) Find(text string) ([]int) {
+func (str String) Find(text string) []int {
 	return pattern.MatchIndex(text, string(str))
 }
 
-// Gsub returns a copy of text in which all (or the upto limit if > 0) occurences of
+// Gsub returns a copy of text in which all (or the upto limit if > 0) occurrences of
 // the pattern have been replaced by the specified replacer. The name gsub comes from
 // global substitution.
 //
-// Gsub returns the string with replacements and the number of replacements that occured.
+// Gsub returns the string with replacements and the number of replacements that occurred.
 // If no matches were made, then text is return unmodified with 0 to indicate that no
 // replacements were made.
 func (str String) Gsub(text string, replacer Replacer) (string, int) {
 	return str.GsubAll(text, replacer, 0)
 }
 
-// GsubAll returns a copy of text in which all (or the upto limit if > 0) occurences of
+// GsubAll returns a copy of text in which all (or the upto limit if > 0) occurrences of
 // the pattern have been replaced by the specified replacer. The name gsub comes from
 // global substitution.
 //
-// Gsub returns the string with replacements and the number of replacements that occured.
+// Gsub returns the string with replacements and the number of replacements that occurred.
 // If no matches were made, then text is return unmodified with 0 to indicate that no
 // replacements were made.
 func (str String) GsubAll(text string, replacer Replacer, limit int) (repl string, count int) {
@@ -92,7 +92,7 @@ func (str String) GsubAll(text string, replacer Replacer, limit int) (repl strin
 	return repl, count
 }
 
-// GsubStr returns a copy of text in which all (or the upto limit if > 0) occurences
+// GsubStr returns a copy of text in which all (or the upto limit if > 0) occurrences
 // of the pattern have been replaced by the specified replacement value. The name gsub
 // comes from global substitution.
 //
@@ -132,7 +132,7 @@ func (str String) Gmatch(text string, iter func([]string)) {
 }
 
 // replacerFn implements the Replacer interface.
-type replacerFn func(string)string
+type replacerFn func(string) string
 
 func (fn replacerFn) Replace(capture string) string { return fn(capture) }
 

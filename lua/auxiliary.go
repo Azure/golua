@@ -1,9 +1,9 @@
 package lua
 
 import (
-	"syscall"
 	"fmt"
 	"io"
+	"syscall"
 )
 
 var _ = fmt.Println
@@ -14,7 +14,7 @@ var _ = fmt.Println
 // See https://www.lua.org/manual/5.3/manual.html#luaL_argcheck
 func (state *State) ArgCheck(cond bool, arg int, msg string) {
 	if !cond {
-		state.ArgError(arg, msg)	
+		state.ArgError(arg, msg)
 	}
 }
 
@@ -77,7 +77,7 @@ func (state *State) ExecFile(file string) error {
 // See https://www.lua.org/manual/5.3/manual.html#luaL_loadbuffer
 // See https://www.lua.org/manual/5.3/manual.html#luaL_loadbufferx
 func (state *State) LoadFrom(r io.Reader) error {
-		return state.LoadChunk("?", r, BinaryMode|TextMode)
+	return state.LoadChunk("?", r, BinaryMode|TextMode)
 }
 
 // LoadText uses Load to load a string as a Lua chunk.
@@ -111,7 +111,7 @@ func (state *State) NewMetaTable(name string) bool {
 		return false
 	}
 	state.Pop()
-	state.NewTableSize(0, 2) 
+	state.NewTableSize(0, 2)
 	state.Push(name)
 	state.SetField(-2, "__name") // metatable.__name = name
 	state.PushIndex(-1)
@@ -127,19 +127,19 @@ func (state *State) NewMetaTable(name string) bool {
 //
 // See https://www.lua.org/manual/5.3/manual.html#luaL_getsubtable
 func (state *State) GetSubTable(index int, field string) bool {
-    if state.GetField(index, field) == TableType {
-        return true               // table already exists
-    }
-    state.Pop()                   // remove previous result
-    index = state.AbsIndex(index) // in frame stack
-    state.NewTable()              // create table
-    state.PushIndex(-1)           // copy to be left at top
-    state.SetField(index, field)  // assign new table to field
-    return false
+	if state.GetField(index, field) == TableType {
+		return true // table already exists
+	}
+	state.Pop()                   // remove previous result
+	index = state.AbsIndex(index) // in frame stack
+	state.NewTable()              // create table
+	state.PushIndex(-1)           // copy to be left at top
+	state.SetField(index, field)  // assign new table to field
+	return false
 }
 
 // GetMetaField pushes onto the stack the field event from the metatable of the object
-// at index and returns the type of the pushed value. If the object does not have a 
+// at index and returns the type of the pushed value. If the object does not have a
 // metatable, or if the metatable does not have this field, pushes nothing and returns
 // NilType.
 //
@@ -158,7 +158,7 @@ func (state *State) GetMetaField(index int, event string) Type {
 //
 // See https://www.lua.org/manual/5.3/manual.html#luaL_getmetatable
 func (state *State) GetMetaTable(name string) Type {
-    return state.GetField(RegistryIndex, name)
+	return state.GetField(RegistryIndex, name)
 }
 
 // SetMetaTable sets the metatable of the object at the top of the stack as the metatable
@@ -182,13 +182,13 @@ func (state *State) SetMetaTable(name string) {
 func (state *State) CallMeta(index int, event string) bool {
 	val := state.get(index)
 	if meta := state.metafield(val, event); !IsNone(meta) {
-        if cls, ok := meta.(*Closure); ok {
-            state.frame().push(cls)
-            state.frame().push(val)
-            state.Call(1, 1)
+		if cls, ok := meta.(*Closure); ok {
+			state.frame().push(cls)
+			state.frame().push(val)
+			state.Call(1, 1)
 			return true
-        }
-    }
+		}
+	}
 	return false
 }
 

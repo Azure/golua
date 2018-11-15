@@ -12,17 +12,17 @@ var (
 )
 
 const (
-	LUA_SIGNATURE 	 = "\x1bLua"
-	LUAC_VERSION  	 = 0x53
-	LUAC_FORMAT   	 = 0
-	LUAC_DATA 	  	 = "\x19\x93\r\n\x1a\n"
-	CINT_SIZE 	  	 = 4
-	CSIZET_SIZE   	 = 8
+	LUA_SIGNATURE    = "\x1bLua"
+	LUAC_VERSION     = 0x53
+	LUAC_FORMAT      = 0
+	LUAC_DATA        = "\x19\x93\r\n\x1a\n"
+	CINT_SIZE        = 4
+	CSIZET_SIZE      = 8
 	INSTRUCTION_SIZE = 4
 	LUA_INTEGER_SIZE = 8
 	LUA_NUMBER_SIZE  = 8
-	LUAC_INT 		 = 0x5678
-	LUAC_NUM 		 = 370.5
+	LUAC_INT         = 0x5678
+	LUAC_NUM         = 370.5
 )
 
 const (
@@ -57,7 +57,7 @@ type (
 		Params   byte
 		Vararg   byte
 		Stack    byte
-		Code 	 []uint32
+		Code     []uint32
 		Consts   []interface{}
 		UpValues []UpValue
 		Protos   []Prototype
@@ -97,14 +97,14 @@ type (
 	}
 )
 
-func (proto *Prototype) NumParams() int { return int(proto.Params) }
-func (proto *Prototype) StackSize() int { return int(proto.Stack) }
-func (proto *Prototype) IsVararg() bool { return int(proto.Vararg) == 1 }
+func (proto *Prototype) NumParams() int              { return int(proto.Params) }
+func (proto *Prototype) StackSize() int              { return int(proto.Stack) }
+func (proto *Prototype) IsVararg() bool              { return int(proto.Vararg) == 1 }
 func (proto *Prototype) Const(index int) interface{} { return proto.Consts[index] }
-func (proto *Prototype) Proto(index int) *Prototype { return &proto.Protos[index] }
+func (proto *Prototype) Proto(index int) *Prototype  { return &proto.Protos[index] }
 
 func (upval *UpValue) IsLocal() bool { return upval.InStack == 1 }
-func (upval *UpValue) AtIndex() int { return int(upval.Index) }
+func (upval *UpValue) AtIndex() int  { return int(upval.Index) }
 
 func IsChunk(data []byte) bool { return len(data) > 4 && string(data[:4]) == LUA_SIGNATURE }
 

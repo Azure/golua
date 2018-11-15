@@ -25,7 +25,7 @@ type pattern struct {
 
 type state struct {
 	sp, ip int
-	caps []capture
+	caps   []capture
 }
 
 func (patt *pattern) MatchIndexAll(src string, limit int) (captures [][]int) {
@@ -118,7 +118,7 @@ func (patt *pattern) match(src string, sp, ip int, stack ...state) (pos int, ok 
 			}
 			ip = inst.y
 		case opJump:
-			ip = inst.x		
+			ip = inst.x
 		}
 	}
 	panic("unreachable")

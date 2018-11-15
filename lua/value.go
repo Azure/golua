@@ -1,16 +1,16 @@
 package lua
 
 import (
-	"math/big"
-	"runtime"
-	"reflect"
 	"fmt"
+	"math/big"
+	"reflect"
+	"runtime"
 )
 
 type Type int
 
 const (
-	NoneType   	 Type = iota
+	NoneType Type = iota
 	NilType
 	BoolType
 	NumberType
@@ -23,9 +23,9 @@ const (
 )
 
 var types = [...]string{
-	NoneType: 	  "no value",
-	NilType: 	  "nil",
-	BoolType: 	  "boolean",
+	NoneType:     "no value",
+	NilType:      "nil",
+	BoolType:     "boolean",
 	NumberType:   "number",
 	StringType:   "string",
 	FuncType:     "function",
@@ -49,8 +49,8 @@ type (
 		// Type returns the type name of this value.
 		//
 		// Types:
-		// nil 
-		// boolean 
+		// nil
+		// boolean
 		// number
 		// string
 		// function
@@ -81,34 +81,41 @@ func UserData(data interface{}) *Object {
 }
 
 func (x *Object) Unwrap() interface{} { return x.data }
-func (x *Object) String() string { return fmt.Sprintf("userdata: %p", x) }
-func (x *Object) Type() Type { return UserDataType }
+func (x *Object) String() string      { return fmt.Sprintf("userdata: %p", x) }
+func (x *Object) Type() Type          { return UserDataType }
 
 type Float float64
+
 func (x Float) String() string { return fmt.Sprintf("%.14g", float64(x)) }
-func (x Float) Type() Type { return NumberType }
-func (Float) number() {}
+func (x Float) Type() Type     { return NumberType }
+func (Float) number()          {}
 
 type String string
+
 func (x String) String() string { return string(x) }
-func (x String) Type() Type { return StringType }
+func (x String) Type() Type     { return StringType }
 
 type Bool bool
+
 const (
 	True  = Bool(true)
 	False = Bool(false)
 )
+
 func (x Bool) String() string { return fmt.Sprintf("%t", bool(x)) }
-func (x Bool) Type() Type { return BoolType }
+func (x Bool) Type() Type     { return BoolType }
 
 type Int int64
+
 func (x Int) String() string { return fmt.Sprintf("%v", int64(x)) }
-func (x Int) Type() Type { return NumberType }
-func (Int) number() {}
+func (x Int) Type() Type     { return NumberType }
+func (Int) number()          {}
 
 type Nil byte
+
 const None = Nil(0)
 const nilValue = Nil(1)
+
 func (x Nil) String() string { return "nil" }
 func (x Nil) Type() Type {
 	if x == None {
@@ -117,7 +124,7 @@ func (x Nil) Type() Type {
 	return NilType
 }
 
-type Func func(*State)int
+type Func func(*State) int
 
 // func (x Func) Call(state *State) int {
 // 	return x(state)
@@ -150,28 +157,28 @@ func ValueOf(state *State, value interface{}) Value {
 
 func valueOf(state *State, value interface{}) Value {
 	switch value := value.(type) {
-		case func(*State)int:
-			return newGoClosure(Func(value), 0)
-		case Func:
-			return newGoClosure(value, 0)
-		case float64:
-			return Float(value)
-		case float32:
-			return Float(float64(value))
-		case string:
-			return String(value)
-		case int64:
-			return Int(value)
-		case int32:
-			return Int(int64(value))
-		case int:
-			return Int(int64(value))
-		case bool:
-			return Bool(value)
-		case Value:
-			return value
-		case nil:
-			return Nil(1)
+	case func(*State) int:
+		return newGoClosure(Func(value), 0)
+	case Func:
+		return newGoClosure(value, 0)
+	case float64:
+		return Float(value)
+	case float32:
+		return Float(float64(value))
+	case string:
+		return String(value)
+	case int64:
+		return Int(value)
+	case int32:
+		return Int(int64(value))
+	case int:
+		return Int(int64(value))
+	case bool:
+		return Bool(value)
+	case Value:
+		return value
+	case nil:
+		return Nil(1)
 	}
 	udata := &Object{data: value}
 	udata.meta = metaOf(state, udata)
@@ -179,34 +186,36 @@ func valueOf(state *State, value interface{}) Value {
 }
 
 func IsNumber(value Value) bool { return IsFloat(value) || IsInt(value) }
-func IsFloat(value Value) bool { _, ok := value.(Float); return ok }
-func IsInt(value Value) bool { _, ok := value.(Int); return ok }
-func IsNone(value Value) bool { return value == nil || value == None || !isNil(value) || value.Type() == NilType }
-func isNil(value Value) bool { return reflect.ValueOf(value).IsValid() }//IsNil() }
+func IsFloat(value Value) bool  { _, ok := value.(Float); return ok }
+func IsInt(value Value) bool    { _, ok := value.(Int); return ok }
+func IsNone(value Value) bool {
+	return value == nil || value == None || !isNil(value) || value.Type() == NilType
+}
+func isNil(value Value) bool { return reflect.ValueOf(value).IsValid() } //IsNil() }
 
 func Truth(value Value) bool { return bool(truth(value)) }
 
 func toString(value Value) (string, bool) {
 	switch value := value.(type) {
-		case String:
-			return string(value), true
-		case Float:
-			s := fmt.Sprintf("%v", float64(value))
-			return s, true
-		case Int:
-			s := fmt.Sprintf("%v", int64(value))
-			return s, true
-		case Bool:
-			s := fmt.Sprintf("%t", bool(value))
-			return s, true
-		case Nil:
-			return value.String(), true
+	case String:
+		return string(value), true
+	case Float:
+		s := fmt.Sprintf("%v", float64(value))
+		return s, true
+	case Int:
+		s := fmt.Sprintf("%v", int64(value))
+		return s, true
+	case Bool:
+		s := fmt.Sprintf("%t", bool(value))
+		return s, true
+	case Nil:
+		return value.String(), true
 	}
 	return "", false
 }
 
 func (x Float) rational() *big.Rat { return new(big.Rat).SetFloat64(float64(x)) }
-func (x Int) rational() *big.Rat { return new(big.Rat).SetInt64(int64(x)) }
+func (x Int) rational() *big.Rat   { return new(big.Rat).SetInt64(int64(x)) }
 
 // truth returns true for any Lua value different from false
 // and None (or nil), otherwise returns false.
@@ -217,5 +226,15 @@ func truth(value Value) Bool {
 	return Bool(!IsNone(value))
 }
 
-func max(a, b int) int { if a > b { return a }; return b }
-func min(a, b int) int { if a < b { return a }; return b }
+func max(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
+}
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}

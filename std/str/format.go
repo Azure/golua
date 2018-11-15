@@ -1,10 +1,10 @@
 package str
 
 import (
-	"strings"
-	"unicode"
 	"bytes"
 	"fmt"
+	"strings"
+	"unicode"
 
 	"github.com/Azure/golua/lua"
 )
@@ -19,7 +19,7 @@ func format(state *lua.State, format string, argc int) string {
 			str.WriteByte(format[i])
 			continue
 		}
-		i++ // at a '%'
+		i++                   // at a '%'
 		if format[i] == '%' { // "%%" ?
 			str.WriteByte('%')
 			continue
@@ -30,7 +30,7 @@ func format(state *lua.State, format string, argc int) string {
 		}
 		o := fmtOpt(state, format[i:])
 		i += len(o) - 2
-		
+
 		str.WriteString(fmtArg(state, o, arg, format[i]))
 		arg++
 	}
