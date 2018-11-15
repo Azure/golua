@@ -31,7 +31,7 @@ const (
 	ThreadError                     // Thread finished execution with error
 )
 
-// String returns the canoncial string of the thread status.
+// String returns the canonical string of the thread status.
 func (status ThreadStatus) String() string {
 	switch status {
 	case ThreadOK:
@@ -321,7 +321,7 @@ func (state *State) init(global *global) {
 	state.global = global
 }
 
-// EmitIR compiles the Lua script similarily to Compile but instead
+// EmitIR compiles the Lua script similarly to Compile but instead
 // uses the long listing options to capture the compiled IR dump.
 // EmitIR returns the Lua bytecode encoded as a string or any error.
 func (state *State) emit(script string) {
@@ -487,7 +487,7 @@ func (state *State) Log(args ...interface{}) {
 //
 // Acceptable indices serve to avoid extra tests against the stack top when querying
 // the stack. For instance, a Go function can query its third argument without the
-// need to first check wheter there is a third argument, that is, without the need
+// need to first check whether there is a third argument, that is, without the need
 // to check whether 3 is a valid index.
 //
 // For functions that can be called with acceptable indices, any non-valid index is

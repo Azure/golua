@@ -638,7 +638,7 @@ func isNumber(v Value) bool { _, ok := v.(Number); return ok }
 // isNaN returns whether the Lua float number is an IEEE 754 "not-a-number" value.
 func isNaN(v Float) bool { return float64(v) == math.NaN() }
 
-// threeway interprets a three-way comparsion value cmp (-1, 0, +1) as a boolean
+// threeway interprets a three-way comparison value cmp (-1, 0, +1) as a boolean
 // comparison between two values (e.g. x < y).
 func threeway(op Op, cmp int) bool {
 	switch op {

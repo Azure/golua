@@ -71,29 +71,29 @@ func Gmatch(text, expr string, iter func([]string)) {
 	String(expr).Gmatch(text, iter)
 }
 
-// Gsub returns a copy of text in which all (or the upto limit if > 0) occurences of
+// Gsub returns a copy of text in which all (or the upto limit if > 0) occurrences of
 // the pattern have been replaced by the specified replacer. The name gsub comes from
 // global substitution.
 //
-// Gsub returns the string with replacements and the number of replacements that occured.
+// Gsub returns the string with replacements and the number of replacements that occurred.
 // If no matches were made, then text is return unmodified with 0 to indicate that no
 // replacements were made.
 func Gsub(text, expr string, replacer Replacer) (repl string, count int) {
 	return GsubAll(text, expr, replacer, 1)
 }
 
-// GsubAll returns a copy of text in which all (or the upto limit if > 0) occurences of
+// GsubAll returns a copy of text in which all (or the upto limit if > 0) occurrences of
 // the pattern have been replaced by the specified replacer. The name gsub comes from
 // global substitution.
 //
-// Gsub returns the string with replacements and the number of replacements that occured.
+// Gsub returns the string with replacements and the number of replacements that occurred.
 // If no matches were made, then text is return unmodified with 0 to indicate that no
 // replacements were made.
 func GsubAll(text, expr string, replacer Replacer, limit int) (repl string, count int) {
 	return String(expr).GsubAll(text, replacer, limit)
 }
 
-// GsubStr returns a copy of text in which all (or the upto limit if > 0) occurences
+// GsubStr returns a copy of text in which all (or the upto limit if > 0) occurrences
 // of the pattern have been replaced by the specified replacement value. The name gsub
 // comes from global substitution.
 //
@@ -104,7 +104,7 @@ func GsubStr(text, expr, replace string) (repl string, count int) {
 	return GsubStrAll(text, expr, replace, 1)
 }
 
-// GsubStrAll returns a copy of text in which all (or the upto limit if > 0) occurences
+// GsubStrAll returns a copy of text in which all (or the upto limit if > 0) occurrences
 // of the pattern have been replaced by the specified replacement value. The name gsub
 // comes from global substitution.
 //

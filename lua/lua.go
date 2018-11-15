@@ -30,7 +30,7 @@ func (state *State) Dump(strip bool) []byte {
 
 // SetUpValue sets the value of a closure's upvalue. It assigns the value at the top
 // of the stack to the upvalue at index and returns its name. It also pops the value
-// from teh stack.
+// from the stack.
 //
 // Otherwise returns "" (and pops nothing) when upIndex is greater than the number of
 // upvalues.
