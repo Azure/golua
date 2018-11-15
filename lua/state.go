@@ -2,19 +2,15 @@ package lua
 
 import (
 	"fmt"
-	"io"
 	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 
-	// "github.com/Azure/golua/pkg/goutils"
 	"github.com/Azure/golua/lua/binary"
 	"github.com/Azure/golua/lua/syntax"
 )
-
-var _ = os.Exit
 
 type runtimeErr error
 
@@ -57,10 +53,8 @@ type (
 	State struct {
 		// shared global state
 		global *global
-		// execution state
-		status ThreadStatus // thread status
-		base   Frame        // base call frame
-		calls  int          // call count
+		base   Frame // base call frame
+		calls  int   // call count
 	}
 
 	// 'global state', shared by all threads of a main state.
@@ -110,30 +104,6 @@ func NewState(opts ...Option) *State {
 // String returns a printable string of the current executing thread state.
 func (ls *State) String() string { return fmt.Sprintf("%p", ls) }
 
-// traceback prints to w a stack trace from the current frame to the base.
-func (state *State) traceback(w io.Writer) {
-	fmt.Fprintln(w, "#")
-	fmt.Fprintf(w, "# traceback (calls = %d)\n", state.calls)
-	fmt.Fprintln(w, "#")
-	for fr := state.frame(); fr != nil; fr = fr.caller() {
-		fmt.Fprintf(w, "function @ %d (%d returns)\n", fr.fnID, fr.rets)
-
-		fmt.Fprintf(w, "    locals (%d)\n", fr.gettop())
-		for top := fr.gettop() - 1; top >= 0; top-- {
-			indent := "       "
-			fmt.Fprintf(w, "%s[%d] %d @ %v (%T)\n",
-				indent,
-				top,
-				top-(fr.gettop()+1),
-				fr.local(top),
-				fr.local(top),
-			)
-		}
-		fmt.Fprintln(w, "    end")
-	}
-	fmt.Fprintln(w)
-}
-
 // recover recovers any error thrown by the Lua runtime.
 //
 // If the error is not a runtimeErr, recover repanics the
@@ -155,9 +125,6 @@ func (ls *State) safely(fn func() error) (err error) {
 	defer ls.recover(&err)
 	return fn()
 }
-
-// value returns the Lua value at the valid index.
-func (state *State) value(index int) Value { return state.get(index) }
 
 // errorf reports a formatted error message.
 func (state *State) errorf(format string, args ...interface{}) int {
@@ -319,23 +286,6 @@ func (state *State) call(fr *Frame) {
 func (state *State) init(global *global) {
 	state.frame().checkstack(InitialStackNew)
 	state.global = global
-}
-
-// EmitIR compiles the Lua script similarly to Compile but instead
-// uses the long listing options to capture the compiled IR dump.
-// EmitIR returns the Lua bytecode encoded as a string or any error.
-func (state *State) emit(script string) {
-	src, err := ioutil.ReadFile(script)
-	if err != nil {
-		panic(err)
-	}
-	cmd := exec.Command("luac", "-l", "-")
-	cmd.Stdin = strings.NewReader(string(src))
-	out, err := cmd.CombinedOutput()
-	if err != nil {
-		panic(fmt.Errorf("%v: %s", err, string(out)))
-	}
-	fmt.Fprintln(os.Stdout, string(out))
 }
 
 func (state *State) load(filename string, source interface{}) (*Closure, error) {
@@ -580,27 +530,6 @@ func (state *State) set(index int, value Value) {
 	}
 }
 
-// converts an integer to a "floating point byte", represented as (eeeeexxx), where the real
-// value is (1xxx) * 2^(eeeee - 1) if eeeee != 0 and (xxx) otherwise.
-func i2fb(i int) int {
-	var (
-		u     = uint8(i)
-		e int = 0 // exponent
-	)
-	if u < 8 {
-		return i
-	}
-	for u >= (8 << 4) { // coarse steps
-		u = (u + 0xF) >> 4 // x = ceil(x/16)
-		e += 4
-	}
-	for u >= (8 << 1) { // fine steps
-		u = (u + 1) >> 1 // x = ceil(x/2)
-		e++
-	}
-	return ((e + 1) << 3) | (int(i) - 8)
-}
-
 // converts a "floating point byte" to an integer.
 func fb2i(i int) int {
 	if i < 8 {
@@ -621,14 +550,6 @@ func fb2i(i int) int {
 // current function (but not greater than 256, which is one plus the maximum number of
 // upvalues in a closure), produces an acceptable but invalid index.
 func UpValueIndex(index int) int { return RegistryIndex - index }
-
-// IsUpValueIndex reports true if the index represents an upvalue index.
-func isUpValueIndex(index int) bool { return index < RegistryIndex }
-
-// IsStackIndex reports true if the index represents a stack index.
-//
-// Tests for valid but not pseudo index.
-func isStackIndex(index int) bool { return !isPseudoIndex(index) }
 
 // isPseudoIndex reports whether the Index index represents a pseudo-index; that is, an index
 // that represents registers that are accessible to host code but that are not in the stack.

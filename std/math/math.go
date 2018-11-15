@@ -4,13 +4,9 @@ import (
 	"fmt"
 	"math"
 	"math/rand"
-	"os"
 
 	"github.com/Azure/golua/lua"
 )
-
-var _ = fmt.Println
-var _ = os.Exit
 
 //
 // Lua Standard Library -- math

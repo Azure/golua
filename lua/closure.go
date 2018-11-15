@@ -17,8 +17,6 @@ type (
 	// upValue holds external local variable state.
 	upValue struct {
 		frame *Frame // frame upValue was opened within.
-		ident string // name if debugging enabled.
-		local bool   // true if in frame local's stack.
 		index int    // index into stack or enclosing function.
 		value Value  // if closed.
 	}
@@ -27,7 +25,7 @@ type (
 func newLuaClosure(proto *binary.Prototype) *Closure {
 	cls := &Closure{binary: proto}
 	if nups := len(proto.UpValues); nups > 0 {
-		cls.upvals = make([]*upValue, nups, nups)
+		cls.upvals = make([]*upValue, nups)
 	}
 	return cls
 }
@@ -35,7 +33,7 @@ func newLuaClosure(proto *binary.Prototype) *Closure {
 func newGoClosure(native Func, nups int) *Closure {
 	cls := &Closure{native: native}
 	if nups > 0 {
-		cls.upvals = make([]*upValue, nups, nups)
+		cls.upvals = make([]*upValue, nups)
 	}
 	return cls
 }
@@ -54,13 +52,6 @@ func (x *Closure) String() string {
 func (cls *Closure) isLua() bool { return cls != nil && cls.binary != nil }
 
 func (cls *Closure) isGo() bool { return cls != nil && cls.native != nil }
-
-func (cls *Closure) numParams() int {
-	if !cls.isLua() {
-		return 0
-	}
-	return cls.binary.NumParams()
-}
 
 func (cls *Closure) upvalues() []*upValue {
 	if cls != nil {

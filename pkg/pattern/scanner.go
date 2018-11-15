@@ -7,7 +7,6 @@ import (
 )
 
 const classes = "acdglpsuwx"
-const special = `^$*+?.([%-`
 const escape = '%'
 const eos = rune(-1)
 
@@ -201,9 +200,9 @@ func scanEscape(scan *scanner) stateFn {
 	trace("scanEscape")
 	switch r := scan.next(); {
 	case unicode.IsDigit(r):
-		return scan.errorf("todo: capture index (%[0-9])")
+		return scan.errorf("todo: capture index")
 	case r == 'b':
-		return scan.errorf("todo: balance (%b)")
+		return scan.errorf("todo: balance")
 	case r == 'f':
 		return scan.errorf("todo: frontier")
 	case r == eos:

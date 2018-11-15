@@ -6,10 +6,6 @@ import (
 	"unicode"
 )
 
-type class interface {
-	matches(rune) bool
-}
-
 func (i item) matches(r rune) (match bool) {
 	if i.typ == itemText {
 		return i.val == string(r)

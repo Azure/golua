@@ -27,7 +27,7 @@ func parseInteger(str string) (int64, bool) {
 	if str[0] == '+' {
 		str = str[1:]
 	}
-	if strings.Index(str, "0x") < 0 { // decimal
+	if !strings.Contains(str, "0x") { // decimal
 		i, err := strconv.ParseInt(str, 10, 64)
 		return i, err == nil
 	}

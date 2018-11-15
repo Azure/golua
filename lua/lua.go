@@ -2,14 +2,9 @@ package lua
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/Azure/golua/lua/binary"
 )
-
-var errNonBinaryChunk = fmt.Errorf("lua: execute: non-binary files not yet supported")
-
-var _ = os.Exit
 
 // Dump dumps a function as a binary chunk. Receives a Lua function on top of the
 // stack and produces a binary chunk that, if loaded again, results in a function

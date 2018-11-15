@@ -2,25 +2,7 @@ package lua
 
 import (
 	"fmt"
-	// "os"
 )
-
-type errorFn func(error)
-
-func (fn errorFn) throw(state *State, err error) {
-	if fn == nil {
-		// fmt.Fprintf(os.Stderr, "lua: runtime error: %v\n", err)
-		panic(err)
-	} else {
-		fn(err)
-	}
-}
-
-func argErrorf(state *State, argAt int, format string, args ...interface{}) {
-	// TODO: stack analysis and debugging info if available.
-	msg := fmt.Sprintf(format, args...)
-	argError(state, argAt, msg)
-}
 
 func argError(state *State, argAt int, msg string) {
 	// TODO: stack analysis and debugging info if available.

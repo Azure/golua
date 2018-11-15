@@ -9,7 +9,6 @@ import (
 
 var order = binary.LittleEndian
 
-const align = 1
 const eos = rune(-1)
 
 type stateFn func(*scanner) stateFn
@@ -227,7 +226,6 @@ func number(scan *scanner, opt uint) (num uint, err error) {
 	return num, nil
 }
 
-func isUpper(r rune) bool { return r >= 'A' && r <= 'Z' }
 func isDigit(r rune) bool { return r >= '0' && r <= '9' }
 
 const maxsize = math.MaxUint64 / 10

@@ -6,8 +6,6 @@ import (
 	"syscall"
 )
 
-var _ = fmt.Println
-
 // ArgCheck checks whether cond is true. If it is not, raises an error with a
 // standard message (see ArgError).
 //

@@ -2,14 +2,10 @@ package debug
 
 import (
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/Azure/golua/lua"
 )
-
-var _ = fmt.Println
-var _ = os.Exit
 
 //
 // Lua Standard Library -- debug
@@ -377,23 +373,6 @@ func dbgUpValueJoin(state *lua.State) int {
 	}
 	state.UpValueJoin(1, n1, 3, n2)
 	return 0
-}
-
-// hookMask converts a string mask (for 'sethook') into a bit mask.
-func hookEvent(name string, count int64) (mask lua.HookEvent) {
-	if strings.Index(name, "c") != -1 {
-		mask |= lua.HookCall
-	}
-	if strings.Index(name, "r") != -1 {
-		mask |= lua.HookRets
-	}
-	if strings.Index(name, "l") != -1 {
-		mask |= lua.HookLine
-	}
-	if count > 0 {
-		mask |= lua.HookCount
-	}
-	return mask
 }
 
 func unimplemented(msg string) { panic(fmt.Errorf(msg)) }

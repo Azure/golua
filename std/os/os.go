@@ -9,9 +9,6 @@ import (
 	"github.com/Azure/golua/lua"
 )
 
-var _ = fmt.Println
-var _ = os.Exit
-
 //
 // Lua Standard Library -- os
 //

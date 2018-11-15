@@ -1,11 +1,5 @@
 package pattern
 
-import (
-	"fmt"
-)
-
-var _ = fmt.Println
-
 type Pattern struct {
 	*pattern
 }
@@ -21,11 +15,6 @@ type pattern struct {
 	inst []instr
 	head bool
 	tail bool
-}
-
-type state struct {
-	sp, ip int
-	caps   []capture
 }
 
 func (patt *pattern) MatchIndexAll(src string, limit int) (captures [][]int) {
@@ -87,7 +76,7 @@ func (patt *pattern) Match(src string) (captures []string) {
 	return captures
 }
 
-func (patt *pattern) match(src string, sp, ip int, stack ...state) (pos int, ok bool) {
+func (patt *pattern) match(src string, sp, ip int) (pos int, ok bool) {
 	for {
 		switch inst := patt.inst[ip]; inst.code {
 		case opClass:

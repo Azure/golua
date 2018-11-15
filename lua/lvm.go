@@ -1,12 +1,6 @@
 package lua
 
-import (
-	"fmt"
-
-	"github.com/Azure/golua/lua/vm"
-)
-
-var _ = fmt.Println
+import "github.com/Azure/golua/lua/vm"
 
 //
 // Implementation of Lua v53 Opcodes

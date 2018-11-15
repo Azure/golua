@@ -46,13 +46,6 @@ func (instr Instr) String() string {
 	return fmt.Sprintf("%s %s", instr.Code(), args(instr))
 }
 
-func mask1(n, p uint) Instr { return ((^((^Instr(0)) << n)) << p) }
-func mask0(n, p uint) Instr { return ^(mask1(n, p)) }
-
-func indexk(x int) int { return x &^ (1 << 8) }
-func myk(x int) int    { return -1 - x }
-func isk(x int) bool   { return x&(1<<8) != 0 }
-
 func args(instr Instr) string {
 	switch code := instr.Code(); code.Mode() {
 	case ModeABC:

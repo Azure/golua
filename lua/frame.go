@@ -1,39 +1,31 @@
 package lua
 
-import (
-	"fmt"
-	"os"
-
-	"github.com/Azure/golua/lua/vm"
-)
-
-var _ = fmt.Println
-var _ = os.Exit
+import "github.com/Azure/golua/lua/vm"
 
 type callStatus uint
 
 const (
-	callStatusAllowHook  = 1 << iota // original value of 'allowhook'
-	callStatusLua                    // call is running a Lua function
-	callStatusHooked                 // call is running a debug hook
-	callStatusFresh                  // call is running on a fresh invocation of exec
-	callStatusYieldPCall             // call is yieldable protected call
-	callStatusTail                   // call was tail called
-	callStatusHookYield              // last hook called yielded
-	callStatusLEQ                    // using __lt for __le
-	callStatusFinalizer              // call is running a finalizer
+	callStatusAllowHook = 1 << iota // original value of 'allowhook'
+	// callStatusLua                    // call is running a Lua function
+	// callStatusHooked                 // call is running a debug hook
+	// callStatusFresh                  // call is running on a fresh invocation of exec
+	// callStatusYieldPCall             // call is yieldable protected call
+	callStatusTail // call was tail called
+	// callStatusHookYield              // last hook called yielded
+	// callStatusLEQ                    // using __lt for __le
+	// callStatusFinalizer              // call is running a finalizer
 )
 
 type (
 	// CallInfo holds information about a call.
 	CallInfo struct {
-		prev, next *CallInfo // dynamic call link to caller and callee
-		savedpc    int       // saved pc; return address (lua only)
-		status     int       // call status indicating success or failure
-		funcID     int       // function index in the stack
-		nrets      int       // expected number of results
-		top        int       // stack top for this function
-		frame      *Frame    // call frame
+		// prev, next *CallInfo // dynamic call link to caller and callee
+		// savedpc    int       // saved pc; return address (lua only)
+		// status     int       // call status indicating success or failure
+		// funcID     int       // function index in the stack
+		// nrets      int       // expected number of results
+		// top        int       // stack top for this function
+		// frame      *Frame    // call frame
 	}
 
 	// Frame is the context to execute a function closure.
@@ -42,7 +34,6 @@ type (
 		closure    *Closure         // frame closure
 		vararg     []Value          // variable arguments
 		locals     []Value          // frame stack locals
-		errFn      errorFn          // error function called in protected mode
 		state      *State           // thread state
 		depth      int              // call frame ID
 		fnID       int              // function index
@@ -222,7 +213,7 @@ func (fr *Frame) openUp(cls *Closure) {
 			fr.state.Logf("open up (%d) @ %d (local = %t)", i, up.AtIndex(), up.IsLocal())
 
 			if up.IsLocal() { // upvalue is local?
-				cls.upvals[i] = fr.findUp(int(up.AtIndex()))
+				cls.upvals[i] = fr.findUp(up.AtIndex())
 			} else { // otherwise upvalue is in enclosing function.
 				cls.upvals[i] = fr.closure.upvals[up.AtIndex()]
 			}
@@ -312,7 +303,7 @@ func (fr *Frame) pop() Value {
 // TODO: ensure stack
 func (fr *Frame) popN(n int) (vs []Value) {
 	if n > 0 {
-		vs = make([]Value, n, n)
+		vs = make([]Value, n)
 		for i := n - 1; i >= 0; i-- {
 			vs[i] = fr.pop()
 		}

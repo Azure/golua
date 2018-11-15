@@ -225,7 +225,6 @@ func tableSort(state *lua.State) int {
 const (
 	opRead      = 1
 	opWrite     = 2
-	opLength    = 4
 	opReadWrite = opRead | opWrite
 )
 

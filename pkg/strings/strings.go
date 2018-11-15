@@ -1,13 +1,10 @@
 package strings
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/Azure/golua/pkg/pattern"
 )
-
-var _ = fmt.Println
 
 type Replacer interface {
 	Replace(string) string
