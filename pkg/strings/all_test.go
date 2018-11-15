@@ -1,7 +1,6 @@
 package strings
 
 import (
-	"fmt"
 	"testing"
 )
 
@@ -9,78 +8,77 @@ func TestMatchAndCaptures(t *testing.T) {
 	var tests = []struct {
 		pattern string
 		subject string
-		matches bool
-		invalid bool
+		matches []string
 	}{
 		{
 			pattern: "|.*|",
 			subject: "one |two| three |four| five",
-			// [|two| three |four|]
+			matches: []string{"|two| three |four|"},
 		},
 		{
 			pattern: "|.+|",
 			subject: "one |two| three |four| five",
-			// [|two| three |four|]
+			matches: []string{"|two| three |four|"},
 		},
 		{
 			pattern: "|.-|",
 			subject: "one |two| three |four| five",
-			// [|two|]
+			matches: []string{"|two|"},
 		},
 		{
 			pattern: "%$(.-)%$",
 			subject: "4+5 = $return 4+5$",
-			// [return 4 + 5]
+			// matches: []string{"return 4 + 5"},
+			matches: []string{"$return 4+5$", "return 4+5"},
 		},
 		{
 			pattern: "a*",
 			subject: "aaabbb",
-			// [aaa]
+			matches: []string{"aaa"},
 		},
 		{
 			pattern: "..z",
 			subject: "xyxyz",
-			// [xyz]
+			matches: []string{"xyz"},
 		},
 		{
 			pattern: "(a+)bb",
 			subject: "aaabbb",
-			// [aaa]
+			// matches: []string{"aaa"},
+			matches: []string{"aaabb", "aaa"},
 		},
 		{
 			pattern: "a*aaab",
 			subject: "aaaaaaaaabcd",
-			// [aaaaaaaaab]
+			matches: []string{"aaaaaaaaab"},
 		},
 		{
 			pattern: "(%l+)(%d+)(%l+)",
 			subject: "aa22bb",
-			// [aa 22 bb]
+			// matches: []string{"aa", "22", "bb"},
+			matches: []string{"aa22bb", "aa", "22", "bb"},
 		},
 		{
 			pattern: "(%l+)(%d+)%l?",
 			subject: "aa22bb",
-			// [aa 22]
+			// matches: []string{"aa", "22"},
+			matches: []string{"aa22b", "aa", "22"},
 		},
 		{
 			pattern: "%$%((%l+)%)",
 			subject: "$(var)",
-			// [var]
+			// matches: []string{"var"},
+			matches: []string{"$(var)", "var"},
 		},
 		{
 			pattern: "a(%d+)b",
 			subject: "a22b",
-			// [22]
-		},
-		{
-			pattern: "a(%d+)b",
-			subject: "a22b",
-			// [22]
+			// matches: []string{"22"},
+			matches: []string{"a22b", "22"},
 		},
 		// {
 		// 	pattern: "x(%d+(%l+))(zzz)",
 		// 	subject: "x123abczzz",
-		// 	// []
 		// },
 		// {
 		// 	pattern: "^abc",
@@ -90,16 +88,24 @@ func TestMatchAndCaptures(t *testing.T) {
 		// {
 		// 	pattern: "^a-$",
 		// 	subject: "aaaa",
-		// 	// [aaaa]
+		// 	matches: []string{"aaaa"},
 		// },
 		// {
 		// 	pattern: "(..)-%1",
 		// 	subject: "xy-yx-xy",
-		// 	// []
 		// },
 	}
 	for _, test := range tests {
-		captures, matched := Match(test.subject, test.pattern)
-		fmt.Printf("%v (match = %t)\n", captures, matched)
+		captures := Match(test.subject, test.pattern)
+		if len(captures) != len(test.matches) {
+			t.Errorf("%q, expected %d matches, got %d", test.pattern, len(test.matches), len(captures))
+		}
+
+		for i := range captures {
+			if captures[i] != test.matches[i] {
+				t.Errorf("%q, expected %q matches, got %q", test.pattern, test.matches, captures)
+				break
+			}
+		}
 	}
 }
