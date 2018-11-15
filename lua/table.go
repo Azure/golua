@@ -14,8 +14,8 @@
 package lua
 
 import (
-	"math"
 	"fmt"
+	"math"
 )
 
 // Implementation of tables (aka arrays, objects, or hash tables). Tables keep
@@ -43,7 +43,7 @@ type table struct {
 }
 
 func (x *table) String() string { return fmt.Sprintf("table: %p", x) }
-func (x *table) Type() Type { return TableType }
+func (x *table) Type() Type     { return TableType }
 
 // newtable returns a new table initialized using the provided sizes
 // arrayN and hashN to create the underlying hash and array part.
@@ -110,7 +110,7 @@ func (t *table) get(k Value) Value {
 }
 
 func (t *table) getStr(key string) Value {
-	return t.get(String(key)) 
+	return t.get(String(key))
 }
 
 func (t *table) getInt(key int64) Value {
@@ -177,7 +177,9 @@ func (t *table) next(key Value) (k, v Value, more bool) {
 // all elements in the array part, then elements in the hash part. The
 // beginning of a traversal is signaled by 0.
 func (t *table) iterKey(key Value) (index int) {
-	if IsNone(key) { return 0 } // first iteration?
+	if IsNone(key) {
+		return 0
+	} // first iteration?
 	index = arrayIndex(key)
 	if index != 0 && index <= len(t.list) { // key in array?
 		return index // found index
@@ -195,14 +197,14 @@ const maxInt = int(^uint(0) >> 1)
 
 func arrayIndex(val Value) int {
 	switch val := val.(type) {
-		case Float:
-			if x, ok := float2int(float64(val)); ok {
-				return x
-			}
-		case Int:
-			if x := int(val); x > 0 && x < maxInt {
-				return x
-			}
+	case Float:
+		if x, ok := float2int(float64(val)); ok {
+			return x
+		}
+	case Int:
+		if x := int(val); x > 0 && x < maxInt {
+			return x
+		}
 	}
 	return 0
 }

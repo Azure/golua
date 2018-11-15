@@ -1,10 +1,10 @@
 package utf8
 
 import (
-	"unicode/utf8"
 	"fmt"
+	"unicode/utf8"
 
-    "github.com/Azure/golua/lua"
+	"github.com/Azure/golua/lua"
 )
 
 const unicodeMax = 0x10FFFF
@@ -26,11 +26,11 @@ const unicodeMax = 0x10FFFF
 func Open(state *lua.State) int {
 	// Create 'utf8' table.
 	var utf8Funcs = map[string]lua.Func{
-		"char":        lua.Func(utf8Char),
-		"codepoint":   lua.Func(utf8CodePoint),
-		"codes":       lua.Func(utf8Codes),
-		"len":         lua.Func(utf8Len),
-		"offset":      lua.Func(utf8Offset),
+		"char":      lua.Func(utf8Char),
+		"codepoint": lua.Func(utf8CodePoint),
+		"codes":     lua.Func(utf8Codes),
+		"len":       lua.Func(utf8Len),
+		"offset":    lua.Func(utf8Offset),
 	}
 	state.NewTableSize(0, len(utf8Funcs))
 	state.SetFuncs(utf8Funcs, 0)
@@ -61,7 +61,7 @@ func utf8Char(state *lua.State) int {
 	for i := 1; i <= state.Top(); i++ {
 		c := state.CheckInt(i)
 		if c < 0 || c > unicodeMax {
-			
+
 			panic(fmt.Errorf("bad argument #1 to 'char' (value out of range)"))
 		}
 		runes[i-1] = rune(c)
@@ -106,7 +106,7 @@ func utf8Codes(state *lua.State) int {
 		if r == utf8.RuneError {
 			panic(fmt.Errorf("invalid UTF-8 code"))
 		}
-		state.Push(n+1)
+		state.Push(n + 1)
 		state.Push(int64(r))
 		return 2
 	})
@@ -170,8 +170,8 @@ func utf8Len(state *lua.State) int {
 		j = int64(strPos(len(s), int(state.OptInt(3, -1))))
 		n = int64(0)
 	)
-	state.ArgCheck(1<=i&&i<=int64(len(s))+1, 2, "initial position out of string")
-	state.ArgCheck(j<=int64(len(s)), 3, "final position out of string")
+	state.ArgCheck(1 <= i && i <= int64(len(s))+1, 2, "initial position out of string")
+	state.ArgCheck(j <= int64(len(s)), 3, "final position out of string")
 
 	// if i = int64(strPos(len(s), int(i))); i > 1 {
 	// 	panic(fmt.Errorf("initial position out of string"))
@@ -180,7 +180,7 @@ func utf8Len(state *lua.State) int {
 	// 	panic(fmt.Errorf("final position out of string"))
 	// }
 	if i <= j {
-		for s = s[i-1:j]; len(s) > 0; {
+		for s = s[i-1 : j]; len(s) > 0; {
 			r, w := utf8.DecodeRuneInString(s)
 			if r == utf8.RuneError {
 				state.Push(false)
@@ -223,7 +223,7 @@ func utf8Offset(state *lua.State) int {
 		i = int64(len(s) + 1)
 	}
 	i = int64(strPos(len(s), int(state.OptInt(3, i))))
-	if i < 1 || i > int64(len(s)) + 1 {
+	if i < 1 || i > int64(len(s))+1 {
 		panic(fmt.Errorf("position out of range"))
 	}
 	i--
@@ -251,7 +251,7 @@ func utf8Offset(state *lua.State) int {
 				for {
 					i++
 					if i >= int64(len(s)) || !isContByte(s[i]) {
-						break	
+						break
 					}
 				}
 				n--
@@ -273,11 +273,11 @@ func isContByte(b byte) bool { return b&0xC0 == 0x80 }
 // from end. The absolute position is returned.
 func strPos(len, pos int) int {
 	switch {
-		case pos >= 0:
-			return pos
-		case -pos > len:
-			return 0
-		default:
-			return len + pos + 1
+	case pos >= 0:
+		return pos
+	case -pos > len:
+		return 0
+	default:
+		return len + pos + 1
 	}
 }

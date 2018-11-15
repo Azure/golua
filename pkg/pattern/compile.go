@@ -64,8 +64,8 @@ func (inst instr) String() string {
 		return "match"
 	case opJump:
 		return fmt.Sprintf("jump %d", inst.x)
-	// case opSave:
-	// 	return fmt.Sprintf("save %d", inst.x)
+		// case opSave:
+		// 	return fmt.Sprintf("save %d", inst.x)
 	}
 	return fmt.Sprintf("unknown opcode %d", inst.code)
 }
@@ -92,7 +92,7 @@ func (bldr *builder) start() {
 }
 
 func (bldr *builder) close() {
-	bldr.emit(instr{code: opClose, x: bldr.cap-1})
+	bldr.emit(instr{code: opClose, x: bldr.cap - 1})
 }
 
 func (bldr *builder) class(item item) {
@@ -121,22 +121,22 @@ func (bldr *builder) emit(insts ...instr) {
 
 func (bldr *builder) code(item item) {
 	switch pc := len(bldr.inst); item.rep {
-		case optional: // ?
-			bldr.split(pc+1, pc+2)
-			bldr.class(item)
-		case maximum: // *
-			bldr.split(pc+1, pc+3)
-			bldr.class(item)
-			bldr.jump(pc)
-		case minimum: // -
-			bldr.split(pc+3, pc+1)
-			bldr.class(item)
-			bldr.jump(pc)
-		case greedy: // +
-			bldr.class(item)
-			bldr.split(pc, pc+2)
-		default: // single
-			bldr.class(item)
+	case optional: // ?
+		bldr.split(pc+1, pc+2)
+		bldr.class(item)
+	case maximum: // *
+		bldr.split(pc+1, pc+3)
+		bldr.class(item)
+		bldr.jump(pc)
+	case minimum: // -
+		bldr.split(pc+3, pc+1)
+		bldr.class(item)
+		bldr.jump(pc)
+	case greedy: // +
+		bldr.class(item)
+		bldr.split(pc, pc+2)
+	default: // single
+		bldr.class(item)
 	}
 }
 

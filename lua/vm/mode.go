@@ -3,10 +3,10 @@ package vm
 type Mode uint8
 
 const (
-    ModeABC Mode = iota
-    ModeABx
-    ModeAsBx
-    ModeAx
+	ModeABC Mode = iota
+	ModeABx
+	ModeAsBx
+	ModeAx
 )
 
 var modes = [...]string{

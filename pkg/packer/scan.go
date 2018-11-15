@@ -2,9 +2,9 @@ package packer
 
 import (
 	"encoding/binary"
-	"unicode/utf8"
-	"math"
 	"fmt"
+	"math"
+	"unicode/utf8"
 )
 
 var order = binary.LittleEndian
@@ -26,15 +26,15 @@ type scanner struct {
 type optType int
 
 const (
-	optEnd   optType = iota // error
-	optErr    			   // end of string
-	optPad 				   // padding
-	optInt  			   // signed integers
-	optUint 	 	   	   // unsigned integers
-	optFloat 			   // floating-point numbers
-	optFixed 			   // fixed-length strings
-	optPrefix			   // strings with prefixed length
-	optVarLen 			   // variable-length strings
+	optEnd    optType = iota // error
+	optErr                   // end of string
+	optPad                   // padding
+	optInt                   // signed integers
+	optUint                  // unsigned integers
+	optFloat                 // floating-point numbers
+	optFixed                 // fixed-length strings
+	optPrefix                // strings with prefixed length
+	optVarLen                // variable-length strings
 )
 
 type option struct {
@@ -59,12 +59,15 @@ func (scan *scanner) errorf(format string, args ...interface{}) stateFn {
 }
 
 func (scan *scanner) nextOpt() option { return <-scan.opts }
- 
+
 func (scan *scanner) backup() { scan.pos -= scan.size }
 
 func (scan *scanner) ignore() { scan.start = scan.pos }
 
-func (scan *scanner) drain() { for range scan.opts {} }
+func (scan *scanner) drain() {
+	for range scan.opts {
+	}
+}
 
 func (scan *scanner) emit(typ optType, verb rune, align, width uint) {
 	scan.opts <- option{scan.order, scan.fmts[scan.start:scan.pos], align, width, scan.start, verb, typ}
@@ -98,7 +101,8 @@ func (scan *scanner) run() {
 // TODO: ![n] => set maximum alignment
 // TODO: Xop => set alignment op
 func scanFmt(scan *scanner) stateFn {
-	L: switch r := scan.next(); r {
+L:
+	switch r := scan.next(); r {
 	case '<': // sets little endian
 		scan.order = binary.LittleEndian
 		scan.ignore()
@@ -111,7 +115,7 @@ func scanFmt(scan *scanner) stateFn {
 		scan.order = order
 		scan.ignore()
 		goto L
-	case '!': // ![n]: sets maximum alignment to n (default is native alignment) 
+	case '!': // ![n]: sets maximum alignment to n (default is native alignment)
 		n, err := optSize(scan, 4)
 		if err != nil {
 			return scan.errorf("%v", err)
@@ -140,7 +144,7 @@ func scanFmt(scan *scanner) stateFn {
 // TODO: limit
 // TODO: align
 func scanOpt(scan *scanner) stateFn {
-	switch r := scan.next(); r {	
+	switch r := scan.next(); r {
 	case 'b': // a signed byte (char)
 		scan.emit(optInt, r, 0, 1)
 	case 'B': // an unsigned byte (char)
@@ -216,7 +220,7 @@ func number(scan *scanner, opt uint) (num uint, err error) {
 		return opt, nil
 	}
 	for isDigit(scan.peek()) {
-		if num = (num * 10) + uint(scan.next() - '0'); num > maxsize {
+		if num = (num * 10) + uint(scan.next()-'0'); num > maxsize {
 			return 0, fmt.Errorf("option size overflow")
 		}
 	}

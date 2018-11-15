@@ -5,7 +5,7 @@ import (
 )
 
 const (
-	// DefaultLuaLibsPrefix is the prefix for the directory containing lua shared libraries.	
+	// DefaultLuaLibsPrefix is the prefix for the directory containing lua shared libraries.
 	DefaultLuaHomePrefix = DefaultLuaRootPrefix + "share/lua/5.3/"
 
 	// DefaultLuaLibsPrefix is the prefix for the directory containing lua library modules.
@@ -50,8 +50,8 @@ const (
 const (
 	// The default value used to initialize LuaPath if not provided and
 	// the environment variables  LUA_PATH_5_3 and LUA_PATH are unset.
-	DefaultLuaPath = DefaultLuaHomePrefix + "?.lua;" +  DefaultLuaHomePrefix + "?/init.lua;" +  DefaultLuaLibsPrefix + "?.lua;" +  DefaultLuaLibsPrefix + "?/init.lua;./?.lua;./?/init.lua"
-	
+	DefaultLuaPath = DefaultLuaHomePrefix + "?.lua;" + DefaultLuaHomePrefix + "?/init.lua;" + DefaultLuaLibsPrefix + "?.lua;" + DefaultLuaLibsPrefix + "?/init.lua;./?.lua;./?/init.lua"
+
 	// The default value used to initialize LuaGoPath if not provided and
 	// the environment variables LUA_GOPATH_5_3 and LUA_GOPATH are unset.
 	DefaultLuaGoPath = DefaultLuaLibsPrefix + "?.so;" + DefaultLuaLibsPrefix + "loadall.so;./?.so"
@@ -155,5 +155,5 @@ type Mode uint
 
 const (
 	BinaryMode Mode = 1 << iota // Only binary chunks
-	TextMode 					// Only text chunks
+	TextMode                    // Only text chunks
 )

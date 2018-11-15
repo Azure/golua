@@ -1,20 +1,20 @@
 package pattern
 
 import (
-	"unicode/utf8"
-	"unicode"
 	"fmt"
+	"unicode"
+	"unicode/utf8"
 )
 
 const classes = "acdglpsuwx"
 const special = `^$*+?.([%-`
-const escape  = '%'
-const eos    = rune(-1)
+const escape = '%'
+const eos = rune(-1)
 
 type itemType int
 
 const (
-	itemEnd 	itemType = iota
+	itemEnd itemType = iota
 	itemErr
 	itemText
 	itemClass
@@ -24,7 +24,7 @@ const (
 
 var itemTypes = [...]string{
 	itemEnd:          "end of string",
-	itemClass:		  "character class",
+	itemClass:        "character class",
 	itemStartCapture: "start capture",
 	itemCloseCapture: "close capture",
 }
@@ -37,7 +37,6 @@ const (
 	minimum
 	maximum
 	optional
-	
 )
 
 func (op repeatOp) String() string {
@@ -99,12 +98,15 @@ func (scan *scanner) errorf(format string, args ...interface{}) stateFn {
 }
 
 func (scan *scanner) nextItem() item { return <-scan.item }
- 
+
 func (scan *scanner) backup() { scan.pos -= scan.size }
 
 func (scan *scanner) ignore() { scan.start = scan.pos }
 
-func (scan *scanner) drain() { for range scan.item {} }
+func (scan *scanner) drain() {
+	for range scan.item {
+	}
+}
 
 func (scan *scanner) emit(typ itemType, rep repeatOp) {
 	scan.item <- item{typ, scan.start, scan.expr[scan.start:scan.pos], rep}
@@ -213,7 +215,7 @@ func scanEscape(scan *scanner) stateFn {
 			lit string
 			pos int
 		)
-		if lit, pos = string(r), scan.start + 1; isclass(r) {
+		if lit, pos = string(r), scan.start+1; isclass(r) {
 			typ = itemClass
 			lit = string(r)
 			rep = scan.rep()

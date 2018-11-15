@@ -1,13 +1,14 @@
 package str
 
 import (
-	"strings"
 	"fmt"
+	"strings"
 
-	strutil "github.com/Azure/golua/pkg/strings"
+	"github.com/Azure/golua/lua"
 	"github.com/Azure/golua/pkg/packer"
-    "github.com/Azure/golua/lua"
+	strutil "github.com/Azure/golua/pkg/strings"
 )
+
 var _ = fmt.Println
 
 //
@@ -25,14 +26,14 @@ func Open(state *lua.State) int {
 		"format":   lua.Func(strFormat),
 		"gmatch":   lua.Func(strGmatch),
 		"gsub":     lua.Func(strGsub),
-		"len": 	    lua.Func(strLen),
+		"len":      lua.Func(strLen),
 		"lower":    lua.Func(strLower),
 		"match":    lua.Func(strMatch),
 		"pack":     lua.Func(strPack),
 		"packsize": lua.Func(strPackSize),
-		"rep": 		lua.Func(strRep),
+		"rep":      lua.Func(strRep),
 		"reverse":  lua.Func(strReverse),
-		"sub": 	    lua.Func(strSub),
+		"sub":      lua.Func(strSub),
 		"unpack":   lua.Func(strUnpack),
 		"upper":    lua.Func(strUpper),
 	}
@@ -46,14 +47,14 @@ func Open(state *lua.State) int {
 
 // createStrMetaTable sets the string library as the metatable for the Lua string type.
 func createStrMetaTable(state *lua.State) {
-	state.NewTableSize(0, 1) // table to be metatable for strings
-	state.Push("") // dummy string
-	state.PushIndex(-2) // copy table
-	state.SetMetaTableAt(-2) // set table as metatable for strings
-	state.Pop() // pop dummy string
-	state.PushIndex(-2) // get string library
+	state.NewTableSize(0, 1)      // table to be metatable for strings
+	state.Push("")                // dummy string
+	state.PushIndex(-2)           // copy table
+	state.SetMetaTableAt(-2)      // set table as metatable for strings
+	state.Pop()                   // pop dummy string
+	state.PushIndex(-2)           // get string library
 	state.SetField(-2, "__index") // metatable.__index = string
-	state.Pop() // pop metatable
+	state.Pop()                   // pop metatable
 }
 
 // string.byte (s [, i [, j]])
@@ -81,7 +82,7 @@ func strByte(state *lua.State) int {
 // Receives zero or more integers. Returns a string with length equal to the number
 // of arguments, in which each character has the internal numeric code equal to its
 // corresponding argument.
-// 
+//
 // Numeric codes are not necessarily portable across platforms.
 //
 // https://www.lua.org/manual/5.3/manual.html#pdf-string.char
@@ -222,11 +223,11 @@ func strMatch(state *lua.State) int {
 	s, p := state.CheckString(1), state.CheckString(2)
 	init := strPos(len(s), int(state.OptInt(3, 1)))
 	switch {
-		case init > len(s) + 1:
-			state.Push(nil)
-			return 1
-		case init < 1:
-			init = 1
+	case init > len(s)+1:
+		state.Push(nil)
+		return 1
+	case init < 1:
+		init = 1
 	}
 	init--
 	caps := strutil.Match(s[init:], p)
@@ -263,11 +264,11 @@ func strFind(state *lua.State) int {
 	s, p := state.CheckString(1), state.CheckString(2)
 	init := strPos(len(s), int(state.OptInt(3, 1)))
 	switch {
-		case init > len(s) + 1:
-			state.Push(nil)
-			return 1
-		case init < 1:
-			init = 1
+	case init > len(s)+1:
+		state.Push(nil)
+		return 1
+	case init < 1:
+		init = 1
 	}
 	init--
 	if state.ToBool(4) {
@@ -276,8 +277,8 @@ func strFind(state *lua.State) int {
 			state.Push(nil)
 			return 1
 		}
-		state.Push(init+pos+1)
-		state.Push(init+pos+len(p))
+		state.Push(init + pos + 1)
+		state.Push(init + pos + len(p))
 		return 2
 	}
 	start, end, caps, ok := find(s, p, init)
@@ -323,18 +324,18 @@ func strFind(state *lua.State) int {
 //
 //   x = string.gsub("hello world", "%w+", "%0 %0", 1)
 //   --> x="hello hello world"
-//     
+//
 //   x = string.gsub("hello world from Lua", "(%w+)%s*(%w+)", "%2 %1")
 //   --> x="world hello Lua from"
-//     
+//
 //   x = string.gsub("home = $HOME, user = $USER", "%$(%w+)", os.getenv)
 //   --> x="home = /home/roberto, user = roberto"
-//     
+//
 //   x = string.gsub("4+5 = $return 4+5$", "%$(.-)%$", function (s)
 //         return load(s)()
 //       end)
 //   --> x="4+5 = 9"
-//     
+//
 //   local t = {name="lua", version="5.3"}
 //   x = string.gsub("$name-$version.tar.gz", "%$(%w+)", t)
 //   --> x="lua-5.3.tar.gz"
@@ -352,7 +353,7 @@ func strGsub(state *lua.State) int {
 	case lua.StringType:
 		repl := state.CheckString(3)
 		s, n = strutil.GsubStrAll(
-			subj, 
+			subj,
 			patt,
 			repl,
 			upto,

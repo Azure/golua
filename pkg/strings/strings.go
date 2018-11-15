@@ -1,8 +1,8 @@
 package strings
 
 import (
-	"strings"
 	"fmt"
+	"strings"
 
 	"github.com/Azure/golua/pkg/pattern"
 )
@@ -10,7 +10,7 @@ import (
 var _ = fmt.Println
 
 type Replacer interface {
-	Replace(string)string
+	Replace(string) string
 }
 
 // MatchAll returns the first match found in str. If str is a pattern that
@@ -120,7 +120,9 @@ func GsubStrAll(text, expr, replace string, limit int) (repl string, count int) 
 		gsub := capRE.ReplaceAllStringFunc(replace, func(k string) string {
 			if i := k[1] - '0'; 0 <= i && i <= 9 {
 				// TODO: check that i is valid capture index
-				var ( from, to = 2*i, 2*i+1 )
+				var (
+					from, to = 2 * i, 2*i + 1
+				)
 				return text[caps[from]:caps[to]]
 			}
 			return k
@@ -138,12 +140,12 @@ func GsubStrAll(text, expr, replace string, limit int) (repl string, count int) 
 // GsubFunc is just like Gsub except that replace is called to retrieve replacement values.
 // The function replace is called every time a match occurs, with all captured substrings
 // passed as arguments, in order.
-func GsubFunc(text, expr string, replace func(string)string) (string, int) {
+func GsubFunc(text, expr string, replace func(string) string) (string, int) {
 	return GsubFuncAll(text, expr, replacerFn(replace), 1)
 }
 
 // GsubFuncAll is just like GsubFunc except that upto limit matches are replaced.
-func GsubFuncAll(text, expr string, replace func(string)string, limit int) (string, int) {
+func GsubFuncAll(text, expr string, replace func(string) string, limit int) (string, int) {
 	return GsubAll(text, expr, replacerFn(replace), limit)
 }
 

@@ -1,13 +1,13 @@
 package str
 
 import (
-	"strings"
 	"fmt"
+	"strings"
 
 	strutil "github.com/Azure/golua/pkg/strings"
 )
 
-const maxInt = int(^uint(0)>>1)
+const maxInt = int(^uint(0) >> 1)
 
 func checkMax(num int) int {
 	const max = 16
@@ -23,7 +23,7 @@ func parseNum(s string, start, end int) (num int, ok bool, pos int) {
 		return 0, false, end
 	}
 	for pos = start; pos < end && isDigit(s[pos]); pos++ {
-		num = num * 10 + int(s[pos] - '0')
+		num = num*10 + int(s[pos]-'0')
 		ok = true
 	}
 	return
@@ -40,14 +40,18 @@ func parseNumOpt(s string, pos, opt int) (int, int) {
 }
 
 func optLimit(format string, opt int) (int, int) {
-	if !isDigit(format[0]) { return opt, 0 }
+	if !isDigit(format[0]) {
+		return opt, 0
+	}
 
-	var ( num, pos int = 0, 0 )
+	var (
+		num, pos int = 0, 0
+	)
 	for ; pos < len(format); pos++ {
 		if !isDigit(format[pos]) {
 			break
 		}
-		num = num * 10 + int(format[pos] - '0')
+		num = num*10 + int(format[pos]-'0')
 	}
 	return num, pos
 }
@@ -60,12 +64,12 @@ func isDigit(b byte) bool { return '0' <= b && b <= '9' }
 
 func repeat(str, sep string, count int64) (string, error) {
 	switch length := int64(len(str + sep)); {
-		case count <= 0:
-			return "", nil
-		case count == 1:
-			return str, nil
-		case length * count / count != length:
-			return "", fmt.Errorf("resulting string too large")
+	case count <= 0:
+		return "", nil
+	case count == 1:
+		return str, nil
+	case length*count/count != length:
+		return "", fmt.Errorf("resulting string too large")
 	}
 	rep := strings.Repeat(str+sep, int(count))
 	return strings.TrimSuffix(rep, sep), nil
@@ -75,12 +79,12 @@ func repeat(str, sep string, count int64) (string, error) {
 // from end. The absolute position is returned.
 func strPos(len, pos int) int {
 	switch {
-		case pos >= 0:
-			return pos
-		case -pos > len:
-			return 0
-		default:
-			return len + pos + 1
+	case pos >= 0:
+		return pos
+	case -pos > len:
+		return 0
+	default:
+		return len + pos + 1
 	}
 }
 
@@ -107,7 +111,7 @@ func subStr(str string, beg, end int) (sub string) {
 	if beg > end {
 		return
 	}
-	return str[beg:end+1]
+	return str[beg : end+1]
 }
 
 func reverse(str string) string {
@@ -115,7 +119,7 @@ func reverse(str string) string {
 		runes = []rune(str)
 		count = len(runes)
 	)
-	for i,j := 0,count-1; i<count/2; i,j = i+1,j-1{
+	for i, j := 0, count-1; i < count/2; i, j = i+1, j-1 {
 		runes[i], runes[j] = runes[j], runes[i]
 	}
 	return string(runes)
@@ -126,7 +130,7 @@ func byteSlice(str string, beg, end int) (bytes []byte) {
 	if beg > end {
 		return
 	}
-	return []byte(str[beg:end+1])
+	return []byte(str[beg : end+1])
 }
 
 func find(s, p string, init int) (beg, end int, caps []string, ok bool) {

@@ -1,10 +1,10 @@
 package binary
 
 import (
-	"encoding/binary"
 	"bytes"
-	"math"
+	"encoding/binary"
 	"fmt"
+	"math"
 )
 
 var order = binary.LittleEndian
@@ -80,28 +80,30 @@ func (w *writer) writeConsts(consts []interface{}) {
 	w.writeU32(uint32(len(consts)))
 	for _, kst := range consts {
 		switch kst := kst.(type) {
-			case float64:
-				w.writeByte(LUA_NUM_FLOAT)
-				w.writeF64(kst)
-			case string:
-				if len(kst) > 40 {
-					w.writeByte(LUA_STR_SHORT)
-				} else {
-					w.writeByte(LUA_STR_LONG)
-				}
-				w.writeStr(kst)
-			case int64:
-				w.writeByte(LUA_NUM_INT)
-				w.writeI64(kst)
-			case bool:
-				w.writeByte(LUA_TYPE_BOOL)
-				b := byte(0)
-				if kst { b = 1 }
-				w.writeByte(b)
-			case nil:
-				w.writeByte(LUA_TYPE_NIL)
-			default:
-				panic(fmt.Errorf("write: unknown constant type: %T", kst))
+		case float64:
+			w.writeByte(LUA_NUM_FLOAT)
+			w.writeF64(kst)
+		case string:
+			if len(kst) > 40 {
+				w.writeByte(LUA_STR_SHORT)
+			} else {
+				w.writeByte(LUA_STR_LONG)
+			}
+			w.writeStr(kst)
+		case int64:
+			w.writeByte(LUA_NUM_INT)
+			w.writeI64(kst)
+		case bool:
+			w.writeByte(LUA_TYPE_BOOL)
+			b := byte(0)
+			if kst {
+				b = 1
+			}
+			w.writeByte(b)
+		case nil:
+			w.writeByte(LUA_TYPE_NIL)
+		default:
+			panic(fmt.Errorf("write: unknown constant type: %T", kst))
 		}
 	}
 }

@@ -1,10 +1,10 @@
 package io
 
 import (
-    "fmt"
-    "os"
+	"fmt"
+	"os"
 
-    "github.com/Azure/golua/lua"
+	"github.com/Azure/golua/lua"
 )
 
 var _ = fmt.Println
@@ -19,7 +19,7 @@ var _ = os.Exit
 // is, there are operations to set a default input file and a default output file,
 // and all input/output operations are over these default files. The second style
 // uses explicit file handles.
-// 
+//
 // When using implicit file handles, all operations are supplied by table io.
 // When using explicit file handles, the operation io.open returns a file handle
 // and then all operations are supplied as methods of the file handle.
@@ -69,15 +69,15 @@ func createFileMetaTable(state *lua.State) {
 		"close":      lua.Func(fileClose),
 		"flush":      lua.Func(fileFlush),
 		"lines":      lua.Func(fileLines),
-		"read": 	  lua.Func(fileRead),
-		"seek": 	  lua.Func(fileSeek),
-		"setvbuf":	  lua.Func(fileSetvbuf),
-		"write": 	  lua.Func(fileWrite),
-		"__gc":   	  lua.Func(fileGC),
+		"read":       lua.Func(fileRead),
+		"seek":       lua.Func(fileSeek),
+		"setvbuf":    lua.Func(fileSetvbuf),
+		"write":      lua.Func(fileWrite),
+		"__gc":       lua.Func(fileGC),
 		"__tostring": lua.Func(fileToString),
 	}
 	state.NewMetaTable(fileTypeName)
-	state.PushIndex(-1) // push metatable
+	state.PushIndex(-1)           // push metatable
 	state.SetField(-2, "__index") // metatable.__index = metatable
 	state.SetFuncs(funcs, 0)
 	state.Pop()
@@ -140,16 +140,16 @@ func ioOutput(state *lua.State) int {
 }
 
 // io.lines ([filename, ···])
-// 
+//
 // Opens the given file name in read mode and returns an iterator function that
 // works like file:lines(···) over the opened file. When the iterator function
 // detects the end of file, it returns no values (to finish the loop) and automatically
 // closes the file.
-// 
+//
 // The call io.lines() (with no file name) is equivalent to io.input():lines("*l");
 // that is, it iterates over the lines of the default input file. In this case, the
 // iterator does not close the file when the loop ends.
-// 
+//
 // In case of errors this function raises the error, instead of returning an error
 // code.
 //

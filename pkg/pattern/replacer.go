@@ -2,7 +2,7 @@ package pattern
 
 // A Replacer replaces strings that matches a pattern.
 type Replacer interface {
-	Replace(string)string
+	Replace(string) string
 }
 
 func (patt *pattern) ReplaceAll(text string, repl Replacer, limit int) (string, int) {

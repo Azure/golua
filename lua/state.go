@@ -1,16 +1,16 @@
 package lua
 
 import (
-    "path/filepath"
-    "io/ioutil"
-    "os/exec"
-	"strings"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
 
 	// "github.com/Azure/golua/pkg/goutils"
-    "github.com/Azure/golua/lua/binary"
+	"github.com/Azure/golua/lua/binary"
 	"github.com/Azure/golua/lua/syntax"
 )
 
@@ -26,20 +26,20 @@ type ThreadStatus int
 
 // thread statuses
 const (
-	ThreadOK ThreadStatus = iota // Thread is in success state 
-	ThreadYield 				 // Thread is in suspended state
-	ThreadError 				 // Thread finished execution with error
+	ThreadOK    ThreadStatus = iota // Thread is in success state
+	ThreadYield                     // Thread is in suspended state
+	ThreadError                     // Thread finished execution with error
 )
 
 // String returns the canoncial string of the thread status.
 func (status ThreadStatus) String() string {
 	switch status {
-		case ThreadOK:
-			return "OK"
-		case ThreadYield:
-			return "YIELD"
-		case ThreadError:
-			return "ERROR"
+	case ThreadOK:
+		return "OK"
+	case ThreadYield:
+		return "YIELD"
+	case ThreadError:
+		return "ERROR"
 	}
 	return fmt.Sprintf("unknown thread status %d", status)
 }
@@ -50,7 +50,7 @@ type thread struct {
 }
 
 func (x *thread) String() string { return "thread" }
-func (x *thread) Type() Type { return ThreadType }
+func (x *thread) Type() Type     { return ThreadType }
 
 type (
 	// 'per thread' state.
@@ -59,8 +59,8 @@ type (
 		global *global
 		// execution state
 		status ThreadStatus // thread status
-		base   Frame 		// base call frame
-		calls  int 			// call count
+		base   Frame        // base call frame
+		calls  int          // call count
 	}
 
 	// 'global state', shared by all threads of a main state.
@@ -113,7 +113,7 @@ func (ls *State) String() string { return fmt.Sprintf("%p", ls) }
 // traceback prints to w a stack trace from the current frame to the base.
 func (state *State) traceback(w io.Writer) {
 	fmt.Fprintln(w, "#")
-	fmt.Fprintf(w,  "# traceback (calls = %d)\n", state.calls)
+	fmt.Fprintf(w, "# traceback (calls = %d)\n", state.calls)
 	fmt.Fprintln(w, "#")
 	for fr := state.frame(); fr != nil; fr = fr.caller() {
 		fmt.Fprintf(w, "function @ %d (%d returns)\n", fr.fnID, fr.rets)
@@ -124,7 +124,7 @@ func (state *State) traceback(w io.Writer) {
 			fmt.Fprintf(w, "%s[%d] %d @ %v (%T)\n",
 				indent,
 				top,
-				top - (fr.gettop() + 1),
+				top-(fr.gettop()+1),
 				fr.local(top),
 				fr.local(top),
 			)
@@ -152,8 +152,8 @@ func (state *State) recover(err *error) {
 // safely executes the function fn returning any errors recovered by the Lua
 // runtime
 func (ls *State) safely(fn func() error) (err error) {
-    defer ls.recover(&err)
-    return fn()
+	defer ls.recover(&err)
+	return fn()
 }
 
 // value returns the Lua value at the valid index.
@@ -188,8 +188,8 @@ func (state *State) enter(fr *Frame) *Frame {
 func (state *State) leave(fr *Frame) *Frame {
 	fr.prev.next = fr.next
 	fr.next.prev = fr.prev
-	fr.next  = nil // avoid memory leaks
-	fr.prev  = nil // avoid memory leaks
+	fr.next = nil // avoid memory leaks
+	fr.prev = nil // avoid memory leaks
 	fr.state = nil
 	state.calls--
 	return fr
@@ -237,12 +237,12 @@ func (state *State) valueAt(index int) Value {
 // isValid reports whether the index points to a valid Value.
 func (state *State) isValid(index int) bool {
 	switch {
-		case index == RegistryIndex: // registry
-			index = UpValueIndex(index) - 1
-			cls := state.frame().closure
-			return cls != nil && index < len(cls.upvals)
-		case index < RegistryIndex: // upvalues
-			return true
+	case index == RegistryIndex: // registry
+		index = UpValueIndex(index) - 1
+		cls := state.frame().closure
+		return cls != nil && index < len(cls.upvals)
+	case index < RegistryIndex: // upvalues
+		return true
 	}
 	var (
 		abs = state.frame().absindex(index)
@@ -265,7 +265,7 @@ func (state *State) call(fr *Frame) {
 	fr.checkstack(InitialStackNew)
 
 	// Push arguments and pop function.
-	args := state.frame().popN(state.frame().gettop()-fr.fnID+1)[1:]
+	args := state.frame().popN(state.frame().gettop() - fr.fnID + 1)[1:]
 
 	// Enter and leave frame on return.
 	defer state.leave(state.enter(fr))
@@ -277,20 +277,20 @@ func (state *State) call(fr *Frame) {
 		// Ensure stack has space.
 		fr.checkstack(fr.closure.binary.StackSize())
 
- 		// Adjust the stack; params is the # of fixed real
+		// Adjust the stack; params is the # of fixed real
 		// parameters from the prototype, and fr.top holds
 		// the # of passed arguments currently on the frame
 		// local stack.
 		switch params := fr.closure.binary.NumParams(); {
-			case fr.gettop() < params: // # arguments < # parameters
-				for fr.gettop() < params {
-					fr.push(None) // nil to top
-				}
-			case fr.gettop() > params: // # arguments > # parameters
-				extras := fr.popN(fr.gettop() - params)
-				if fr.closure.binary.IsVararg() {
-				    fr.vararg = extras
-				}
+		case fr.gettop() < params: // # arguments < # parameters
+			for fr.gettop() < params {
+				fr.push(None) // nil to top
+			}
+		case fr.gettop() > params: // # arguments > # parameters
+			extras := fr.popN(fr.gettop() - params)
+			if fr.closure.binary.IsVararg() {
+				fr.vararg = extras
+			}
 		}
 
 		// Execute the closure.
@@ -325,17 +325,17 @@ func (state *State) init(global *global) {
 // uses the long listing options to capture the compiled IR dump.
 // EmitIR returns the Lua bytecode encoded as a string or any error.
 func (state *State) emit(script string) {
-    src, err := ioutil.ReadFile(script)
-    if err != nil {
-       panic(err)
-    }
-    cmd := exec.Command("luac", "-l", "-")
-    cmd.Stdin = strings.NewReader(string(src))
-    out, err := cmd.CombinedOutput()
-    if err != nil {
-        panic(fmt.Errorf("%v: %s", err, string(out)))
-    }
-    fmt.Fprintln(os.Stdout, string(out))
+	src, err := ioutil.ReadFile(script)
+	if err != nil {
+		panic(err)
+	}
+	cmd := exec.Command("luac", "-l", "-")
+	cmd.Stdin = strings.NewReader(string(src))
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		panic(fmt.Errorf("%v: %s", err, string(out)))
+	}
+	fmt.Fprintln(os.Stdout, string(out))
 }
 
 func (state *State) load(filename string, source interface{}) (*Closure, error) {
@@ -347,22 +347,22 @@ func (state *State) load(filename string, source interface{}) (*Closure, error) 
 		return nil, err
 	}
 	if !binary.IsChunk(src) {
-	    dir, err := ioutil.TempDir("", "glua")
-	    if err != nil {
-	        return nil, err
-	    }
-	    tmp := filepath.Join(dir, "glua.bin")
-	    cmd := exec.Command("luac", "-o", tmp, "-")
-	    cmd.Stdin = strings.NewReader(string(src))
+		dir, err := ioutil.TempDir("", "glua")
+		if err != nil {
+			return nil, err
+		}
+		tmp := filepath.Join(dir, "glua.bin")
+		cmd := exec.Command("luac", "-o", tmp, "-")
+		cmd.Stdin = strings.NewReader(string(src))
 
-	    out, err := cmd.CombinedOutput()
-	    if err != nil {
-	        return nil, fmt.Errorf("%v: %s", err, string(out))
-	    }
+		out, err := cmd.CombinedOutput()
+		if err != nil {
+			return nil, fmt.Errorf("%v: %s", err, string(out))
+		}
 
-	    if src, err = ioutil.ReadFile(tmp); err != nil {
-	        return nil, err
-	    }
+		if src, err = ioutil.ReadFile(tmp); err != nil {
+			return nil, err
+		}
 	}
 
 	chunk, err := binary.Load(src)
@@ -371,10 +371,10 @@ func (state *State) load(filename string, source interface{}) (*Closure, error) 
 	}
 
 	cls := newLuaClosure(&chunk.Entry)
-    if len(cls.upvals) > 0 {
-        globals := state.global.registry.getInt(GlobalsIndex)
-        cls.upvals[0] = &upValue{index: -1, value: globals}
-    }
+	if len(cls.upvals) > 0 {
+		globals := state.global.registry.getInt(GlobalsIndex)
+		cls.upvals[0] = &upValue{index: -1, value: globals}
+	}
 	return cls, nil
 }
 
@@ -428,30 +428,30 @@ func (state *State) setmetatable(value, meta Value) {
 		state.errorf("metatable must be table or nil")
 	}
 	switch v := value.(type) {
-		case *Object:
-			v.meta = mt
-		case *table:
-			v.meta = mt
-		default:
-			state.global.builtins[v.Type()] = mt
+	case *Object:
+		v.meta = mt
+	case *table:
+		v.meta = mt
+	default:
+		state.global.builtins[v.Type()] = mt
 	}
 }
 
 func (state *State) getmetatable(value Value, rawget bool) Value {
 	var meta Value
 	switch value := value.(type) {
-		case *Object:
-			if !IsNone(value.meta) && value.meta != nil {
-				meta = value.meta
-			}
-		case *table:
-			if !IsNone(value.meta) && value.meta != nil {
-				meta = value.meta
-			}
-		default:
-			if mt := state.global.builtins[value.Type()]; mt != nil {
-				meta = mt
-			}
+	case *Object:
+		if !IsNone(value.meta) && value.meta != nil {
+			meta = value.meta
+		}
+	case *table:
+		if !IsNone(value.meta) && value.meta != nil {
+			meta = value.meta
+		}
+	default:
+		if mt := state.global.builtins[value.Type()]; mt != nil {
+			meta = mt
+		}
 	}
 	if !rawget && !IsNone(meta) && meta != nil {
 		if mt, ok := meta.(*table); ok {
@@ -495,88 +495,88 @@ func (state *State) Log(args ...interface{}) {
 // nil value.
 func (state *State) get(index int) Value {
 	switch frame := state.frame(); {
-		//
-		// Positive stack index
-		//
-		case index > 0:
-			if index > cap(frame.locals) {
-				state.errorf("unacceptable index (%d)", index)
-			}
-			if index > frame.gettop() {
-				return None
-			}
-			return frame.get(index-1)
-		//
-		// Negative stack index
-		//
-		case !isPseudoIndex(index):
-			//state.Logf("get %d (absolute = %d)", index, frame.absindex(index))
-			// Debug(state)
-			if index = frame.absindex(index); index < 1 || index > frame.gettop() {
-				state.errorf("invalid index (%d)", index)
-			}
-			return frame.get(index-1)
-		//
-		// Registry pseudo index
-		//
-		case index == RegistryIndex:
-			return state.global.registry
-		//
-		// Upvalues pseudo index
-		//
-		default:
-			if index = RegistryIndex - index; index >= MaxUpValues {
-				state.errorf("upvalue index too large (%d)", index)
-			}
-			if nups := len(frame.closure.upvals); nups == 0 || nups > index {
-				return None
-			}
-			return frame.getUp(index-1).get()
+	//
+	// Positive stack index
+	//
+	case index > 0:
+		if index > cap(frame.locals) {
+			state.errorf("unacceptable index (%d)", index)
+		}
+		if index > frame.gettop() {
+			return None
+		}
+		return frame.get(index - 1)
+	//
+	// Negative stack index
+	//
+	case !isPseudoIndex(index):
+		//state.Logf("get %d (absolute = %d)", index, frame.absindex(index))
+		// Debug(state)
+		if index = frame.absindex(index); index < 1 || index > frame.gettop() {
+			state.errorf("invalid index (%d)", index)
+		}
+		return frame.get(index - 1)
+	//
+	// Registry pseudo index
+	//
+	case index == RegistryIndex:
+		return state.global.registry
+	//
+	// Upvalues pseudo index
+	//
+	default:
+		if index = RegistryIndex - index; index >= MaxUpValues {
+			state.errorf("upvalue index too large (%d)", index)
+		}
+		if nups := len(frame.closure.upvals); nups == 0 || nups > index {
+			return None
+		}
+		return frame.getUp(index - 1).get()
 	}
 }
 
 func (state *State) set(index int, value Value) {
 	switch frame := state.frame(); {
-		//
-		// Positive stack index
-		//
-		case index > 0:
-			if index > cap(frame.locals) {
-				state.errorf("unacceptable index (%d)", index)
-			}
-			if index > frame.gettop() {
-				return
-			}
-			frame.set(index-1, value)
+	//
+	// Positive stack index
+	//
+	case index > 0:
+		if index > cap(frame.locals) {
+			state.errorf("unacceptable index (%d)", index)
+		}
+		if index > frame.gettop() {
 			return
-		//
-		// Negative stack index
-		//
-		case !isPseudoIndex(index):
-			if index = frame.absindex(index); index < 1 || index > frame.gettop() {
-				state.errorf("invalid index (%d)", index)
-			}
-			frame.set(index-1, value)
-			return
-		//
-		// Registry pseudo index
-		//
-		case index == RegistryIndex:
-			state.global.registry = value.(*table)
-			return
+		}
+		frame.set(index-1, value)
+		return
+	//
+	// Negative stack index
+	//
+	case !isPseudoIndex(index):
+		if index = frame.absindex(index); index < 1 || index > frame.gettop() {
+			state.errorf("invalid index (%d)", index)
+		}
+		frame.set(index-1, value)
+		return
+	//
+	// Registry pseudo index
+	//
+	case index == RegistryIndex:
+		state.global.registry = value.(*table)
+		return
 
-		//
-		// Upvalues pseudo index
-		//
-		default:
-			if index = RegistryIndex - index; index >= MaxUpValues {
-				state.errorf("upvalue index too large (%d)", index)
-			}
-			if nups := len(frame.closure.upvals); nups == 0 || nups > index {
-				return
-			}			
-			frame.setUp(index-1, value)
+	//
+	// Upvalues pseudo index
+	//
+	default:
+		if index = RegistryIndex - index; index >= MaxUpValues {
+			state.errorf("upvalue index too large (%d)", index)
+		}
+		if nups := len(frame.closure.upvals); nups == 0 || nups > index {
 			return
+		}
+		frame.setUp(index-1, value)
+		return
 	}
 }
 
@@ -584,17 +584,17 @@ func (state *State) set(index int, value Value) {
 // value is (1xxx) * 2^(eeeee - 1) if eeeee != 0 and (xxx) otherwise.
 func i2fb(i int) int {
 	var (
-		u = uint8(i)
+		u     = uint8(i)
 		e int = 0 // exponent
 	)
 	if u < 8 {
 		return i
 	}
-	for u >= (8 << 4) {    // coarse steps
+	for u >= (8 << 4) { // coarse steps
 		u = (u + 0xF) >> 4 // x = ceil(x/16)
 		e += 4
 	}
-	for u >= (8 << 1) {  // fine steps
+	for u >= (8 << 1) { // fine steps
 		u = (u + 1) >> 1 // x = ceil(x/2)
 		e++
 	}

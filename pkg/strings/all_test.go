@@ -1,12 +1,12 @@
 package strings
 
 import (
-	"testing"
 	"fmt"
+	"testing"
 )
 
 func TestMatchAndCaptures(t *testing.T) {
-	var tests = []struct{
+	var tests = []struct {
 		pattern string
 		subject string
 		matches bool

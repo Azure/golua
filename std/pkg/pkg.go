@@ -1,10 +1,10 @@
 package pkg
 
 import (
-	"strings"
-	"plugin"
 	"fmt"
 	"os"
+	"plugin"
+	"strings"
 
 	"github.com/Azure/golua/lua"
 )
@@ -17,14 +17,14 @@ func Open(state *lua.State) int {
 	// Create 'package' table.
 	var packageFuncs = map[string]lua.Func{
 		"searchpath": lua.Func(pkgSearchPath),
-		"loadlib": 	  lua.Func(pkgLoadLibrary),
+		"loadlib":    lua.Func(pkgLoadLibrary),
 	}
 	state.NewTableSize(0, 8)
 	state.SetFuncs(packageFuncs, 0)
 
 	// Create 'searchers' table.
 	createSearchersTable(state)
-	
+
 	// Set 'path' field.
 	state.Push(lua.EnvPath)
 	state.SetField(-2, "path")
@@ -55,7 +55,7 @@ func Open(state *lua.State) int {
 
 	// Pop 'globals' table.
 	state.Pop()
-	
+
 	// Return 'package' table
 	return 1
 }
@@ -154,7 +154,7 @@ func pkgSearchPath(state *lua.State) int {
 // This function is not supported by Standard C. As such, it is only available on
 // some platforms (Windows, Linux, Mac OS X, Solaris, BSD, plus other Unix systems
 // that support the dlfcn standard).
-// 
+//
 // See https://www.lua.org/manual/5.3/manual.html#pdf-package.loadlib
 func pkgLoadLibrary(state *lua.State) int {
 	var (
@@ -200,7 +200,7 @@ func lookForFunc(state *lua.State, path, init string) int {
 		state.Push(err.Error())
 		return 1
 	}
-	l, ok := s.(func(*lua.State)int)
+	l, ok := s.(func(*lua.State) int)
 	if !ok {
 		err := fmt.Errorf("plugin %q symbol %q has incorrect type", path, init)
 		state.Push(err.Error())
@@ -221,21 +221,21 @@ func searchLoader(state *lua.State, modname string) {
 
 	// Iterate over available searchers to find a loader.
 	for arr, at := state.Top(), 1; state.RawGetIndex(arr, at) != lua.NilType; at++ {
-      	// Push modname argument and call searcher.
+		// Push modname argument and call searcher.
 		state.Push(modname)
 		state.Call(1, 2)
 
 		switch state.TypeAt(-2) {
-			case lua.StringType:
-				// The loader returned an error message
-				// pop it from the stack and throw it.
-				state.Pop() // remove extra argument.
-				fmt.Fprintf(&errs, "%v", state.Pop())
-			case lua.FuncType:
-				// A loader was found, simply return.
-				return
-			default: // Remove both returns.
-				state.PopN(2)
+		case lua.StringType:
+			// The loader returned an error message
+			// pop it from the stack and throw it.
+			state.Pop() // remove extra argument.
+			fmt.Fprintf(&errs, "%v", state.Pop())
+		case lua.FuncType:
+			// A loader was found, simply return.
+			return
+		default: // Remove both returns.
+			state.PopN(2)
 		}
 	}
 
@@ -256,7 +256,7 @@ func searchPreload(state *lua.State) int {
 
 func searchLua(state *lua.State) int {
 	var (
-		modname = state.CheckString(1)
+		modname  = state.CheckString(1)
 		filename string
 	)
 	if filename = findFile(state, modname, "path"); filename == "" {

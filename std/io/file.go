@@ -95,7 +95,7 @@ func fileRead(state *lua.State) int {
 // Sets and gets the file position, measured from the beginning of the file,
 // to the position given by offset plus a base specified by the string whence,
 // as follows:
-// 
+//
 // 	"set": base is position 0 (beginning of the file);
 // 	"cur": base is current position;
 // 	"end": base is end of file;
@@ -103,7 +103,7 @@ func fileRead(state *lua.State) int {
 // In case of success, seek returns the final file position, measured in bytes
 // from the beginning of the file. If seek fails, it returns nil, plus a string
 // describing the error.
-// 
+//
 // The default value for whence is "cur", and for offset is 0. Therefore, the call
 // file:seek() returns the current file position, without changing it; the call
 // file:seek("set") sets the position to the beginning of the file (and returns 0);
@@ -138,7 +138,7 @@ func fileSeek(state *lua.State) int {
 // Sets the buffering mode for an output file.
 //
 // There are three available modes:
-// 
+//
 // 	  "no": no buffering; the result of any output operation appears immediately.
 // 	"full": full buffering; output operation is performed only when the buffer is
 //			full or when you explicitly flush the file (see io.flush).

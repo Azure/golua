@@ -15,14 +15,14 @@ import (
 // MatchIndexAll matches all items in text that match the pattern expr upto limit
 // (or all if limit is -1). The matches are returned as a two-dimensional slice
 // of integer offsets that points to the boundaries of any captures found in the
-// match. 
+// match.
 func MatchIndexAll(text, expr string, limit int) (captures [][]int) {
 	return MustCompile(expr).MatchIndexAll(text, limit)
 }
 
 // MatchIndex matches the first item in text to match the pattern expr. The matche
 // is returned as a slice of integer offsets that points to the boundaries of any
-// captures found in the match. 
+// captures found in the match.
 func MatchIndex(text, expr string) (captures []int) {
 	return MustCompile(expr).MatchIndex(text)
 }

@@ -8,12 +8,12 @@ import (
 type errorFn func(error)
 
 func (fn errorFn) throw(state *State, err error) {
-    if fn == nil {
-        // fmt.Fprintf(os.Stderr, "lua: runtime error: %v\n", err)
+	if fn == nil {
+		// fmt.Fprintf(os.Stderr, "lua: runtime error: %v\n", err)
 		panic(err)
-    } else {
-        fn(err)
-    }
+	} else {
+		fn(err)
+	}
 }
 
 func argErrorf(state *State, argAt int, format string, args ...interface{}) {

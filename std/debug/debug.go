@@ -1,10 +1,11 @@
 package debug
 
 import (
+	"fmt"
+	"os"
 	"strings"
-    "fmt"
-    "os"
-    "github.com/Azure/golua/lua"
+
+	"github.com/Azure/golua/lua"
 )
 
 var _ = fmt.Println
@@ -16,7 +17,7 @@ var _ = os.Exit
 
 // Open open the Lua standard debug library. This library provides the functionality of the
 // debug interface (§4.9) to Lua programs. You should exert care when using this library.
-// 
+//
 // Several of its functions violate basic assumptions about Lua code (e.g., that variables local
 // to a function cannot be accessed from outside; that userdata metatables cannot be changed by Lua
 // code; that Lua programs do not crash) and therefore can compromise otherwise secure code.
@@ -27,8 +28,8 @@ var _ = os.Exit
 // the current thread.
 func Open(state *lua.State) int {
 	// Create 'debug' table.
-    var debugFuncs = map[string]lua.Func{
-        "debug":        lua.Func(dbgDebug),
+	var debugFuncs = map[string]lua.Func{
+		"debug":        lua.Func(dbgDebug),
 		"gethook":      lua.Func(dbgGetHook),
 		"getinfo":      lua.Func(dbgGetInfo),
 		"getlocal":     lua.Func(dbgGetLocal),
@@ -44,12 +45,12 @@ func Open(state *lua.State) int {
 		"traceback":    lua.Func(dbgTraceback),
 		"upvalueid":    lua.Func(dbgUpValueID),
 		"upvaluejoin":  lua.Func(dbgUpValueJoin),
-    }
+	}
 	state.NewTableSize(0, len(debugFuncs))
 	state.SetFuncs(debugFuncs, 0)
 
- 	// Return 'debug' table.
-    return 1
+	// Return 'debug' table.
+	return 1
 }
 
 // debug.debug ()
@@ -99,9 +100,9 @@ func dbgGetInfo(state *lua.State) int {
 
 	var dbg lua.Debug
 
-	if state.IsFunc(index+1) {
+	if state.IsFunc(index + 1) {
 		options = fmt.Sprintf(">%s", options)
-		state.PushIndex(index+1)
+		state.PushIndex(index + 1)
 		state.XMove(thread, 1)
 	} else {
 		if err := state.GetStack(&dbg, int(state.CheckInt(index+1))); err != nil {
@@ -167,12 +168,12 @@ func dbgGetMetaTable(state *lua.State) int {
 // See https://www.lua.org/manual/5.3/manual.html#pdf-debug.setmetatable
 func dbgSetMetaTable(state *lua.State) int {
 	switch state.TypeAt(2) {
-		case lua.NilType, lua.TableType:
-			state.SetTop(2)
-			state.SetMetaTableAt(1)
-			return 1
-		default:
-			panic(fmt.Errorf("nil or table expected"))
+	case lua.NilType, lua.TableType:
+		state.SetTop(2)
+		state.SetMetaTableAt(1)
+		return 1
+	default:
+		panic(fmt.Errorf("nil or table expected"))
 	}
 }
 
@@ -435,8 +436,8 @@ func setFieldBool(state *lua.State, key string, value bool) {
 
 // checkUpValue checks whether a given upvalue from a given closure exists and returns its index.
 func checkUpValue(state *lua.State, function, index int) (up int) {
-    state.CheckType(1, lua.FuncType)
-    up = int(state.CheckInt(index))
+	state.CheckType(1, lua.FuncType)
+	up = int(state.CheckInt(index))
 	if state.GetUpValue(function, up) == "" {
 		panic(fmt.Errorf("invalid upvalue index"))
 	}

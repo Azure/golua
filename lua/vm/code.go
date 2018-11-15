@@ -3,7 +3,7 @@ package vm
 type Code uint8
 
 const (
-	MOVE	 Code = iota
+	MOVE Code = iota
 	LOADK
 	LOADKX
 	LOADBOOL
@@ -53,7 +53,7 @@ const (
 )
 
 var names = [...]string{
-	MOVE: 	  "MOVE",
+	MOVE:     "MOVE",
 	LOADK:    "LOADK",
 	LOADKX:   "LOADKX",
 	LOADBOOL: "LOADBOOL",
@@ -84,12 +84,12 @@ var names = [...]string{
 	LEN:      "LEN",
 	CONCAT:   "CONCAT",
 	JMP:      "JMP",
-	EQ: 	  "EQ",
-	LT: 	  "LT",
-	LE: 	  "LE",
-	TEST: 	  "TEST",
+	EQ:       "EQ",
+	LT:       "LT",
+	LE:       "LE",
+	TEST:     "TEST",
 	TESTSET:  "TESTSET",
-	CALL: 	  "CALL",
+	CALL:     "CALL",
 	TAILCALL: "TAILCALL",
 	RETURN:   "RETURN",
 	FORLOOP:  "FORLOOP",

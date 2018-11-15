@@ -1,8 +1,8 @@
 package packer
 
 import (
-	"encoding/binary"
 	"bytes"
+	"encoding/binary"
 	"fmt"
 )
 
@@ -17,7 +17,8 @@ func newState(format string) (*state, error) {
 		s = scan(format)
 		p = new(state)
 	)
-	L: for {
+L:
+	for {
 		switch opt := s.nextOpt(); opt.typ {
 		case optErr:
 			s.drain()
@@ -72,7 +73,6 @@ func (p *state) Size() (size int, err error) {
 	}
 	return size, err
 }
-
 
 func (p *state) packValue(o option, v interface{}) error {
 	switch o.typ {

@@ -12,7 +12,7 @@ var _ = fmt.Println
 var _ = os.Exit
 
 // v53 is the Lua 5.3 engine.
-type v53 struct { state *State }
+type v53 struct{ state *State }
 
 // prototype pushes onto the stack a closure for the function prototype
 // at index of the binary chunk
@@ -31,7 +31,7 @@ func (vm *v53) constant(index int) Value {
 func (vm *v53) thread() *State { return vm.state }
 
 // Try to convert a 'for' limit to an integer, preserving the semantics of the loop.
-// 
+//
 // The following explanation assumes a non-negative step; it is valid for negative
 // steps mutatis mutandis.
 //

@@ -1,10 +1,10 @@
 package syntax
 
 import (
-	"strings"
-	"strconv"
-	"regexp"
 	"math"
+	"regexp"
+	"strconv"
+	"strings"
 )
 
 var (

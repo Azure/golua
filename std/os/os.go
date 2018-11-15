@@ -1,11 +1,12 @@
 package os
 
 import (
+	"fmt"
 	"io/ioutil"
+	"os"
 	"time"
-    "fmt"
-    "os"
-    "github.com/Azure/golua/lua"
+
+	"github.com/Azure/golua/lua"
 )
 
 var _ = fmt.Println
@@ -20,7 +21,7 @@ var _ = os.Exit
 // See https://www.lua.org/manual/5.3/manual.html#6.9
 func Open(state *lua.State) int {
 	// Create 'os' table
-    var osFuncs = map[string]lua.Func{
+	var osFuncs = map[string]lua.Func{
 		"clock":     lua.Func(osClock),
 		"date":      lua.Func(osDate),
 		"difftime":  lua.Func(osDiffTime),
@@ -32,12 +33,12 @@ func Open(state *lua.State) int {
 		"setlocale": lua.Func(osSetLocale),
 		"time":      lua.Func(osTime),
 		"tmpname":   lua.Func(osTmpName),
-    }
+	}
 	state.NewTableSize(0, len(osFuncs))
-    state.SetFuncs(osFuncs, 0)
+	state.SetFuncs(osFuncs, 0)
 
 	// Return 'os' table
-    return 1
+	return 1
 }
 
 // os.clock ()
@@ -222,13 +223,13 @@ func osTime(state *lua.State) int {
 	// state.CheckType(1, lua.TableType)
 	// state.SetTop(1)
 	// var (
-	//		sec   = 
+	//		sec   =
 	//		min   =
 	//		day   =
 	//		hour  =
-	//		year  = 
+	//		year  =
 	//		month = time.Month(...)
-	//		isdst = 
+	//		isdst =
 	// )
 	// date := time.Date(year, month, day, hour, min, sec, 0, time.Local)
 	// state.Push(date.Unix())
@@ -264,6 +265,6 @@ func osTmpName(state *lua.State) int {
 }
 
 var epoch time.Time // start time.
-func init() { epoch = time.Now() }
+func init()         { epoch = time.Now() }
 
 func unimplemented(msg string) { panic(fmt.Errorf(msg)) }

@@ -1,9 +1,9 @@
 package strings
 
 import (
-	"strings"
-	"regexp"
 	"fmt"
+	"regexp"
+	"strings"
 
 	"github.com/Azure/golua/pkg/pattern"
 )
@@ -32,7 +32,7 @@ func (str String) Match(text string) (captures []string) {
 // If str contains a pattern and a match is made with text, the captures
 // are returns as a slice of strings; otherwise if no match or no captures
 // then captures will be nil.
-func (str String) FindAll(text string, limit int) ([][]int) {
+func (str String) FindAll(text string, limit int) [][]int {
 	return pattern.MatchIndexAll(text, string(str), limit)
 }
 
@@ -41,7 +41,7 @@ func (str String) FindAll(text string, limit int) ([][]int) {
 // If str contains a pattern and a match is made with text, the captures
 // are returns as a slice of strings; otherwise if no match or no captures
 // then captures will be nil.
-func (str String) Find(text string) ([]int) {
+func (str String) Find(text string) []int {
 	return pattern.MatchIndex(text, string(str))
 }
 
@@ -132,7 +132,7 @@ func (str String) Gmatch(text string, iter func([]string)) {
 }
 
 // replacerFn implements the Replacer interface.
-type replacerFn func(string)string
+type replacerFn func(string) string
 
 func (fn replacerFn) Replace(capture string) string { return fn(capture) }
 

@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/Azure/golua/std"
 	"github.com/Azure/golua/lua"
+	"github.com/Azure/golua/std"
 )
 
 var (
@@ -41,7 +41,7 @@ func main() {
 
 	if tests {
 		state.Push(true)
-		state.SetGlobal("_U")	
+		state.SetGlobal("_U")
 	}
 
 	must(state.Main(flag.Args()...))

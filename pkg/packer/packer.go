@@ -39,7 +39,7 @@ type (
 	Packer interface {
 		Pack(state State) error
 	}
-	
+
 	Option interface {
 		Format() (verb rune)
 		Width() (width uint)
