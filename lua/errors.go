@@ -2,7 +2,6 @@ package lua
 
 import (
 	"fmt"
-	// "os"
 )
 
 type errorFn func(error)
