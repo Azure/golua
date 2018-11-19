@@ -55,9 +55,9 @@ func (fr *Frame) checkstack(needed int) bool {
 // extend grows the frame's locals stack by grow.
 func (fr *Frame) extend(grow int) {
 	fr.locals = append(
-		fr.locals[:len(fr.locals)],
-		make([]Value, 0, grow)...,
-	)
+		fr.locals,
+		make([]Value, grow, grow)...,
+	)[:len(fr.locals)]
 }
 
 // absindex converts the acceptable index into an equivalent
