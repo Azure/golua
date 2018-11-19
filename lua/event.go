@@ -230,66 +230,35 @@ const (
 	metaNewIndex
 	metaCall
 	metaMode
-	metaTagN
 )
 
-var (
-	name2event = map[string]metaEvent{
-		"add":      metaAdd,
-		"sub":      metaSub,
-		"mul":      metaMul,
-		"div":      metaDiv,
-		"mod":      metaMod,
-		"pow":      metaPow,
-		"unm":      metaUnm,
-		"idiv":     metaIdiv,
-		"band":     metaBand,
-		"bor":      metaBor,
-		"bxor":     metaBxor,
-		"bnot":     metaBnot,
-		"shl":      metaShl,
-		"shr":      metaShr,
-		"concat":   metaConcat,
-		"len":      metaLen,
-		"eq":       metaEq,
-		"lt":       metaLt,
-		"le":       metaLe,
-		"index":    metaIndex,
-		"newindex": metaNewIndex,
-		"call":     metaCall,
-		"mode":     metaMode,
-	}
-
-	event2name = [...]string{
-		metaAdd:      "add",
-		metaSub:      "sub",
-		metaMul:      "mul",
-		metaDiv:      "div",
-		metaMod:      "mod",
-		metaPow:      "pow",
-		metaUnm:      "unm",
-		metaIdiv:     "idiv",
-		metaBand:     "band",
-		metaBor:      "bor",
-		metaBxor:     "bxor",
-		metaBnot:     "bnot",
-		metaShl:      "shl",
-		metaShr:      "shr",
-		metaConcat:   "concat",
-		metaLen:      "len",
-		metaEq:       "eq",
-		metaLt:       "lt",
-		metaLe:       "le",
-		metaIndex:    "index",
-		metaNewIndex: "newindex",
-		metaCall:     "call",
-		metaMode:     "mode",
-	}
-)
+var event2name = [...]string{
+	metaAdd:      "add",
+	metaSub:      "sub",
+	metaMul:      "mul",
+	metaDiv:      "div",
+	metaMod:      "mod",
+	metaPow:      "pow",
+	metaUnm:      "unm",
+	metaIdiv:     "idiv",
+	metaBand:     "band",
+	metaBor:      "bor",
+	metaBxor:     "bxor",
+	metaBnot:     "bnot",
+	metaShl:      "shl",
+	metaShr:      "shr",
+	metaConcat:   "concat",
+	metaLen:      "len",
+	metaEq:       "eq",
+	metaLt:       "lt",
+	metaLe:       "le",
+	metaIndex:    "index",
+	metaNewIndex: "newindex",
+	metaCall:     "call",
+	metaMode:     "mode",
+}
 
 func (evt metaEvent) ID() string { return "__" + event2name[evt] }
-
-func (evt metaEvent) name() string { return event2name[evt] }
 
 func metaOf(state *State, v Value) *table {
 	events := newTable(state, 0, 0)
@@ -330,7 +299,7 @@ func metaOf(state *State, v Value) *table {
 				if err != nil {
 					state.errorf("%v", err)
 				}
-				if vs == nil || len(vs) == 0 {
+				if len(vs) == 0 {
 					return 0
 				}
 				for _, v := range vs {

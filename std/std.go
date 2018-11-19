@@ -1,6 +1,7 @@
 package std
 
 import (
+	"github.com/Azure/golua/lua"
 	"github.com/Azure/golua/std/base"
 	"github.com/Azure/golua/std/coro"
 	"github.com/Azure/golua/std/debug"
@@ -11,8 +12,6 @@ import (
 	"github.com/Azure/golua/std/str"
 	"github.com/Azure/golua/std/table"
 	"github.com/Azure/golua/std/utf8"
-
-	"github.com/Azure/golua/lua"
 )
 
 // Open opens all standard Lua libraries into the given state.

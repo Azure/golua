@@ -1,14 +1,11 @@
 package strings
 
 import (
-	"fmt"
 	"regexp"
 	"strings"
 
 	"github.com/Azure/golua/pkg/pattern"
 )
-
-var _ = fmt.Println
 
 // String is a wrapper type that implements various string operations.
 type String string

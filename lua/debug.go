@@ -14,7 +14,6 @@ import (
 //
 // See https://www.lua.org/manual/5.3/manual.html#lua_Debug
 type Debug struct {
-	frame    *Frame
 	source   string
 	short    string
 	name     string

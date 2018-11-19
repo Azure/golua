@@ -9,8 +9,6 @@ import (
 	strutil "github.com/Azure/golua/pkg/strings"
 )
 
-var _ = fmt.Println
-
 //
 // Lua Standard Library -- string
 //

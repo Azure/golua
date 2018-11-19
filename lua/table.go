@@ -35,7 +35,6 @@ type table struct {
 	hash map[Value]Value
 	list []Value
 	meta *table
-	size int
 
 	// iterator state
 	iter []Value
@@ -58,15 +57,6 @@ func newTable(state *State, arrayN, hashN int) *table {
 		t.hash = make(map[Value]Value)
 	}
 	return &t
-}
-
-func (x *table) foreach(fn func(k, v Value)) {
-	for i, v := range x.list {
-		fn(Int(i), v)
-	}
-	for k, v := range x.hash {
-		fn(k, v)
-	}
 }
 
 func (t *table) set(k, v Value) {
@@ -131,14 +121,6 @@ func (t *table) exists(key Value) bool {
 
 func (t *table) length() int {
 	return len(t.list)
-}
-
-func (t *table) shrink() {
-	for i := len(t.list) - 1; i >= 0; i-- {
-		if IsNone(t.list[i]) {
-			t.list = t.list[0:i]
-		}
-	}
 }
 
 func (t *table) next(key Value) (k, v Value, more bool) {

@@ -2,14 +2,10 @@ package lua
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/Azure/golua/lua/binary"
 	"github.com/Azure/golua/lua/vm"
 )
-
-var _ = fmt.Println
-var _ = os.Exit
 
 // v53 is the Lua 5.3 engine.
 type v53 struct{ state *State }

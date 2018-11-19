@@ -114,7 +114,6 @@ func (Int) number()          {}
 type Nil byte
 
 const None = Nil(0)
-const nilValue = Nil(1)
 
 func (x Nil) String() string { return "nil" }
 func (x Nil) Type() Type {
@@ -226,12 +225,6 @@ func truth(value Value) Bool {
 	return Bool(!IsNone(value))
 }
 
-func max(a, b int) int {
-	if a > b {
-		return a
-	}
-	return b
-}
 func min(a, b int) int {
 	if a < b {
 		return a

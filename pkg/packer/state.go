@@ -2,7 +2,6 @@ package packer
 
 import (
 	"bytes"
-	"encoding/binary"
 	"fmt"
 )
 
@@ -105,8 +104,4 @@ func (p *state) packInt(o option, v interface{}) error {
 	}
 	// return p.pack(o, v)
 	return nil
-}
-
-func (p *state) pack(o option, v interface{}) error {
-	return binary.Write(&p.out, o.order, v)
 }

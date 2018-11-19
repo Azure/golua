@@ -259,7 +259,7 @@ func utf8Offset(state *lua.State) int {
 		}
 	}
 	if n == 0 {
-		state.Push(int64(i + 1))
+		state.Push(i + 1)
 	} else {
 		state.Push(nil)
 	}

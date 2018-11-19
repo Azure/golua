@@ -122,7 +122,6 @@ type Option func(*config)
 
 // config holds all configuration for a Lua state.
 type config struct {
-	errFn func(error)
 	check bool
 	trace bool
 	debug bool

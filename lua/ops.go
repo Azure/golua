@@ -1,15 +1,12 @@
 package lua
 
 import (
-	// "strconv"
 	"fmt"
 	"math"
 	"strings"
 
 	"github.com/Azure/golua/lua/syntax"
 )
-
-var _ = fmt.Println
 
 // Op represents a Lua arithmetic, bitwise, or relational operator.
 type Op int
@@ -183,9 +180,6 @@ func (state *State) compare(op Op, x, y Value, raw bool) bool {
 			}
 			// x (float) <= y (int)
 			if y, ok := y.(Int); ok {
-				if x != x { // x is NaN
-					return false
-				}
 				var cmp int
 				switch {
 				case !math.IsInf(float64(x), 0): // x is finite
@@ -200,9 +194,6 @@ func (state *State) compare(op Op, x, y Value, raw bool) bool {
 		case Int:
 			// x (int) <= y (float)
 			if y, ok := y.(Float); ok {
-				if y != y { // y is NaN
-					return false
-				}
 				var cmp int
 				switch {
 				case !math.IsInf(float64(y), 0): // y is finite
@@ -236,9 +227,6 @@ func (state *State) compare(op Op, x, y Value, raw bool) bool {
 			}
 			// x (float) < y (int)
 			if y, ok := y.(Int); ok {
-				if x != x { // x is NaN
-					return false
-				}
 				var cmp int
 				switch {
 				case !math.IsInf(float64(x), 0): // x is finite
@@ -253,9 +241,6 @@ func (state *State) compare(op Op, x, y Value, raw bool) bool {
 		case Int:
 			// x (int) < y (float)
 			if y, ok := y.(Float); ok {
-				if y != y { // y is NaN
-					return false
-				}
 				var cmp int
 				switch {
 				case !math.IsInf(float64(y), 0): // y is finite
@@ -375,7 +360,7 @@ func (state *State) arith(op Op, x, y Value) Value {
 			if n == -1 {
 				return Int(0)
 			}
-			r := Int(m % n)
+			r := m % n
 			if r != 0 && (m^n) < 0 {
 				r += n
 			}
@@ -398,9 +383,9 @@ func (state *State) arith(op Op, x, y Value) Value {
 				panic(fmt.Errorf("attempt to divide by zero"))
 			}
 			if n == -1 {
-				return Int(0 - m)
+				return m
 			}
-			q := Int(m / n)
+			q := m / n
 			if (m^n) < 0 && m%n != 0 {
 				q -= 1
 			}
@@ -634,9 +619,6 @@ func isInteger(v Value) bool { _, ok := v.(Int); return ok }
 
 // isNumber returns true if v is a Number.
 func isNumber(v Value) bool { _, ok := v.(Number); return ok }
-
-// isNaN returns whether the Lua float number is an IEEE 754 "not-a-number" value.
-func isNaN(v Float) bool { return float64(v) == math.NaN() }
 
 // threeway interprets a three-way comparison value cmp (-1, 0, +1) as a boolean
 // comparison between two values (e.g. x < y).

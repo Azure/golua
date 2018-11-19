@@ -81,7 +81,7 @@ func decodePrototype(r *bytes.Buffer, proto *Prototype) {
 	{
 		var num uint32
 		must(binary.Read(r, order, &num))
-		proto.UpValues = make([]UpValue, num, num)
+		proto.UpValues = make([]UpValue, num)
 		for i := range proto.UpValues {
 			var (
 				upv UpValue

@@ -5,8 +5,6 @@ import (
 	"fmt"
 )
 
-var _ = fmt.Println
-
 func MustCompile(expr string) *Pattern {
 	patt, err := Compile(expr)
 	if err != nil {

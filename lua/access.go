@@ -2,8 +2,6 @@ package lua
 
 import "fmt"
 
-var _ = fmt.Println
-
 // CheckUserData checks whether the function argument arg is a userdata of the type
 // metaType (see NewMetaTable) and returns the userdata address (see ToUserData).
 //
