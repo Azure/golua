@@ -6,7 +6,6 @@ import (
 	"github.com/Azure/golua/lua"
 )
 
-
 func ValueOf(state *lua.State, any interface{}) lua.Value {
 	if any == nil {
 		return nil

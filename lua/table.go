@@ -45,7 +45,7 @@ func (x *table) String() string { return fmt.Sprintf("table: %p", x) }
 func (x *table) Length() int    { return len(x.list) }
 func (x *table) Type() Type     { return TableType }
 
-func (x *table) ForEach(fn func(Value,Value)) {
+func (x *table) ForEach(fn func(Value, Value)) {
 	if x.list != nil {
 		for i, v := range x.list {
 			fn(Int(i), v)

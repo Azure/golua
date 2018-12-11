@@ -71,8 +71,8 @@ func UserData(data interface{}) *Object {
 }
 
 func (x *Object) Value() interface{} { return x.data }
-func (x *Object) String() string      { return fmt.Sprintf("userdata: %p", x) }
-func (x *Object) Type() Type          { return UserDataType }
+func (x *Object) String() string     { return fmt.Sprintf("userdata: %p", x) }
+func (x *Object) Type() Type         { return UserDataType }
 
 type Table interface {
 	Value

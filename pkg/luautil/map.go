@@ -38,9 +38,9 @@ func mapLength(state *lua.State) int {
 
 func valueFromMap(state *lua.State, rv reflect.Value) *lua.Object {
 	var mapMetaFuncs = map[string]lua.Func{
-		"__newindex":  lua.Func(mapNewIndex),
+		"__newindex": lua.Func(mapNewIndex),
 		"__index":    lua.Func(mapIndex),
-		"__len":	  lua.Func(mapLength),
+		"__len":      lua.Func(mapLength),
 	}
 	state.Push(rv.Interface())
 	state.NewTableSize(0, len(mapMetaFuncs))
