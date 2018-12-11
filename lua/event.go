@@ -265,7 +265,7 @@ func metaOf(state *State, v Value) *table {
 	switch v := v.(type) {
 	case *Object:
 		var u interface{}
-		if u = v.Unwrap(); u == nil {
+		if u = v.Value(); u == nil {
 			break
 		}
 		if o, ok := u.(HasNewIndex); ok { // __newindex

@@ -61,16 +61,6 @@ type (
 	}
 )
 
-// func (x *Object) Format(fmts fmt.State, char rune) {}
-// func (x *Table) Format(fmts fmt.State, char rune) {}
-// func (x Float) Format(fmts fmt.State, char rune) {}
-// func (x String) Format(fmts fmt.State, char rune) {}
-// func (x Bool) Format(fmts fmt.State, char rune) {}
-// func (x Int) Format(fmts fmt.State, char rune) {}
-// func (x Nil) Format(fmts fmt.State, char rune) {}
-// func (x Func) Format(fmts fmt.State, char rune) {}
-// func (x *Thread) Format(fmts fmt.State, char rune) {}
-
 type Object struct {
 	meta *table
 	data interface{}
@@ -80,9 +70,17 @@ func UserData(data interface{}) *Object {
 	return &Object{data: data}
 }
 
-func (x *Object) Unwrap() interface{} { return x.data }
+func (x *Object) Value() interface{} { return x.data }
 func (x *Object) String() string      { return fmt.Sprintf("userdata: %p", x) }
 func (x *Object) Type() Type          { return UserDataType }
+
+type Table interface {
+	Value
+
+	Length() int
+	Index(index Value) Value
+	ForEach(func(key, value Value))
+}
 
 type Float float64
 

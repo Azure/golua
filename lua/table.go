@@ -42,7 +42,25 @@ type table struct {
 }
 
 func (x *table) String() string { return fmt.Sprintf("table: %p", x) }
+func (x *table) Length() int    { return len(x.list) }
 func (x *table) Type() Type     { return TableType }
+
+func (x *table) ForEach(fn func(Value,Value)) {
+	if x.list != nil {
+		for i, v := range x.list {
+			fn(Int(i), v)
+		}
+	}
+	if x.hash != nil {
+		for k, v := range x.hash {
+			fn(k, v)
+		}
+	}
+}
+
+func (x *table) Index(index Value) Value {
+	return x.get(index)
+}
 
 // newtable returns a new table initialized using the provided sizes
 // arrayN and hashN to create the underlying hash and array part.

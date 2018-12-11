@@ -18,13 +18,15 @@ func (state *State) CheckUserData(index int, metaType string) (data interface{})
 //
 // See https://www.lua.org/manual/5.3/manual.html#luaL_testudata
 func (state *State) TestUserData(index int, metaType string) (data interface{}) {
-	if data = state.ToUserData(index); data != nil {
-		if state.GetMetaTableAt(index) {
-			state.GetMetaTable(metaType)
-			if !state.RawEqual(-1, -2) {
-				data = nil
+	if userdata := state.ToUserData(index); userdata != nil {
+		if data = userdata.data; data != nil {
+			if state.GetMetaTableAt(index) {
+				state.GetMetaTable(metaType)
+				if !state.RawEqual(-1, -2) {
+					data = nil
+				}
+				state.PopN(2)
 			}
-			state.PopN(2)
 		}
 	}
 	return
@@ -80,10 +82,11 @@ func (state *State) CheckInt(index int) int64 {
 // at position index.
 //
 // See https://www.lua.org/manual/5.3/manual.html#luaL_checkany
-func (state *State) CheckAny(index int) {
+func (state *State) CheckAny(index int) Value {
 	if state.TypeAt(index) == NoneType {
 		argError(state, index, "value expected")
 	}
+	return state.get(index)
 }
 
 // OptString checks if the argument at index is a string and returns this string;
@@ -126,9 +129,9 @@ func (state *State) OptInt(index int, optInt int64) int64 {
 // ToUserData returns the value at the given index if type userdata. Otherwise, returns nil.
 //
 // See https://www.lua.org/manual/5.3/manual.html#lua_touserdata
-func (state *State) ToUserData(index int) interface{} {
+func (state *State) ToUserData(index int) *Object {
 	if udata, ok := state.get(index).(*Object); ok {
-		return udata.data
+		return udata
 	}
 	return nil
 }
@@ -264,6 +267,14 @@ func (state *State) ToBool(index int) bool {
 func (state *State) ToThread(index int) *State {
 	if v, ok := state.get(index).(*thread); ok {
 		return v.State
+	}
+	return nil
+}
+
+// ToTable checks and returns the value at the given index if Table otherwise nil.
+func (state *State) ToTable(index int) Table {
+	if v, ok := state.get(index).(*table); ok {
+		return v
 	}
 	return nil
 }
