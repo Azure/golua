@@ -15,7 +15,7 @@ func sliceNewIndex(state *lua.State) int {
 	if index < 1 || index > slice.Len() {
 		state.ArgError(2, "index out of range")
 	}
-	slice.Index(index-1).Set(value)
+	slice.Index(index - 1).Set(value)
 	return 0
 }
 
@@ -27,7 +27,7 @@ func sliceIndex(state *lua.State) int {
 	if index < 1 || index > slice.Len() {
 		state.ArgError(2, "index out of range")
 	}
-	state.Push(valueOf(state,  slice.Index(index-1).Interface()))
+	state.Push(valueOf(state, slice.Index(index-1).Interface()))
 	return 1
 }
 
@@ -38,9 +38,9 @@ func sliceLength(state *lua.State) int {
 
 func valueFromSlice(state *lua.State, rv reflect.Value) *lua.Object {
 	var sliceMetaFuncs = map[string]lua.Func{
-		"__newindex":  lua.Func(sliceNewIndex),
+		"__newindex": lua.Func(sliceNewIndex),
 		"__index":    lua.Func(sliceIndex),
-		"__len":	  lua.Func(sliceLength),
+		"__len":      lua.Func(sliceLength),
 	}
 	state.Push(rv.Interface())
 	state.NewTableSize(0, len(sliceMetaFuncs))
