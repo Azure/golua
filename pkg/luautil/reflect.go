@@ -33,6 +33,11 @@ func valueOf(state *lua.State, value interface{}) lua.Value {
 		return lua.Bool(rv.Bool())
 	case reflect.Map:
 		return valueFromMap(state, rv)
+	case reflect.Ptr:
+		if rv.Elem().Kind() == reflect.Struct {
+			return valueFromStruct(state, rv)
+		}
+		fallthrough
 	default:
 		return lua.UserData(rv.Interface())
 	}
