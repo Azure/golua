@@ -2,6 +2,7 @@ package io
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"strings"
 
@@ -9,9 +10,9 @@ import (
 )
 
 var whence = map[string]int{
-	"set": os.SEEK_SET,
-	"cur": os.SEEK_CUR,
-	"end": os.SEEK_END,
+	"set": io.SeekStart,
+	"cur": io.SeekCurrent,
+	"end": io.SeekEnd,
 }
 
 type stream struct {
