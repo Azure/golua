@@ -1,5 +1,0 @@
-glua -e"_U=true" all.lua
-
-_U=true: Instructs the suite to skip tests that are not fully portable and that consume too much memory.
-		 This option also suppresses messages for tests not performed. The basic tests should work without
-		 problems in any system with Lua compiled without changes.
