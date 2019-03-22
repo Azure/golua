@@ -3,7 +3,7 @@ package lua5
 import (
 	"fmt"
 	"os"
-	"github.com/fibonacci1729/golua/lua"
+	"github.com/Azure/golua/lua"
 )
 
 var _ = fmt.Println

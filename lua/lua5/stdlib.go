@@ -1,7 +1,7 @@
 package lua5
 
 import (
-	"github.com/fibonacci1729/golua/lua"
+	"github.com/Azure/golua/lua"
 )
 
 func CoroutineLib(ls *lua.Thread) error {

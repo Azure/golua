@@ -1,7 +1,7 @@
 package lua
 
 import (
-	"github.com/fibonacci1729/golua/lua/luac"
+	"github.com/Azure/golua/lua/luac"
 )
 
 const EnvID = "_ENV"

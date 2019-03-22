@@ -1,7 +1,7 @@
 package lua
 
 import (
-	"github.com/fibonacci1729/golua/lua/code"
+	"github.com/Azure/golua/lua/code"
 )
 
 type Type interface {

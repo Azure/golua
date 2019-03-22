@@ -2,7 +2,7 @@ package luac
 
 import (
     "fmt"
-	"github.com/fibonacci1729/golua/lua/code"
+	"github.com/Azure/golua/lua/code"
 )
 
 var _ = fmt.Println

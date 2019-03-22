@@ -5,9 +5,9 @@ import (
     "fmt"
     "os"
 
-    "github.com/fibonacci1729/golua/lua/lua5"
-    "github.com/fibonacci1729/golua/lua/luac"
-    "github.com/fibonacci1729/golua/lua"
+    "github.com/Azure/golua/lua/lua5"
+    "github.com/Azure/golua/lua/luac"
+    "github.com/Azure/golua/lua"
 )
 
 var _ = fmt.Println
