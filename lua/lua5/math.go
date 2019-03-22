@@ -2,7 +2,7 @@ package lua5
 
 import (
     "math"
-    "github.com/fibonacci1729/golua/lua"
+    "github.com/Azure/golua/lua"
 )
 
 // math.abs(x)

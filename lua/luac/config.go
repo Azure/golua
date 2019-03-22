@@ -1,6 +1,6 @@
 package luac
 
-import "github.com/fibonacci1729/golua/lua/code"
+import "github.com/Azure/golua/lua/code"
 
 // Maximum depth for nested Go calls and syntactical nested non-terminals
 // in a program.

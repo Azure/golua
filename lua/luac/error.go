@@ -3,7 +3,7 @@ package luac
 import (
 	"strings"
 	"fmt"
-	"github.com/fibonacci1729/golua/lua/code"
+	"github.com/Azure/golua/lua/code"
 )
 
 // undefGotoErr generates an error for an undefined 'goto'; choose appropriate
