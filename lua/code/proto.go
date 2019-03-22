@@ -1,7 +1,7 @@
 package code
 
 type (
-	Const interface {}
+	Const interface{}
 
 	Proto struct {
 		UpVars []*UpVar // information about the function's upvalues

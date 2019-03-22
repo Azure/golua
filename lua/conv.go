@@ -76,14 +76,14 @@ func ToTable(v Value) *Table {
 // otherwise "" and false.
 func ToString(v Value) (s String, ok bool) {
 	switch v := v.(type) {
-		case String:
-			s, ok = v, true
-		case Float:
-			s, ok = String(fmt.Sprintf("%.14G", v)), true
-		case Int:
-			s, ok = String(fmt.Sprintf("%d", v)), true
-		case nil:
-			s, ok = String("nil"), true
+	case String:
+		s, ok = v, true
+	case Float:
+		s, ok = String(fmt.Sprintf("%.14G", v)), true
+	case Int:
+		s, ok = String(fmt.Sprintf("%d", v)), true
+	case nil:
+		s, ok = String("nil"), true
 	}
 	return s, ok
 }
@@ -110,13 +110,13 @@ func ToNumber(v Value) Number {
 // otherwise 0.0 and false.
 func ToFloat(v Value) (Float, bool) {
 	switch v := v.(type) {
-		case String:
-			f, ok := str2float(string(v))
-			return Float(f), ok
-		case Float:
-			return v, true
-		case Int:
-			return Float(v), true
+	case String:
+		f, ok := str2float(string(v))
+		return Float(f), ok
+	case Float:
+		return v, true
+	case Int:
+		return Float(v), true
 	}
 	return 0, false
 }
@@ -127,14 +127,14 @@ func ToFloat(v Value) (Float, bool) {
 // otherwise 0 and false.
 func ToInt(v Value) (Int, bool) {
 	switch v := v.(type) {
-		case String:
-			i, ok := str2int(string(v))
-			return Int(i), ok
-		case Float:
-			i, ok := float2int(float64(v))
-			return Int(i), ok
-		case Int:
-			return v, true
+	case String:
+		i, ok := str2int(string(v))
+		return Int(i), ok
+	case Float:
+		i, ok := float2int(float64(v))
+		return Int(i), ok
+	case Int:
+		return v, true
 	}
 	return 0, false
 }
@@ -198,7 +198,7 @@ func IsNumber(v Value) bool {
 }
 
 // IsFloat reports whether the Value is a Float;
-// 
+//
 // That is, the value is a Number and is represented
 // as a Float.
 func IsFloat(v Value) bool {
@@ -207,7 +207,7 @@ func IsFloat(v Value) bool {
 }
 
 // IsInt reports whether the Value is an Int;
-// 
+//
 // That is, the value is a Number and is represented
 // as an Int.
 func IsInt(v Value) bool {

@@ -3,6 +3,7 @@ package lua5
 import (
 	"fmt"
 	"os"
+
 	"github.com/Azure/golua/lua"
 )
 
@@ -37,7 +38,7 @@ func base۰setmetatable(ls *lua.Thread, args lua.Tuple) ([]lua.Value, error) {
 func base۰getmetatable(ls *lua.Thread, args lua.Tuple) ([]lua.Value, error) {
 	// fmt.Println(ls.TypeOf(args[0]))
 	fmt.Printf("getmetatable(args=%v)\n", args)
-    fmt.Println(ls.Caller(1).Where())
+	fmt.Println(ls.Caller(1).Where())
 	return nil, nil
 }
 
@@ -117,7 +118,7 @@ func base۰require(ls *lua.Thread, args lua.Tuple) ([]lua.Value, error) {
 //
 // See https://www.lua.org/manual/5.3/manual.html#pdf-error
 func base۰error(ls *lua.Thread, args lua.Tuple) ([]lua.Value, error) {
-   	// if level := lua.OptInt(args, 2, 1); lua.IsString(args[0])
+	// if level := lua.OptInt(args, 2, 1); lua.IsString(args[0])
 	// if level := args.OptInt(1, lua.Int(1)); args.IsString(0) && level > 0 {
 	// 	ls.Error("%s%s", ls.Where(int(level)), args.String(0))
 	// 	return nil
@@ -154,7 +155,7 @@ func base۰print(ls *lua.Thread, args lua.Tuple) ([]lua.Value, error) {
 		fmt.Print(s)
 	}
 	fmt.Println()
-    return nil, nil
+	return nil, nil
 }
 
 // ipairs(t)
@@ -193,11 +194,11 @@ func base۰ipairs(ls *lua.Thread, args lua.Tuple) ([]lua.Value, error) {
 //
 // Otherwise, returns three values: the next function, the table t,
 // and nil, so that the construction
-// 
+//
 //     for k,v in pairs(t) do body end
 //
 // will iterate over all key–value pairs of table t.
-// 
+//
 // See function next for the caveats of modifying the table during
 // its traversal.
 //
@@ -211,7 +212,7 @@ func base۰pairs(ls *lua.Thread, args lua.Tuple) ([]lua.Value, error) {
 	// if ok {
 	// 	return rets
 	// }
-    return []lua.Value{ls.Global("next"), args[0], nil}, nil
+	return []lua.Value{ls.Global("next"), args[0], nil}, nil
 }
 
 // next(table [, index])
@@ -226,7 +227,7 @@ func base۰pairs(ls *lua.Thread, args lua.Tuple) ([]lua.Value, error) {
 //
 // The order in which the indices are enumerated is not specified, even for numeric
 // indices. (To traverse a table in numerical order, use a numerical for.)
-// 
+//
 // The behavior of next is undefined if, during the traversal, you assign any value to
 // a non-existent field in the table. You may however modify existing fields.
 // In particular, you may clear existing fields.

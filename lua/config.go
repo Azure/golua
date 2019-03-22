@@ -1,9 +1,9 @@
 package lua
 
 import (
-	"strings"
 	"fmt"
 	"os"
+	"strings"
 )
 
 const (
@@ -61,7 +61,7 @@ const (
 )
 
 type Config struct {
-	Stdlib func(*Thread)error
+	Stdlib func(*Thread) error
 	Import Importer
 	GoPath Path
 	Path   Path
@@ -75,7 +75,7 @@ func (config *Config) init(rt *runtime) {
 	}
 	if config.Path == "" {
 		config.Path = Path(LUAPATH_DEFAULT)
-	}	
+	}
 
 	config.GoPath = Path(envvar(config, GOPATH, string(config.GoPath)))
 	config.Path = Path(envvar(config, LUAPATH, string(config.Path)))

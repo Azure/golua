@@ -12,7 +12,7 @@ var _ = os.Exit
 
 var Defaults = &Config{}
 
-type Config struct {}
+type Config struct{}
 
 func Compile(config *Config, file string, src interface{}) (chunk *code.Chunk, err error) {
 	defer func(err *error) {
@@ -31,7 +31,7 @@ func Compile(config *Config, file string, src interface{}) (chunk *code.Chunk, e
 }
 
 func Bundle(config *Config, files []string) (*code.Chunk, error) {
-    bundle := &code.Proto{
+	bundle := &code.Proto{
 		UpVars: []*code.UpVar{
 			&code.UpVar{
 				Name:  "_ENV",
@@ -46,16 +46,16 @@ func Bundle(config *Config, files []string) (*code.Chunk, error) {
 	if len(files) == 1 {
 		return Compile(config, "@"+files[0], nil)
 	}
-    for _, file := range files {
-    	fn, err := Compile(config, "@"+file, nil)
+	for _, file := range files {
+		fn, err := Compile(config, "@"+file, nil)
 		if err != nil {
 			return nil, err
 		}
-        if len(fn.Main.UpVars) > 0 {
-            fn.Main.UpVars[0].Stack = false
-        }
-        bundle.Protos = append(bundle.Protos, fn.Main)
-    }
+		if len(fn.Main.UpVars) > 0 {
+			fn.Main.UpVars[0].Stack = false
+		}
+		bundle.Protos = append(bundle.Protos, fn.Main)
+	}
 	for pc := 0; pc < len(bundle.Protos); pc++ {
 		bundle.Instrs = append(bundle.Instrs,
 			code.MakeABx(code.CLOSURE, 0, pc),

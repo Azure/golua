@@ -1,9 +1,9 @@
 package lua
 
 import (
-	"strings"
 	"fmt"
 	"os"
+	"strings"
 )
 
 //
@@ -20,15 +20,15 @@ const (
 
 	// Lua search paths.
 	LUAPATH_DEFAULT = LUA_DIR + "?.lua;" + LUA_DIR + "?/init.lua;" + GO_DIR + "?.lua;" + GO_DIR + "?/init.lua;" + "./?.lua;" + "./?/init.lua"
-	LUA_DIR 	    = ROOT_DEFAULT + "share/lua/5.3/"
-	LUAPATH 	    = "GLUA_PATH"
+	LUA_DIR         = ROOT_DEFAULT + "share/lua/5.3/"
+	LUAPATH         = "GLUA_PATH"
 	// Go search paths.
 	GOPATH_DEFAULT = GO_DIR + "?.so;" + GO_DIR + "loadall.so;" + "./?.so"
-	GO_DIR 		   = ROOT_DEFAULT + "lib/lua/5.3/"
-	GOPATH 		   = "GLUA_GOPATH"
+	GO_DIR         = ROOT_DEFAULT + "lib/lua/5.3/"
+	GOPATH         = "GLUA_GOPATH"
 	// System root paths.
-	ROOT_DEFAULT   = "/usr/local/"
-	ROOT   	       = "LUA_ROOT"
+	ROOT_DEFAULT = "/usr/local/"
+	ROOT         = "LUA_ROOT"
 
 	// PATH_MARK is the string that marks the substitution points in a template.
 	PATH_MARK = "?"
@@ -68,7 +68,7 @@ const (
 // semicolons, a character seldom used for file names in most operating systems.
 //
 // For instance, consider the path: "?;?.lua;c:\windows\?;/usr/local/lua/?/?.lua"
-// 
+//
 // With this path, the call require"sql" will try to open the following Lua files:
 //		sql
 //		sql.lua
@@ -131,14 +131,14 @@ func (tpl Path) Search(name, sep, dirsep string) (string, error) {
 		f, err := os.OpenFile(file, os.O_RDONLY, 0666)
 		if f.Close(); err != nil {
 			switch {
-				case os.IsPermission(err):
-					// file is not readable
-					fmt.Fprintf(&b, "\n\tno file '%s'", file)
-					continue
-				case os.IsNotExist(err):
-					// file does not exist
-					fmt.Fprintf(&b, "\n\tno file '%s'", file)
-					continue
+			case os.IsPermission(err):
+				// file is not readable
+				fmt.Fprintf(&b, "\n\tno file '%s'", file)
+				continue
+			case os.IsNotExist(err):
+				// file does not exist
+				fmt.Fprintf(&b, "\n\tno file '%s'", file)
+				continue
 			}
 			// uh-oh
 			panic(err)
@@ -167,7 +167,7 @@ func (tpl Path) Search(name, sep, dirsep string) (string, error) {
 //	  with the low-level function "package.loadlib", looking for a function
 //	  called "luaopen_modname". The loader in this case is the result of
 // 	  "loadlib", which is the Go function "luaopen_modname" represented as
-//	  a Lua function. 
+//	  a Lua function.
 //
 // 4: No matter whether the module was found in a Lua file or a Go library,
 //	  require now has a loader for it. To finally load the module, require
@@ -212,7 +212,7 @@ func Require(ls *Thread, module string) (Value, error) {
 func Search(ls *Thread, module string) (Loader, error) {
 	var (
 		searchers = ls.Context().Searchers().Slice()
-		b strings.Builder
+		b         strings.Builder
 	)
 	for _, searcher := range searchers {
 		rets, err := ls.CallN(searcher, []Value{String(module)}, 2)

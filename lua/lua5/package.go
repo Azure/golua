@@ -3,6 +3,7 @@ package lua5
 import (
 	"fmt"
 	"os"
+
 	"github.com/Azure/golua/lua"
 )
 
@@ -75,11 +76,11 @@ func stdlib۰package(ls *lua.Thread) (lua.Value, error) {
 		// package.searchpath
 		"config": lua.String(fmt.Sprintf(
 			"%s\n%s\n%s\n%s\n%s\n",
-	 			lua.DIR_SEP,
-				lua.PATH_SEP,
-				lua.PATH_MARK,
-				lua.EXEC_DIR,
-				lua.IGNORE_MARK,
+			lua.DIR_SEP,
+			lua.PATH_SEP,
+			lua.PATH_MARK,
+			lua.EXEC_DIR,
+			lua.IGNORE_MARK,
 		)),
 		"gopath":     lua.String(ls.Context().Config().GoPath),
 		"path":       lua.String(ls.Context().Config().Path),

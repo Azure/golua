@@ -2,6 +2,7 @@ package lua
 
 import (
 	"fmt"
+
 	"github.com/Azure/golua/lua/code"
 )
 

@@ -4,7 +4,6 @@ import (
 	// "strings"
 	"fmt"
 	// "os"
-
 	// "github.com/Azure/golua/lua/code"
 )
 
@@ -46,13 +45,13 @@ type debug struct {
 func (dbg *debug) CurrentLine() int { return dbg.line }
 func (dbg *debug) SourceID() string { return dbg.source }
 func (dbg *debug) ShortSrc() string { return dbg.short }
-func (dbg *debug) ParamN() int { return dbg.paramN }
-func (dbg *debug) UpVarN() int { return dbg.upvarN }
-func (dbg *debug) Name() string { return dbg.name }
-func (dbg *debug) Kind() string { return dbg.kind }
+func (dbg *debug) ParamN() int      { return dbg.paramN }
+func (dbg *debug) UpVarN() int      { return dbg.upvarN }
+func (dbg *debug) Name() string     { return dbg.name }
+func (dbg *debug) Kind() string     { return dbg.kind }
 func (dbg *debug) Span() (int, int) { return dbg.span[0], dbg.span[1] }
-func (dbg *debug) Vararg() bool { return dbg.vararg }
-func (dbg *debug) Tailcall() bool { return dbg.tailcall }
+func (dbg *debug) Vararg() bool     { return dbg.vararg }
+func (dbg *debug) Tailcall() bool   { return dbg.tailcall }
 
 func (dbg *debug) Where() string {
 	if dbg != nil {

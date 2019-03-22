@@ -1,8 +1,9 @@
 package lua
 
 import (
-	"sync"
 	"fmt"
+	"sync"
+
 	"github.com/Azure/golua/lua/code"
 )
 
@@ -36,8 +37,8 @@ func (rt *runtime) init(config *Config) *thread {
 	}
 
 	rt.globals = NewTable()
-	rt.values  = NewTable()
-	rt.thread  = ls
+	rt.values = NewTable()
+	rt.thread = ls
 	config.init(rt)
 
 	return ls
@@ -46,13 +47,14 @@ func (rt *runtime) init(config *Config) *thread {
 func (rt *runtime) GoLoader(ls *Thread, file, name string) (Value, error) {
 	return rt.loader.load(ls, file, name)
 }
+
 // func (rt *runtime) Searcher() Searcher { return nil }
 func (rt *runtime) Searchers() *Table { return rt.searchers }
-func (rt *runtime) Preload() *Table { return rt.preload }
-func (rt *runtime) Globals() *Table { return rt.globals }
-func (rt *runtime) Values() *Table { return rt.values }
-func (rt *runtime) Loaded() *Table { return rt.loaded }
-func (rt *runtime) Config() *Config { return rt.config }
+func (rt *runtime) Preload() *Table   { return rt.preload }
+func (rt *runtime) Globals() *Table   { return rt.globals }
+func (rt *runtime) Values() *Table    { return rt.values }
+func (rt *runtime) Loaded() *Table    { return rt.loaded }
+func (rt *runtime) Config() *Config   { return rt.config }
 
 type thread struct {
 	// co *coroutine
@@ -117,14 +119,16 @@ func (ls *thread) error(err error) error {
 }
 
 func (ls *thread) caller(skip int) *call {
-	var ( fr, ci = ls.fr, ls.fr.call )
+	var (
+		fr, ci = ls.fr, ls.fr.call
+	)
 
-	for skip > 0 && (ci.flag & mainfunc == 0) {
+	for skip > 0 && (ci.flag&mainfunc == 0) {
 		fr = fr.prev
 		ci = fr.call
 		skip--
 	}
-	if skip == 0 && (ci.flag & mainfunc == 0) {
+	if skip == 0 && (ci.flag&mainfunc == 0) {
 		return ci
 	}
 	return nil

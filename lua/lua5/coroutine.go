@@ -2,6 +2,7 @@ package lua5
 
 import (
 	"fmt"
+
 	"github.com/Azure/golua/lua"
 )
 
@@ -104,10 +105,10 @@ func stdlib۰coroutine(ls *lua.Thread) (lua.Value, error) {
 	return lua.NewTableFromMap(map[string]lua.Value{
 		"isyieldable": lua.Closure(coroutine۰isyieldable),
 		"running":     lua.Closure(coroutine۰running),
-		"status":  	   lua.Closure(coroutine۰status),
-		"create":	   lua.Closure(coroutine۰create),
-		"resume":	   lua.Closure(coroutine۰resume),
+		"status":      lua.Closure(coroutine۰status),
+		"create":      lua.Closure(coroutine۰create),
+		"resume":      lua.Closure(coroutine۰resume),
 		"yield":       lua.Closure(coroutine۰yield),
-		"wrap":		   lua.Closure(coroutine۰wrap),
+		"wrap":        lua.Closure(coroutine۰wrap),
 	}), nil
 }

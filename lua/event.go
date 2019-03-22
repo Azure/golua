@@ -7,7 +7,7 @@ var _ = fmt.Println
 type event int
 
 const (
-	_index 	event = iota
+	_index event = iota
 	_newindex
 	_gc
 	_mode
@@ -101,7 +101,7 @@ func (evt event) binary(ls *thread, x, y Value) (v Value, err error) {
 	// 	return evt.call(ls, method, x, y, true)
 	// }
 	// if method := ls.meta(y, evt.String()); method != nil { // try 2nd operand
-	// 	return evt.call(ls, method, x, y, true)	
+	// 	return evt.call(ls, method, x, y, true)
 	// }
 	// func (evt event) call(ls *State, fn, arg1, arg2 lua.Value, hasResult bool) (lua.Value, error) {
 	// 	return nil, fmt.Errorf("%s.call(%v, %v, %v) (result = %t)\n", fn, arg1, arg2, hasResult)

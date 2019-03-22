@@ -1,8 +1,9 @@
 package luac
 
 import (
-	"strings"
 	"fmt"
+	"strings"
+
 	"github.com/Azure/golua/lua/code"
 )
 
@@ -78,26 +79,26 @@ func addErrInfo(msg, src string, line int) string {
 	chunkID := "?"
 	if len(src) > 0 {
 		switch src[0] {
-			case '=':
-				if len(src) <= maxID {
-					chunkID = src[1:]
-				} else {
-					chunkID = src[1:maxID]
-				}
-			case '@':
-				if len(src) <= maxID {
-					chunkID = src[1:]
-				} else {
-					chunkID = "..." + src[1:maxID-3]
-				}
-			default:
-				src = strings.Split(src, "\n")[0]
-				tpl := "[string \"...\"]"
-				if len(src) > maxID - len(tpl) {
-					chunkID = "[string \"" + src + "...\"]"
-				} else {
-					chunkID = "[string \"" + src + "\"]"
-				}
+		case '=':
+			if len(src) <= maxID {
+				chunkID = src[1:]
+			} else {
+				chunkID = src[1:maxID]
+			}
+		case '@':
+			if len(src) <= maxID {
+				chunkID = src[1:]
+			} else {
+				chunkID = "..." + src[1:maxID-3]
+			}
+		default:
+			src = strings.Split(src, "\n")[0]
+			tpl := "[string \"...\"]"
+			if len(src) > maxID-len(tpl) {
+				chunkID = "[string \"" + src + "...\"]"
+			} else {
+				chunkID = "[string \"" + src + "\"]"
+			}
 		}
 	}
 	return fmt.Sprintf("%s:%d: %s", chunkID, line, msg)

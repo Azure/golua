@@ -3,6 +3,7 @@ package luac
 import (
 	"fmt"
 	"os"
+
 	"github.com/Azure/golua/lua/code"
 )
 
@@ -14,20 +15,20 @@ var _ = os.Exit
 // luaK_concat
 func concatJumps(fs *function, l1, l2 int) int {
 	switch {
-		case l2 == noJump:
-			// nothing to concatenate
-		case l1 == noJump:
-			// no original list; 'l1' points to 'l2'
-			return l2
-		default:
-			var (
-				list = l1
-				next = jumpAddr(fs, list)
-			)
-			for next != noJump { // find last element
-				list, next = next, jumpAddr(fs, next)
-			}
-			fixJump(fs, list, l2) // last element links to 'l2'
+	case l2 == noJump:
+		// nothing to concatenate
+	case l1 == noJump:
+		// no original list; 'l1' points to 'l2'
+		return l2
+	default:
+		var (
+			list = l1
+			next = jumpAddr(fs, list)
+		)
+		for next != noJump { // find last element
+			list, next = next, jumpAddr(fs, next)
+		}
+		fixJump(fs, list, l2) // last element links to 'l2'
 	}
 	return l1
 }
@@ -38,16 +39,16 @@ func concatJumps(fs *function, l1, l2 int) int {
 func goIfTrue(fs *function, e *expr) {
 	var pc int // pc of new jump
 	switch fs.code.dischargeVars(fs, e); e.kind {
-		case vconst, vfloat, vint, vtrue:
-			pc = noJump // always true; do nothing
-		case vjump: // condition?
-			negateCond(fs, e) // jump when it is false
-			pc = e.info // save jump position
-		default:
-			pc = jumpOnCond(fs, e, 0) // jump when false
+	case vconst, vfloat, vint, vtrue:
+		pc = noJump // always true; do nothing
+	case vjump: // condition?
+		negateCond(fs, e) // jump when it is false
+		pc = e.info       // save jump position
+	default:
+		pc = jumpOnCond(fs, e, 0) // jump when false
 	}
 	e.f = concatJumps(fs, e.f, pc) // insert new jump in false list
-	patch2here(fs, e.t) // true list jumps to here (to go through)
+	patch2here(fs, e.t)            // true list jumps to here (to go through)
 	e.t = noJump
 }
 
@@ -58,15 +59,15 @@ func goIfFalse(fs *function, e *expr) {
 	var pc int // pc of new jump
 
 	switch fs.code.dischargeVars(fs, e); e.kind {
-		case vnil, vfalse:
-			pc = noJump // always false; do nothing
-		case vjump:
-			pc = e.info // already jump if true
-		default:
-			pc = jumpOnCond(fs, e, 1) // jump if true
+	case vnil, vfalse:
+		pc = noJump // always false; do nothing
+	case vjump:
+		pc = e.info // already jump if true
+	default:
+		pc = jumpOnCond(fs, e, 1) // jump if true
 	}
 	e.t = concatJumps(fs, e.t, pc) // insert new jump in 't' list
-	patch2here(fs, e.f) // false list jumps to here (to go through)
+	patch2here(fs, e.f)            // false list jumps to here (to go through)
 	e.f = noJump
 }
 
@@ -103,7 +104,7 @@ func jumpAddr(fs *function, pc int) int {
 // is true, code will jump if 'e' is true).
 //
 // Return jump position. Optimize when 'e' is 'not' something, inverting the
-// condition and removing the 'not'. 
+// condition and removing the 'not'.
 //
 // jumponcond
 func jumpOnCond(fs *function, e *expr, cond int) int {
@@ -123,7 +124,7 @@ func jumpOnCond(fs *function, e *expr, cond int) int {
 
 // luaK_jumpto
 func jumpTo(fs *function, target int) {
-	patchList(fs, fs.code.codeJump(fs), target)	
+	patchList(fs, fs.code.codeJump(fs), target)
 }
 
 // negateCond negates condition 'e' (where 'e' is a comparison).

@@ -1,8 +1,8 @@
 package code
 
 import (
-	"encoding/binary"
 	"bytes"
+	"encoding/binary"
 	"fmt"
 )
 
@@ -134,28 +134,28 @@ func (bin *source) writeConsts(fn *Proto) {
 	bin.write(uint32(len(fn.Consts)))
 	for _, kst := range fn.Consts {
 		switch kst := kst.(type) {
-			case string:
-				if len(kst) <= maxShortLen { // short string?
-					bin.write(byte(LUA_STR_SHORT))
-				} else {
-					bin.write(byte(LUA_STR_LONG))
-				}
-				bin.writeStr(string(kst))
-			case float64:
-				bin.write(byte(LUA_NUM_FLOAT))
-				bin.write(float64(kst))
-			case bool:
-				bin.write(byte(LUA_TYPE_BOOL))
-				bin.write(byte(b2i(bool(kst))))
-			case int64:
-				bin.write(byte(LUA_NUM_INT))
-				bin.write(int64(kst))
-			default:
-				if kst == nil {
-					bin.write(byte(LUA_TYPE_NIL))
-				} else {
-					panic(fmt.Errorf("unexpected constant %T", kst))
-				}
+		case string:
+			if len(kst) <= maxShortLen { // short string?
+				bin.write(byte(LUA_STR_SHORT))
+			} else {
+				bin.write(byte(LUA_STR_LONG))
+			}
+			bin.writeStr(string(kst))
+		case float64:
+			bin.write(byte(LUA_NUM_FLOAT))
+			bin.write(float64(kst))
+		case bool:
+			bin.write(byte(LUA_TYPE_BOOL))
+			bin.write(byte(b2i(bool(kst))))
+		case int64:
+			bin.write(byte(LUA_NUM_INT))
+			bin.write(int64(kst))
+		default:
+			if kst == nil {
+				bin.write(byte(LUA_TYPE_NIL))
+			} else {
+				panic(fmt.Errorf("unexpected constant %T", kst))
+			}
 		}
 	}
 }
@@ -206,7 +206,7 @@ func (bin *source) writeStr(s string) {
 	if s == "" {
 		bin.write(byte(1))
 	} else {
-		if size := len(s)+1; size < 0xFF {
+		if size := len(s) + 1; size < 0xFF {
 			bin.write(byte(size))
 		} else {
 			bin.write(byte(0xFF))
@@ -333,7 +333,7 @@ func decodeProto(r *bytes.Buffer, p *Proto, src string) {
 				up.Index = int(u8)
 			}
 			p.UpVars[i] = &up
-	
+
 		}
 	}
 
@@ -394,32 +394,32 @@ func decodeConst(r *bytes.Buffer) Const {
 	t, err := r.ReadByte()
 	must(err)
 	switch t {
-		case LUA_TYPE_NIL: // NIL
-			return nil
+	case LUA_TYPE_NIL: // NIL
+		return nil
 
-		case LUA_TYPE_BOOL: // BOOL
-			b, err := r.ReadByte()
-			must(err)
-			if b == 0 {
-				return false
-			} 
-			if b == 1 {
-				return true
-			}
-			panic(fmt.Errorf("invalid bool constant: %d", b))
+	case LUA_TYPE_BOOL: // BOOL
+		b, err := r.ReadByte()
+		must(err)
+		if b == 0 {
+			return false
+		}
+		if b == 1 {
+			return true
+		}
+		panic(fmt.Errorf("invalid bool constant: %d", b))
 
-		case LUA_NUM_INT: // INT
-			var i64 int64
-			must(binary.Read(r, order, &i64))
-			return i64
+	case LUA_NUM_INT: // INT
+		var i64 int64
+		must(binary.Read(r, order, &i64))
+		return i64
 
-		case LUA_NUM_FLOAT: // FLOAT
-			var f64 float64
-			must(binary.Read(r, order, &f64))
-			return f64
+	case LUA_NUM_FLOAT: // FLOAT
+		var f64 float64
+		must(binary.Read(r, order, &f64))
+		return f64
 
-		case LUA_STR_SHORT, LUA_STR_LONG: // STRING
-			return decodeString(r)
+	case LUA_STR_SHORT, LUA_STR_LONG: // STRING
+		return decodeString(r)
 	}
 	panic(fmt.Errorf("unexpected constant type: %d", t))
 }

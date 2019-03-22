@@ -1,10 +1,10 @@
 package lua
 
 import (
-	"strings"
-	"plugin"
 	"fmt"
 	"os"
+	"plugin"
+	"strings"
 )
 
 var _ = fmt.Println
