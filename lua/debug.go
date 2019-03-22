@@ -1,335 +1,345 @@
 package lua
 
 import (
+	// "strings"
 	"fmt"
-	"os"
-	"reflect"
-	"runtime"
-	"strings"
+	// "os"
+
+	// "github.com/fibonacci1729/golua/lua/code"
 )
 
-// debug is a structure used to carry different pieces of information about a function
-// or an activation record. state.GetStack fills only the private fields of this struct,
-// for later use. To fill the other fields, use state.GetInfo.
-//
-// See https://www.lua.org/manual/5.3/manual.html#lua_Debug
-type Debug struct {
-	source   string
-	short    string
-	name     string
-	kind     string
-	what     string
-	span     [2]int
-	nups     int
-	active   int
-	params   int
-	vararg   bool
-	tailcall bool
+// var _ = fmt.Println
+// var _ = os.Exit
+
+type Debug interface {
+	// Options(what string) Debug
+	CurrentLine() int
+	SourceID() string
+	ShortSrc() string
+	ParamN() int
+	UpVarN() int
+	Name() string
+	Kind() string
+	Span() (int, int)
+	Vararg() bool
+	Tailcall() bool
+	Where() string
 }
 
-func (debug *Debug) Source() string       { return debug.source }
-func (debug *Debug) ShortSrc() string     { return debug.short }
-func (debug *Debug) CurrentLine() int     { return debug.active }
-func (debug *Debug) LineDefined() int     { return debug.span[0] }
-func (debug *Debug) LastLineDefined() int { return debug.span[1] }
-func (debug *Debug) What() string         { return debug.what }
-func (debug *Debug) NumUps() int          { return debug.nups }
-func (debug *Debug) NumParams() int       { return debug.params }
-func (debug *Debug) IsVararg() bool       { return debug.vararg }
-func (debug *Debug) Name() string         { return debug.name }
-func (debug *Debug) NameWhat() string     { return debug.kind }
-func (debug *Debug) IsTailCall() bool     { return debug.tailcall }
+type debug struct {
+	ci *call
 
-// GetStack returns debug information about the interpreter runtime stack.
-//
-// This function fills parts of the Debug structure with an identification of
-// the activation record of the function executing at a given level. Level 0
-// is the current running function, whereas level n+1 is the function that has
-// called level n (except for tail calls, which do not count on the stack).
-// When there are no errors, StackDepth returns the Debug structure and nil;
-// Otherwise returns nil and any error.
-//
-// See https://www.lua.org/manual/5.3/manual.html#lua_getstack
-func (state *State) GetStack(debug *Debug, depth int) error {
-	fmt.Println("state.GetStack(): TODO")
-	return nil
+	source   string // (S)
+	short    string // (S)
+	event    int
+	line     int    // (l) (currentline)
+	name     string // (n) (name)
+	what     string // (n) 'global', 'local', 'field', 'method' (namewhat)
+	kind     string // (S) 'Lua', 'Go', 'main', 'tail' (what)
+	span     [2]int // (S) (linedefined/lastlinedefined)
+	upvarN   int    // (u) number of upvalues
+	paramN   int    // (u) number of parameters
+	vararg   bool   // (u) (isvararg)
+	tailcall bool   // (t) (istailcall)
 }
 
-// DebugInfo returns debug information about a specific function or function invocation.
-//
-// To get information about a function invocation, the parameter ar must be a valid
-// activation record that was filled by a previous call to lua_getstack or given as
-// argument to a hook (see Hook).
-//
-// To get information about a function, you push it onto the stack and start the what
-// string with the character '>'. (In that case, lua_getinfo pops the function from the
-// top of the stack.) For instance, to know in which line a function f was defined, you
-// can write the following code:
-//
-//  lua_Debug ar;
-//  lua_getglobal(L, "f");  /* get global 'f' */
-//  lua_getinfo(L, ">S", &ar);
-//  printf("%d\n", ar.linedefined);
-//
-// Each character in the string what selects some fields of the structure ar to be filled
-// or a value to be pushed on the stack:
-//
-//  'n': fills in the field name and namewhat;
-//  'S': fills in the fields source, short_src, linedefined, lastlinedefined, and what;
-//  'l': fills in the field currentline;
-//  't': fills in the field istailcall;
-//  'u': fills in the fields nups, nparams, and isvararg;
-//  'f': pushes onto the stack the function that is running at the given level;
-//  'L': pushes onto the stack a table whose indices are the numbers of the lines that are
-//       valid on the function. (A valid line is a line with some associated code, that is,
-//       a line where you can put a break point. Non-valid lines include empty lines and
-//       comments.)
-//
-// If this option is given together with option 'f', its table is pushed after the function.
-//
-// This function returns 0 on error (for instance, an invalid option in what).
-//
-// See https://www.lua.org/manual/5.3/manual.html#lua_getinfo
-func (state *State) GetInfo(debug *Debug, options string) error {
-	if len(options) > 0 && options[0] == '>' {
-		if cls, ok := state.frame().pop().(*Closure); ok {
-			return state.getInfo(state.frame(), debug, cls, options[1:])
-		}
-		return fmt.Errorf("function expected")
-	}
-	return fmt.Errorf("state.GetInfo(): TODO")
-}
+func (dbg *debug) CurrentLine() int { return dbg.line }
+func (dbg *debug) SourceID() string { return dbg.source }
+func (dbg *debug) ShortSrc() string { return dbg.short }
+func (dbg *debug) ParamN() int { return dbg.paramN }
+func (dbg *debug) UpVarN() int { return dbg.upvarN }
+func (dbg *debug) Name() string { return dbg.name }
+func (dbg *debug) Kind() string { return dbg.kind }
+func (dbg *debug) Span() (int, int) { return dbg.span[0], dbg.span[1] }
+func (dbg *debug) Vararg() bool { return dbg.vararg }
+func (dbg *debug) Tailcall() bool { return dbg.tailcall }
 
-func (state *State) getInfo(frame *Frame, debug *Debug, closure *Closure, options string) error {
-	for pos := 0; pos < len(options); pos++ {
-		switch b := options[pos]; b {
-		case 'S':
-			funcinfo(frame, debug, closure)
-		case 'l':
-			if debug.active = -1; closure.isLua() && frame.pc > 0 {
-				currentline := int(closure.binary.PcLnTab[frame.pc])
-				debug.active = currentline
-			}
-		case 'u':
-			if !closure.isLua() {
-				debug.vararg = true
-				debug.params = 0
-			} else {
-				debug.vararg = closure.binary.IsVararg()
-				debug.params = closure.binary.NumParams()
-			}
-		case 't':
-			debug.tailcall = frame.status&callStatusTail != 0
-		case 'n':
-			name, kind := funcname(frame, closure)
-			debug.name = name
-			debug.kind = kind
-		case 'L', 'f':
-			// TODO
-		default:
-			return fmt.Errorf("invalid option: %c", b)
+func (dbg *debug) Where() string {
+	if dbg != nil {
+		if dbg.CurrentLine() > 0 {
+			return fmt.Sprintf("%s:%d: ",
+				dbg.ShortSrc(),
+				dbg.CurrentLine())
 		}
 	}
-	return nil
+	return ""
 }
 
-// GetUpValue gets information about the n-th upvalue of the closure at index funcindex.
-// It pushes the upvalue's value onto the stack and returns its name. Returns NULL (and
-// pushes nothing) when the index n is greater than the number of upvalues.
-//
-// For C functions, this function uses the empty string "" as a name for all upvalues.
-// For Lua functions, upvalues are the external local variables that the function uses,
-// and that are consequently included in its closure.
-//
-// Upvalues have no particular order, as they are active through the whole function.
-// They are numbered in an arbitrary order.
-//
-// See https://www.lua.org/manual/5.3/manual.html#lua_getupvalue
-func (state *State) GetUpValue(function, index int) (name string) {
-	if cls, ok := state.get(function).(*Closure); ok {
-		if index <= len(cls.upvals) {
-			up := cls.getUp(index - 1)
-			state.Push(up.get())
-			name = cls.upName(index - 1)
-		}
-	}
-	return
-}
+// func funcNameFromGlobals(fr *frame, dbg *debug) (name string) {
+// 	var (
+// 		ld = fr.ls.global.loaded
+// 		found bool
+// 	)
+// 	if fs := fr.call.fs; fs != nil && fs.closure != nil {
+// 		name, found = searchField(ld, fs.closure, 2)
+// 	} else {
+// 		if fn, ok := fr.call.fn.(Value); ok {
+// 			name, found = searchField(ld, fn, 2)
+// 		}
+// 	}
+// 	if found && strings.HasPrefix(name, "_G.") {
+// 		name = name[3:]
+// 	}
+// 	return name
+// }
 
-// UpValueID returns a unique identifier for the upvalue numbered n from the closure at
-// index function.
-//
-// These unique identifiers allow a program to check whether different closures share
-// upvalues. Lua closures that share an upvalue (that is, that access a same external
-// local variable) will return identical ids for those upvalue indices.
-//
-// Parameters funcindex and n are as in function lua_getupvalue, but n cannot be greater
-// than the number of upvalues.
-//
-// See https://www.lua.org/manual/5.3/manual.html#lua_upvalueid
-func (state *State) UpValueID(function, index int) interface{} {
-	if cls, ok := state.get(function).(*Closure); ok {
-		if index <= len(cls.upvals) {
-			return cls.getUp(index - 1)
-		}
-	}
-	panic(fmt.Errorf("closure expected"))
-}
+// func searchField(env, fn Value, level int) (name string, found bool) {
+// 	if tbl, ok := env.(*Table); ok && level > 0 {
+// 		tbl.foreach(func(k, v Value) bool {
+// 			if k, isstr := k.(String); isstr {
+// 				if found = equals(fn, v); found {
+// 					name = string(k)
+// 					return false
+// 				}
+// 			}
+// 			var s string
+// 			s, found = searchField(v, fn, level-1)
+// 			if found {
+// 				name = fmt.Sprintf("%s.%s", k, s)
+// 				return false
+// 			}
+// 			return true
+// 		})
+// 	}
+// 	return name, found
+// }
 
-// UpValueJoin makes the n1-th upvalue of the Lua closure at index func1 refer to the n2-th
-// upvalue of the Lua closure at index func2.
-//
-// See https://www.lua.org/manual/5.3/manual.html#lua_upvaluejoin
-func (state *State) UpValueJoin(func1, n1, func2, n2 int) {
-	if fn1, ok1 := state.get(func1).(*Closure); ok1 {
-		if fn2, ok2 := state.get(func2).(*Closure); ok2 {
-			if (len(fn1.upvals) >= n1) && (len(fn2.upvals) >= n2) {
-				fn1.upvals[n1-1] = fn2.upvals[n2-1]
-			}
-		}
-	}
-}
+// func funcNameFromCode(ci *call) (name, what string) {
+// 	if fn, ok := ci.fn.(*Proto); ok {
+// 		if ci.flag & hooked != 0 {
+// 			return "?", "hook"
+// 		}
+// 		var (
+// 			inst = fn.Instrs[ci.pc]
+// 			meta event
+// 		)
+// 		switch inst.Code() {
+// 			case code.SELF, code.GETTABUP, code.GETTABLE:
+// 				meta = _index
+// 			case code.SETTABUP, code.SETTABLE:
+// 				meta = _newindex
+// 			case code.CALL, code.TAILCALL:
+// 				return objectName(ci, fn, ci.pc, inst.A())
+// 			case code.TFORCALL:
+// 				return "for iterator", "for iterator"
+// 			case code.IDIV,
+// 				code.DIV,
+// 				code.ADD,
+// 				code.SUB,
+// 				code.MUL,
+// 				code.MOD,
+// 				code.POW,
+// 				code.SHL,
+// 				code.SHR,
+// 				code.BOR,
+// 				code.BXOR,
+// 				code.BAND:
+// 				meta = event(inst.Code()-code.ADD) + _add
+// 			case code.CONCAT:
+// 				meta = _concat
+// 			case code.BNOT:
+// 				meta = _bnot
+// 			case code.UNM:
+// 				meta = _unm
+// 			case code.LEN:
+// 				meta = _len
+// 			case code.EQ:
+// 				meta = _eq
+// 			case code.LT:
+// 				meta = _lt
+// 			case code.LE:
+// 				meta = _le
+// 			default:
+// 				return
+// 		}
+// 		return events[meta], "metamethod"
+// 	}
+// 	return "", ""
+// }
 
-type HookEvent uint
+// func objectName(ci *call, fn *Proto, lastpc, reg int) (name, what string) {
+// 	if name = localName(fn, lastpc, reg+1); name != "" {
+// 		return name, "local"
+// 	}
+// 	// try symbolic execution
+// 	if pc := findSetRegister(ci, fn, lastpc, reg); pc != -1 { // instruction found?
+// 		switch inst := fn.Instrs[pc]; inst.Code() {
+// 			case code.GETTABUP:
+// 				var (
+// 					t = inst.B() // table index
+// 					k = inst.C() // key index
+// 				)
+// 				if what = "?"; t < len(fn.UpVars) {
+// 					if up := fn.UpVars[t]; up.Name != "" {
+// 						if up.Name == EnvID {
+// 							what = "global"
+// 						} else {
+// 							what = "field"
+// 						}
+// 					}
+// 				}
+// 				return findNameRK(ci, fn, pc, k), what
+// 			case code.GETTABLE:
+// 				var (
+// 					t = inst.B() // table index
+// 					k = inst.C() // key index
+// 				)
+// 				switch localName(fn, pc, t+1) {
+// 					case EnvID:
+// 						what = "global"
+// 					default:
+// 						what = "field"
+// 				}
+// 				return findNameRK(ci, fn, pc, k), what
+// 			case code.GETUPVAL:
+// 				if name = "?"; inst.B() < len(fn.UpVars) {
+// 					if up := fn.UpVars[inst.B()]; up.Name != "" {
+// 						name = up.Name
+// 					}
+// 				}
+// 				return name, "upvalue"
+// 			case code.LOADKX:
+// 				kst := fn.kst(fn.Instrs[pc+1].AX())
+// 				if s, ok := kst.(String); ok {
+// 					return string(s), "constant"
+// 				}
+// 			case code.LOADK:
+// 				kst := fn.kst(inst.BX())
+// 				if s, ok := kst.(String); ok {
+// 					return string(s), "constant"
+// 				}
+// 			case code.SELF:
+// 				return findNameRK(ci, fn, pc, inst.C()), "method"
+// 			case code.MOVE:
+// 				if inst.B() < inst.A() { // move from 'b' to 'a'
+// 					return objectName(ci, fn, pc, inst.B()) // get name for 'b'
+// 				}
+// 		}
+// 	}
+// 	return "", ""
+// }
 
-const (
-	HookCall HookEvent = 1 << iota
-	HookRets
-	HookLine
-	HookCount
-	HookTailCall
-)
+// // localName looks for the n-th local variable at line 'line' in function 'func'.
+// //
+// // Returns the local variable name or "" if not found.
+// func localName(fn *Proto, pc, n int) (name string) {
+// 	for i := 0; i < len(fn.Locals) && fn.Locals[i].Live <= int32(pc); i++ {
+// 		if int32(pc) < fn.Locals[i].Dead { // is variable active?
+// 			if n--; n == 0 {
+// 				return fn.Locals[i].Name
+// 			}
+// 		}
+// 	}
+// 	// not found
+// 	return ""
+// }
 
-func (evt HookEvent) String() string {
-	var s string
-	if evt&HookCall != 0 {
-		s += "call"
-		s += ""
-	}
-	if evt&HookRets != 0 {
-		s += "return"
-		s += ""
-	}
-	if evt&HookLine != 0 {
-		s += "line"
-		s += ""
-	}
-	if evt&HookCount != 0 {
-		s += "count"
-		s += ""
-	}
-	if evt&HookTailCall != 0 {
-		s += "tail call"
-	}
-	return s
-}
+// // findNameRK finds a name for the RK value 'rk'.
+// func findNameRK(ci *call, fn *Proto, pc, rk int) (name string) {
+// 	if code.IsKst(rk) { // is 'rk' a constant?
+// 		if s, ok := fn.kst(code.ToKst(rk)).(String); ok { // literal constant?
+// 			return string(s) // it is its own name
+// 		}
+// 		// else no reasonable name found
+// 		return ""
+// 	}
+// 	// else 'rk' is a register
+// 	name, what := objectName(ci, fn, pc, rk)
+// 	if what == "constant" {
+// 		return name
+// 	}
+// 	return "?"
+// }
 
-// The hook table at registry[HookKey] maps threads to their current hook function.
-const HookKey = 0
+// // findSetRegister tries to find the last instruction before 'lastpc' that modified register 'reg'.
+// func findSetRegister(ci *call, fn *Proto, lastpc, reg int) (pc int) {
+// 	var (
+// 		set = -1 // keep last instruction that changed 'reg'
+// 		jmp = 0  // any code before this address is conditional
+// 	)
+// 	filterPC := func(pc, jmp int) int {
+// 		if pc < jmp { // is code conditional (inside a jump)?
+// 			return -1 // cannt know who sets that register
+// 		}
+// 		return pc // current position sets that register
+// 	}
+// 	for pc := 0; pc < lastpc; pc++ {
+// 		switch inst := fn.Instrs[pc]; inst.Code() {
+// 			case code.CALL, code.TAILCALL:
+// 				if reg >= inst.A() { // affect all registers above base
+// 					set = filterPC(pc, jmp)
+// 				}
+// 			case code.TFORCALL:
+// 				if reg >= inst.A() + 2 { // affect all registers above its base
+// 					set = filterPC(pc, jmp)
+// 				}
+// 			case code.LOADNIL:
+// 				if a, b := inst.A(), inst.B(); reg >= a && reg <= a + b {
+// 					// set register from 'a' to 'a+b'
+// 					set = filterPC(pc, jmp)
+// 				}
+// 			case code.JMP:
+// 				// jump is forward and do not skip 'lastpc'?
+// 				if dst := pc + 1 + inst.SBX(); dst > pc && dst <= lastpc {
+// 					if dst > jmp {
+// 						jmp = dst // update jump target
+// 					}
+// 				}
+// 			default:
+// 				if inst.Code().Mask().SetA() && (reg == inst.A()) {
+// 					// any instruction that set A
+// 					set = filterPC(pc, jmp)
+// 				}
+// 		}
+// 	}
+// 	return set
+// }
 
-func (state *State) Debug(halt bool) {
-	DBG(state.frame(), halt)
-}
+// func sourceInfo(dbg *debug) *debug {
+// 	if fn, ok := dbg.ci.fn.(*Func); ok {
+// 		if dbg.source = fn.Source; fn.Source == "" {
+// 			dbg.source = "=?"
+// 		}
+// 		if dbg.kind = "Lua"; fn.SrcPos == 0 {
+// 			dbg.kind = "main"
+// 		}
+// 		dbg.span[0] = fn.SrcPos
+// 		dbg.span[1] = fn.EndPos
+// 		dbg.line = -1
+// 		if len(fn.PcLine) > 0 {
+// 			dbg.line = int(fn.PcLine[ci.pc-1])
+// 		}
+// 	} else {
+// 		dbg.source  = "=[Go]"
+// 		dbg.kind    = "Go"
+// 		dbg.line    = -1
+// 		dbg.span[0] = -1
+// 		dbg.span[1] = -1
+// 	}
+// 	dbg.short = chunkID(dbg.source)
+// 	return dbg
+// }
 
-func DBG(fr *Frame, halt bool) {
-	const base = 0
+// func funcInfo(dbg *debug) *debug {
+// 	if fn, ok := ci.fn.(*Proto); ok {
+// 		dbg.tailcall = ci.flag & tailcall != 0
+// 		dbg.upvarN   = len(fn.UpVars)
+// 		dbg.paramN   = fn.ParamN
+// 		dbg.vararg   = fn.Vararg
+// 	} else {
+// 		dbg.vararg = true
+// 	}
+// 	return dbg
+// }
 
-	var b strings.Builder
-
-	var pcln string
-	if fr.closure.isLua() {
-		pcln = fmt.Sprintf("@line = %d", fr.closure.binary.PcLnTab[fr.pc])
-	}
-	fmt.Fprintf(&b, "\nframe#%d <prev=%p|next=%p> %s\n", fr.depth, fr.prev, fr.next, pcln)
-	fmt.Fprintf(&b, "    %s", fr.closure)
-	if fr.closure != nil {
-		fmt.Fprintf(&b, " (# up = %d)", len(fr.closure.upvals))
-	}
-	fmt.Fprintln(&b)
-	fmt.Fprintf(&b, "            * savedpc = %d\n", fr.pc)
-	fmt.Fprintf(&b, "            * returns = %d\n\n", fr.rets)
-
-	fmt.Fprintf(&b, "            upvalues\n")
-	for i, upval := range fr.function().upvalues() {
-		fmt.Fprintf(&b, "                [%d] %v\n", i, *upval)
-	}
-	fmt.Fprintf(&b, "            end\n\n")
-
-	fmt.Fprintf(&b, "            varargs\n")
-	for i, extra := range fr.vararg {
-		fmt.Fprintf(&b, "                [%d] %v\n", i, extra)
-	}
-	fmt.Fprintf(&b, "            end\n")
-	fmt.Fprintf(&b, "    end\n\n")
-	fmt.Fprintf(&b, "    locals (len=%d, cap=%d, top=%d)\n", len(fr.locals), cap(fr.locals), fr.gettop())
-	for i := fr.gettop() - 1; i >= 0; i-- {
-		fmt.Fprintf(&b, "        [%d] %v\n", i+base, fr.locals[i])
-	}
-
-	fmt.Fprintf(&b, "    end\n")
-	fmt.Fprintf(&b, "end\n")
-
-	fmt.Println(b.String())
-	if halt {
-		os.Exit(1)
-	}
-}
-
-func funcname(frame *Frame, closure *Closure) (name, what string) {
-	if !closure.isLua() {
-		pc := reflect.ValueOf(closure.native).Pointer()
-		fn := runtime.FuncForPC(pc)
-		return fn.Name(), ""
-	}
-	// TODO
-	return "", ""
-}
-
-func funcinfo(frame *Frame, debug *Debug, closure *Closure) {
-	if closure.isLua() {
-		proto := closure.binary
-		if debug.source = "=?"; proto.Source != "" {
-			debug.source = proto.Source
-		}
-		debug.span[0] = int(proto.SrcPos)
-		debug.span[1] = int(proto.EndPos)
-		if debug.span[1] == 0 {
-			debug.what = "main"
-		} else {
-			debug.what = "Lua"
-		}
-	} else {
-		debug.source = "=[Go]"
-		debug.span[0] = -1
-		debug.span[1] = -1
-		debug.what = "Go"
-	}
-	// TODO: short
-	debug.short = chunkID(debug.source)
-}
-
-func chunkID(source string) string {
-	const maxLen = 60
-
-	if len(source) > 0 {
-		switch source[0] {
-		case '=':
-			if source = source[1:]; len(source) > maxLen {
-				source = source[:maxLen-1]
-			}
-		case '@':
-			if source = source[1:]; len(source) > maxLen {
-				source = fmt.Sprintf("...%s", source[len(source)-maxLen+4:])
-			}
-		default:
-			if i := strings.IndexByte(source, '\n'); i != -1 {
-				source = source[0:i] + "..."
-			}
-			if max := maxLen - len(`[string " "]`); len(source) > max {
-				source = source[0:max-3] + "..."
-			}
-			source = fmt.Sprintf(`[string "%s"]`, source)
-		}
-	}
-	return source
-}
+// func funcName(dbg *debug) *debug {
+// 	if caller := ci.fr.call; isLua(caller) {
+// 		if (ci.flag & tailcall == 0) {
+// 			dbg.name, dbg.what = funcNameFromCode(caller)
+// 		}
+// 	}
+// 	if dbg.what == "" {
+// 		dbg.name = "<unset>"
+// 	}
+// 	return dbg
+// }

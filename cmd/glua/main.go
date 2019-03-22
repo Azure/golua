@@ -1,48 +1,33 @@
 package main
 
 import (
-	"flag"
-	"fmt"
-	"os"
+    "flag"
+    "fmt"
+    "os"
 
-	"github.com/Azure/golua/lua"
-	"github.com/Azure/golua/std"
+    "github.com/fibonacci1729/golua/lua/lua5"
+    "github.com/fibonacci1729/golua/lua/luac"
+    "github.com/fibonacci1729/golua/lua"
 )
 
-var (
-	trace bool = false
-	debug bool = false
-	tests bool = false
-)
+var _ = fmt.Println
 
 func must(err error) {
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "fatal: %v\n", err)
-		os.Exit(1)
-	}
-}
-
-func init() {
-	flag.BoolVar(&debug, "debug", debug, "enable verbose logging")
-	flag.BoolVar(&trace, "trace", trace, "enable tracing")
-	flag.BoolVar(&tests, "tests", trace, "execute tests")
-	flag.Parse()
+    if err != nil {
+        fmt.Fprintf(os.Stderr, "glua: %v\n", err)
+        os.Exit(1)
+    }
 }
 
 func main() {
-	if flag.NArg() < 1 {
-		must(fmt.Errorf("missing arguments"))
-	}
+    flag.Parse()
 
-	var opts = []lua.Option{lua.WithTrace(trace), lua.WithVerbose(debug)}
-	state := lua.NewState(opts...)
-	defer state.Close()
-	std.Open(state)
+    var config = &lua.Config{
+        Stdlib: lua5.Stdlib,
+    }
 
-	if tests {
-		state.Push(true)
-		state.SetGlobal("_U")
-	}
-
-	must(state.Main(flag.Args()...))
+    fn := luac.Must(luac.Bundle(luac.Defaults, flag.Args()))
+    ls := lua.Must(lua.Init(config))
+    _, err := ls.Call(ls.Load(fn))
+    must(err)
 }

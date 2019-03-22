@@ -1,24 +1,4 @@
-package lua
-
-import (
-	"github.com/fibonacci1729/golua/lua/luac"
-)
-
-const EnvID = "_ENV"
-
-type (
-	Importer interface {
-		Import(*Thread, string) error
-	}
-
-	Loader func(*Thread) (Value, error)
-
-	Library struct {
-		Funcs []*GoFunc
-		Open  Loader
-		Name  string
-	}
-)
+package code
 
 type Op int
 
@@ -85,24 +65,3 @@ var opnames = [...]string{
 }
 
 func (op Op) String() string { return opnames[op] }
-
-func LoadFile(t *Thread, file string) (*Func, error) {
-	chunk, err := luac.Compile(luac.Defaults, file, nil)
-	if err != nil {
-		return nil, err
-	}
-	return t.Load(chunk), nil
-}
-
-func Must(ls *Thread, err error) *Thread {
-	if err != nil {
-		panic(err)
-	}
-	return ls
-}
-
-func Init(config *Config) (*Thread, error) {
-	ls := new(runtime).init(config)
-	ls.tt = &Thread{ls}
-	return ls.tt, config.Stdlib(ls.tt)
-}

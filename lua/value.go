@@ -2,230 +2,60 @@ package lua
 
 import (
 	"fmt"
-	"math/big"
-	"reflect"
-	"runtime"
+	"github.com/fibonacci1729/golua/lua/code"
 )
-
-type Type int
-
-const (
-	NoneType Type = iota
-	NilType
-	BoolType
-	NumberType
-	StringType
-	FuncType
-	UserDataType
-	ThreadType
-	TableType
-	maxTypeID
-)
-
-var types = [...]string{
-	NoneType:     "no value",
-	NilType:      "nil",
-	BoolType:     "boolean",
-	NumberType:   "number",
-	StringType:   "string",
-	FuncType:     "function",
-	UserDataType: "userdata",
-	ThreadType:   "thread",
-	TableType:    "table",
-}
-
-func (id Type) String() string { return types[id] }
 
 type (
-	Number interface {
-		Value
-		number()
+	Callable interface {
+		callable
+	}
+
+	HasMeta interface {
+		SetMeta(*Table)
+		Meta() *Table
 	}
 
 	Value interface {
-		// String returns the canonical string of this value.
 		String() string
-
-		// Type returns the type name of this value.
-		//
-		// Types:
-		// nil
-		// boolean
-		// number
-		// string
-		// function
-		// userdata
-		// thread
-		// table
-		Type() Type
+		Type(*Thread) Type
+		kind() code.Type
 	}
 )
-
-type Object struct {
-	meta *table
-	data interface{}
-}
-
-func UserData(data interface{}) *Object {
-	return &Object{data: data}
-}
-
-func (x *Object) Value() interface{} { return x.data }
-func (x *Object) String() string      { return fmt.Sprintf("userdata: %p", x) }
-func (x *Object) Type() Type          { return UserDataType }
-
-type Table interface {
-	Value
-
-	Length() int
-	Index(index Value) Value
-	ForEach(func(key, value Value))
-}
-
-type Float float64
-
-func (x Float) String() string { return fmt.Sprintf("%.14g", float64(x)) }
-func (x Float) Type() Type     { return NumberType }
-func (Float) number()          {}
-
-type String string
-
-func (x String) String() string { return string(x) }
-func (x String) Type() Type     { return StringType }
-
-type Bool bool
 
 const (
-	True  = Bool(true)
-	False = Bool(false)
+	NilType     = code.NilType    
+	BoolType    = code.BoolType
+	NumberType  = code.NumberType 
+	StringType  = code.StringType 
+	TableType   = code.TableType  
+	FuncType    = code.FuncType   
+	GoType      = code.GoType     
+	ThreadType  = code.ThreadType
+	IntType     = code.IntType
+	FloatType   = code.FloatType
 )
 
-func (x Bool) String() string { return fmt.Sprintf("%t", bool(x)) }
-func (x Bool) Type() Type     { return BoolType }
-
-type Int int64
-
-func (x Int) String() string { return fmt.Sprintf("%v", int64(x)) }
-func (x Int) Type() Type     { return NumberType }
-func (Int) number()          {}
-
-type Nil byte
-
-const None = Nil(0)
-
-func (x Nil) String() string { return "nil" }
-func (x Nil) Type() Type {
-	if x == None {
-		return NoneType
-	}
-	return NilType
+type GoValue struct {
+	Value interface{}
+	funcs *Table
 }
 
-type Func func(*State) int
+func (v *GoValue) String() string { return fmt.Sprintf("userdata: %p", v) }
 
-// func (x Func) Call(state *State) int {
-// 	return x(state)
-// }
+func (v *closure) Type(t *Thread) Type { return t.ls.typeOf(v) }
+func (v *GoValue) Type(t *Thread) Type { return t.ls.typeOf(v) }
+func (v *Thread) Type(t *Thread) Type { return t.ls.typeOf(v) }
+func (v *Table) Type(t *Thread) Type { return t.ls.typeOf(v) }
+func (v String) Type(t *Thread) Type { return t.ls.typeOf(v) }
+func (v Float) Type(t *Thread) Type { return t.ls.typeOf(v) }
+func (v Int) Type(t *Thread) Type { return t.ls.typeOf(v) }
+func (v Bool) Type(t *Thread) Type { return t.ls.typeOf(v) }
 
-func (x Func) Type() Type {
-	if x == nil {
-		return NilType
-	}
-	return FuncType
-}
-
-func (x Func) String() string {
-	if x != nil {
-		pc := reflect.ValueOf(x).Pointer()
-		fn := runtime.FuncForPC(pc)
-		_, ln := fn.FileLine(pc)
-		return fmt.Sprintf("func@%s:%d", fn.Name(), ln)
-	}
-	return fmt.Sprintf("func@%s", None)
-}
-
-//
-// Value APIs
-//
-
-func ValueOf(state *State, value interface{}) Value {
-	return valueOf(state, value)
-}
-
-func valueOf(state *State, value interface{}) Value {
-	switch value := value.(type) {
-	case func(*State) int:
-		return newGoClosure(Func(value), 0)
-	case Func:
-		return newGoClosure(value, 0)
-	case float64:
-		return Float(value)
-	case float32:
-		return Float(float64(value))
-	case string:
-		return String(value)
-	case int64:
-		return Int(value)
-	case int32:
-		return Int(int64(value))
-	case int:
-		return Int(int64(value))
-	case bool:
-		return Bool(value)
-	case Value:
-		return value
-	case nil:
-		return Nil(1)
-	}
-	udata := &Object{data: value}
-	udata.meta = metaOf(state, udata)
-	return udata
-}
-
-func IsNumber(value Value) bool { return IsFloat(value) || IsInt(value) }
-func IsFloat(value Value) bool  { _, ok := value.(Float); return ok }
-func IsInt(value Value) bool    { _, ok := value.(Int); return ok }
-func IsNone(value Value) bool {
-	return value == nil || value == None || !isNil(value) || value.Type() == NilType
-}
-func isNil(value Value) bool { return reflect.ValueOf(value).IsValid() } //IsNil() }
-
-func Truth(value Value) bool { return bool(truth(value)) }
-
-func toString(value Value) (string, bool) {
-	switch value := value.(type) {
-	case String:
-		return string(value), true
-	case Float:
-		s := fmt.Sprintf("%v", float64(value))
-		return s, true
-	case Int:
-		s := fmt.Sprintf("%v", int64(value))
-		return s, true
-	case Bool:
-		s := fmt.Sprintf("%t", bool(value))
-		return s, true
-	case Nil:
-		return value.String(), true
-	}
-	return "", false
-}
-
-func (x Float) rational() *big.Rat { return new(big.Rat).SetFloat64(float64(x)) }
-func (x Int) rational() *big.Rat   { return new(big.Rat).SetInt64(int64(x)) }
-
-// truth returns true for any Lua value different from false
-// and None (or nil), otherwise returns false.
-func truth(value Value) Bool {
-	if b, ok := value.(Bool); ok {
-		return b
-	}
-	return Bool(!IsNone(value))
-}
-
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
-}
+func (*closure) kind() code.Type { return FuncType }
+func (*GoValue) kind() code.Type { return GoType }
+func (*Thread) kind() code.Type { return ThreadType }
+func (*Table) kind() code.Type { return TableType }
+func (String) kind() code.Type { return StringType }
+func (Float) kind() code.Type { return FloatType }
+func (Int) kind() code.Type {  return IntType }
+func (Bool) kind() code.Type { return BoolType }
