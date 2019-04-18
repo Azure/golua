@@ -1,9 +1,9 @@
 package lua
 
 import (
-	"reflect"
-	"math"
 	"fmt"
+	"math"
+	"reflect"
 )
 
 func Compare(t *Thread, op Op, x, y Value) (bool, error) {
@@ -157,37 +157,37 @@ func Unary(t *Thread, op Op, x Value) (Value, error) {
 
 func binary(ls *thread, op Op, x, y Value) (Value, error) {
 	switch op {
-		case OpDivF, OpPow:
-			if x, ok := ToFloat(x); ok {
-				if y, ok := ToFloat(y); ok {
-					return numop(op, x, y), nil
-				}
+	case OpDivF, OpPow:
+		if x, ok := ToFloat(x); ok {
+			if y, ok := ToFloat(y); ok {
+				return numop(op, x, y), nil
 			}
+		}
 
-		case OpBand,
-			OpBor,
-			OpBxor,
-			OpShl, 
-			OpShr,
-			OpBnot:
-			
-			if x, ok := ToInt(x); ok {
-				if y, ok := ToInt(y); ok {
-					return intop(op, x, y), nil
-				}
-			}
+	case OpBand,
+		OpBor,
+		OpBxor,
+		OpShl,
+		OpShr,
+		OpBnot:
 
-		default:
-			if x, ok := x.(Int); ok {
-				if y, ok := y.(Int); ok {
-					return intop(op, x, y), nil
-				}
+		if x, ok := ToInt(x); ok {
+			if y, ok := ToInt(y); ok {
+				return intop(op, x, y), nil
 			}
-			if x, ok := ToFloat(x); ok {
-				if y, ok := ToFloat(y); ok {
-					return numop(op, x, y), nil
-				}
+		}
+
+	default:
+		if x, ok := x.(Int); ok {
+			if y, ok := y.(Int); ok {
+				return intop(op, x, y), nil
 			}
+		}
+		if x, ok := ToFloat(x); ok {
+			if y, ok := ToFloat(y); ok {
+				return numop(op, x, y), nil
+			}
+		}
 	}
 	e := event(op-OpEq) + _add
 	return e.binary(ls, x, y)
@@ -195,62 +195,62 @@ func binary(ls *thread, op Op, x, y Value) (Value, error) {
 
 func numop(op Op, x, y Float) Float {
 	switch op {
-		case OpMinus:
-			return -x
-		case OpDivF:
-			return x / y
-		case OpDivI:
-			return Float(math.Floor(float64(x/y)))
-		case OpAdd:
-			return x + y
-		case OpSub:
-			return x - y
-		case OpMul:
-			return x * y
-		case OpPow:
-			f64 := math.Pow(float64(x), float64(y))
-			return Float(f64)
-		case OpMod:
-			f64 := Float(math.Mod(float64(x), float64(y)))
-			if f64 * y < 0 {
-				f64 += y
-			}
-			return f64
+	case OpMinus:
+		return -x
+	case OpDivF:
+		return x / y
+	case OpDivI:
+		return Float(math.Floor(float64(x / y)))
+	case OpAdd:
+		return x + y
+	case OpSub:
+		return x - y
+	case OpMul:
+		return x * y
+	case OpPow:
+		f64 := math.Pow(float64(x), float64(y))
+		return Float(f64)
+	case OpMod:
+		f64 := Float(math.Mod(float64(x), float64(y)))
+		if f64*y < 0 {
+			f64 += y
+		}
+		return f64
 	}
 	panic(fmt.Errorf("unexpected binary operator '%v'", op))
 }
 
 func intop(op Op, x, y Int) Int {
 	switch op {
-		case OpMinus:
-			return -x
-		case OpDivI:
-			return x / y
-		case OpBand:
-			return x & y
-		case OpBnot:
-			return ^x 
-		case OpBxor:
-			return x ^ y
-		case OpBor:
-			return x | y
-		case OpAdd:
-			return x + y
-		case OpSub:
-			return x - y
-		case OpMul:
-			return x * y
-		case OpMod:
-			if r := (x % y); r != 0 && (x ^ y) < 0 { // 'm/n' would be non-integer negative?
-				r += y // correct result for different rounding
-				return Int(r)
-			} else {
-				return Int(r)
-			}
-		case OpShl:
-			return shiftLeft(x, y)
-		case OpShr:
-			return shiftRight(x, y)
+	case OpMinus:
+		return -x
+	case OpDivI:
+		return x / y
+	case OpBand:
+		return x & y
+	case OpBnot:
+		return ^x
+	case OpBxor:
+		return x ^ y
+	case OpBor:
+		return x | y
+	case OpAdd:
+		return x + y
+	case OpSub:
+		return x - y
+	case OpMul:
+		return x * y
+	case OpMod:
+		if r := (x % y); r != 0 && (x^y) < 0 { // 'm/n' would be non-integer negative?
+			r += y // correct result for different rounding
+			return Int(r)
+		} else {
+			return Int(r)
+		}
+	case OpShl:
+		return shiftLeft(x, y)
+	case OpShr:
+		return shiftRight(x, y)
 	}
 	panic(fmt.Errorf("unexpected binary operator '%v'", op))
 }

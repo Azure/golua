@@ -1,13 +1,13 @@
 package luac
 
 import (
-	"unicode/utf8"
-	"unicode"
-	"strings"
 	"bufio"
 	"bytes"
-	"math"
 	"fmt"
+	"math"
+	"strings"
+	"unicode"
+	"unicode/utf8"
 )
 
 const eof = -1
@@ -16,10 +16,10 @@ const eof = -1
 type lexical struct {
 	*scanner
 
-    active []*variable
-    labels []*label
-    gotos  []*label
-	fs 	   *function
+	active []*variable
+	labels []*label
+	gotos  []*label
+	fs     *function
 	// for debugging
 	indent int
 }
@@ -39,7 +39,7 @@ func (s *lexical) tok2str(char rune) string {
 	if char < reserved { // single-byte symbols?
 		return fmt.Sprintf("'%c'", char)
 	}
-	str := tokens[int(char) - reserved]
+	str := tokens[int(char)-reserved]
 	if char < tEOS {
 		return fmt.Sprintf("'%s'", str)
 	}
@@ -125,104 +125,104 @@ func (s *lexical) scan() token {
 			continue
 		}
 		switch char := s.char; char {
-			case eof:
-				return token{char: tEOS}
-			case '-':
-				if s.read(); s.char != '-' {
-					return token{char: '-'}
-				}
-				if s.read(); s.char == '[' {
-					if sep := s.skipSep(); sep >= 0 {
-						_ = s.multiline(comment, sep)
-						break
-					}
-					s.buffer.Reset()
-				}
-				for !isNewLine(s.char) && s.char != eof {
-					s.read()
-				}
-			case '[': // long string or simple '['
-				sep := s.skipSep()
-				if sep >= 0 {
-					return token{char: tString, sval: s.multiline(false, sep)}
+		case eof:
+			return token{char: tEOS}
+		case '-':
+			if s.read(); s.char != '-' {
+				return token{char: '-'}
+			}
+			if s.read(); s.char == '[' {
+				if sep := s.skipSep(); sep >= 0 {
+					_ = s.multiline(comment, sep)
+					break
 				}
 				s.buffer.Reset()
-				if sep != -1 {
-					s.scanErr("invalid long string delimiter", tString)
-				}
-				return token{char: '['}
+			}
+			for !isNewLine(s.char) && s.char != eof {
+				s.read()
+			}
+		case '[': // long string or simple '['
+			sep := s.skipSep()
+			if sep >= 0 {
+				return token{char: tString, sval: s.multiline(false, sep)}
+			}
+			s.buffer.Reset()
+			if sep != -1 {
+				s.scanErr("invalid long string delimiter", tString)
+			}
+			return token{char: '['}
+		case '=':
+			if s.read(); s.char != '=' {
+				return token{char: '='}
+			}
+			s.read()
+			return token{char: tEq}
+		case '<':
+			switch s.read(); s.char {
 			case '=':
-				if s.read(); s.char != '=' {
-					return token{char: '='}
-				}
 				s.read()
-				return token{char: tEq}
+				return token{char: tLe}
 			case '<':
-				switch s.read(); s.char {
-					case '=':
-						s.read()
-						return token{char: tLe}
-					case '<':
-						s.read()
- 						return token{char: tShl}
-				}
-				return token{char: '<'}
+				s.read()
+				return token{char: tShl}
+			}
+			return token{char: '<'}
+		case '>':
+			switch s.read(); s.char {
+			case '=':
+				s.read()
+				return token{char: tGe}
 			case '>':
-				switch s.read(); s.char {
-					case '=':
-						s.read()
-						return token{char: tGe}
-					case '>':
-						s.read()
- 						return token{char: tShr}
-				}
-				return token{char: '>'}
-			case '~':
-				if s.read(); s.char != '=' {
-					return token{char: '~'}
-				}
 				s.read()
-				return token{char: tNe}
-			case ':':
-				if s.read(); s.char != ':' {
-					return token{char: ':'}
-				}
-				s.read()
-				return token{char: tColon2}
-			case '/':
-				if s.read(); s.char != '/' {
-					return token{char: '/'}
-				}
-				s.read()
-				return token{char: tDivI}
-			case '"', '\'':
-				return s.strlit(char)
-			case '.':
-				if s.consume(); s.oneof(".") {
-					if s.oneof(".") {
-						s.buffer.Reset()
-						return token{char: tDots}
-					}
+				return token{char: tShr}
+			}
+			return token{char: '>'}
+		case '~':
+			if s.read(); s.char != '=' {
+				return token{char: '~'}
+			}
+			s.read()
+			return token{char: tNe}
+		case ':':
+			if s.read(); s.char != ':' {
+				return token{char: ':'}
+			}
+			s.read()
+			return token{char: tColon2}
+		case '/':
+			if s.read(); s.char != '/' {
+				return token{char: '/'}
+			}
+			s.read()
+			return token{char: tDivI}
+		case '"', '\'':
+			return s.strlit(char)
+		case '.':
+			if s.consume(); s.oneof(".") {
+				if s.oneof(".") {
 					s.buffer.Reset()
-					return token{char: tConcat}
+					return token{char: tDots}
 				}
-				if !isDigit(s.char) {
-					s.buffer.Reset()
-					return token{char: '.'}
-				}
+				s.buffer.Reset()
+				return token{char: tConcat}
+			}
+			if !isDigit(s.char) {
+				s.buffer.Reset()
+				return token{char: '.'}
+			}
+			return s.numlit()
+		case 0:
+			s.read()
+		default:
+			if isDigit(s.char) {
 				return s.numlit()
-			case 0:
-				s.read()
-			default:
-				if isDigit(s.char) {
-					return s.numlit()
-				}
-				if isIdent(s.char) {
-					s.consume()
-					return s.ident()
-				}
-				s.read()
-				return token{char: char}
+			}
+			if isIdent(s.char) {
+				s.consume()
+				return s.ident()
+			}
+			s.read()
+			return token{char: char}
 		}
 	}
 }
@@ -236,7 +236,7 @@ func (s *lexical) peek() rune {
 func (s *lexical) next() bool {
 	if s.last = s.line; s.peek0.char != tEOS {
 		s.token = s.peek0
-		s.peek0.char= tEOS
+		s.peek0.char = tEOS
 	} else {
 		s.token = s.scan()
 	}
@@ -304,21 +304,21 @@ func (s *lexical) numlit() token {
 func (s *lexical) strlit(delimiter rune) token {
 	for s.consume(); s.char != delimiter; {
 		switch c := s.char; {
-			case c == eof:
-				s.scanErr("unfinished string", tEOS)
-			case isNewLine(c):
-				s.scanErr("unfinished string", tString)
-			case c == '\\':
-				s.read()
-				s.escape()
-			default:
-				s.consume()
+		case c == eof:
+			s.scanErr("unfinished string", tEOS)
+		case isNewLine(c):
+			s.scanErr("unfinished string", tString)
+		case c == '\\':
+			s.read()
+			s.escape()
+		default:
+			s.consume()
 		}
 	}
 	s.consume()
 	str := s.buffer.String()
 	s.buffer.Reset()
-	return token{char: tString, sval: str[1:len(str)-1]}
+	return token{char: tString, sval: str[1 : len(str)-1]}
 }
 
 func (s *lexical) hexlit(x float64) (n float64, c rune, i int) {
@@ -327,14 +327,14 @@ func (s *lexical) hexlit(x float64) (n float64, c rune, i int) {
 	}
 	for {
 		switch {
-			case '0' <= c && c <= '9':
-				c = c - '0'
-			case 'a' <= c && c <= 'f':
-				c = c - 'a' + 10
-			case 'A' <= c && c <= 'F':
-				c = c - 'A' + 10
-			default:
-				return
+		case '0' <= c && c <= '9':
+			c = c - '0'
+		case 'a' <= c && c <= 'f':
+			c = c - 'a' + 10
+		case 'A' <= c && c <= 'F':
+			c = c - 'A' + 10
+		default:
+			return
 		}
 		s.read()
 		c, n, i = s.char, n*16.0+float64(c), i+1
@@ -355,29 +355,29 @@ func (s *lexical) escape() {
 		return
 	}
 	switch c := s.char; {
-		case isNewLine(c):
-			s.addline()
-			s.save('\n')
-		case c == 'x':
-			s.save(s.escape16())
-		case c == 'z':
-			for s.read(); unicode.IsSpace(s.char); {
-				if isNewLine(s.char) {
-					s.addline()
-				} else {
-					s.read()
-				}
+	case isNewLine(c):
+		s.addline()
+		s.save('\n')
+	case c == 'x':
+		s.save(s.escape16())
+	case c == 'z':
+		for s.read(); unicode.IsSpace(s.char); {
+			if isNewLine(s.char) {
+				s.addline()
+			} else {
+				s.read()
 			}
-		case c == 'u':
-			s.escapeUTF8()
-		case c == eof:
-			// nothing todo
-			return
-		default:
-			if !isDigit(c) {
-				s.escapeErr([]rune{c}, "invalid escape sequence")
-			}
-			s.save(s.escape10())
+		}
+	case c == 'u':
+		s.escapeUTF8()
+	case c == eof:
+		// nothing todo
+		return
+	default:
+		if !isDigit(c) {
+			s.escapeErr([]rune{c}, "invalid escape sequence")
+		}
+		s.save(s.escape10())
 	}
 }
 
@@ -401,14 +401,14 @@ func (s *lexical) escape16() (r rune) {
 
 	for i, c := 1, s.char; i < len(b); i, c, r = i+1, s.char, r<<4+c {
 		switch b[i] = c; {
-			case 'a' <= c && c <= 'z':
-				c = c - 'a' + 10
-			case 'A' <= c && c <= 'Z':
-				c = c - 'A' + 10
-			case isDigit(c):
-				c = c - '0'
-			default:
-				s.escapeErr(b[:i+1], "hexadecimal digit expected")
+		case 'a' <= c && c <= 'z':
+			c = c - 'a' + 10
+		case 'A' <= c && c <= 'Z':
+			c = c - 'A' + 10
+		case isDigit(c):
+			c = c - '0'
+		default:
+			s.escapeErr(b[:i+1], "hexadecimal digit expected")
 		}
 		s.read()
 	}
@@ -450,7 +450,7 @@ func (s *lexical) skipSep() int {
 	if s.char == delim {
 		return count
 	}
-	return -count-1
+	return -count - 1
 }
 
 func (s *lexical) multiline(comment bool, sep int) (str string) {
@@ -459,32 +459,32 @@ func (s *lexical) multiline(comment bool, sep int) (str string) {
 	}
 	for {
 		switch s.char {
-			case eof:
-				if comment {
-					s.scanErr("unfinished long comment", tEOS)
-				} else {
-					s.scanErr("unfinished long string", tEOS)
+		case eof:
+			if comment {
+				s.scanErr("unfinished long comment", tEOS)
+			} else {
+				s.scanErr("unfinished long string", tEOS)
+			}
+		case ']':
+			if s.skipSep() == sep {
+				if s.consume(); !comment {
+					str = s.buffer.String()
+					str = str[2+sep : len(str)-(2+sep)]
 				}
-			case ']':
-				if s.skipSep() == sep {
-					if s.consume(); !comment {
-						str = s.buffer.String()
-						str = str[2+sep:len(str)-(2+sep)]
-					}
-					s.buffer.Reset()
-					return
-				}
-			case '\r':
-				s.char = '\n'
-				fallthrough
-			case '\n':
+				s.buffer.Reset()
+				return
+			}
+		case '\r':
+			s.char = '\n'
+			fallthrough
+		case '\n':
+			s.save(s.char)
+			s.addline()
+		default:
+			if !comment {
 				s.save(s.char)
-				s.addline()
-			default:
-				if !comment {
-					s.save(s.char)
-				}
-				s.read()
+			}
+			s.read()
 		}
 	}
 }

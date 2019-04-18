@@ -2,6 +2,7 @@ package lua
 
 import (
 	"fmt"
+
 	"github.com/Azure/golua/lua/code"
 )
 
@@ -90,7 +91,7 @@ func (fn *GoFunc) check(ls *thread, argv []Value) (args Tuple, err error) {
 	return args, nil
 }
 
-// call implements the callable interface for Go funcs. 
+// call implements the callable interface for Go funcs.
 func (fn *GoFunc) call(ls *thread, argv []Value) ([]Value, error) {
 	args, err := fn.check(ls, argv)
 	if err != nil {
@@ -106,7 +107,7 @@ type Func struct {
 	proto *code.Proto
 }
 
-// call implements the callable interface for Lua funcs. 
+// call implements the callable interface for Lua funcs.
 func (fn *Func) call(ls *thread, args []Value) ([]Value, error) {
 	// fmt.Printf("call: args=%v, varg=%v\n", args, ls.fr.call.va)
 	// fn.stack = append(fn.stack, args)
@@ -119,17 +120,17 @@ func (fn *Func) call(ls *thread, args []Value) ([]Value, error) {
 // kst returns the function i'th constant.
 func (fn *Func) kst(i int) (c Constant) {
 	switch kst := fn.proto.Consts[i].(type) {
-		case float64:
-			return Float(kst)
-		case string:
-			return String(kst)
-		case int64:
-			return Int(kst)
-		case bool:
-			if kst {
-				return True
-			}
-			return False
+	case float64:
+		return Float(kst)
+	case string:
+		return String(kst)
+	case int64:
+		return Int(kst)
+	case bool:
+		if kst {
+			return True
+		}
+		return False
 	}
 	return c
 }
@@ -164,7 +165,7 @@ func (fn *Func) open(stack []Value, encup ...*upvar) {
 
 func (fn *Func) checkstack(top, n int) {
 	if room := len(fn.stack) - top; room < n {
-		space := make([]Value, n - room)
+		space := make([]Value, n-room)
 		fn.stack = append(fn.stack, space...)
 	}
 }

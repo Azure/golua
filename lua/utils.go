@@ -1,10 +1,10 @@
 package lua
 
 import (
-	"math/big"
-	"strings"
-	"strconv"
 	"math"
+	"math/big"
+	"strconv"
+	"strings"
 )
 
 // Convert and returns float f as an int64, true.
@@ -48,8 +48,8 @@ func str2float(s string) (float64, bool) {
 func str2int(s string) (int64, bool) {
 	var (
 		sign int64 = 1
-		acc uint64
-		pos int
+		acc  uint64
+		pos  int
 	)
 	if s = strings.TrimSpace(s); s[pos] == '-' || s[pos] == '+' {
 		if pos++; s[pos-1] == '-' {
@@ -58,38 +58,39 @@ func str2int(s string) (int64, bool) {
 	}
 	if s[pos] == '0' && pos+1 < len(s) && (s[pos+1] == 'x' || s[pos+1] == 'X') {
 		for pos += 2; pos < len(s) && isHexDigit(rune(s[pos])); pos++ {
-			acc = acc * 16 + uint64(hex2int(s[pos]))
+			acc = acc*16 + uint64(hex2int(s[pos]))
 		}
-		return sign*int64(acc), (pos == len(s))
+		return sign * int64(acc), (pos == len(s))
 	}
 	const (
-		maxBy10 = uint64(maxInt/10)
-		maxLast = int64(maxInt%10)
+		maxBy10 = uint64(maxInt / 10)
+		maxLast = int64(maxInt % 10)
 	)
 	for pos < len(s) && isDigit(rune(s[pos])) {
 		dig := uint64(s[pos] - '0')
-		if acc >= maxBy10 && (acc > maxBy10 || dig > uint64(maxLast + sign)) {
+		if acc >= maxBy10 && (acc > maxBy10 || dig > uint64(maxLast+sign)) {
 			return 0, false
 		}
-		acc = acc * 10 + dig
+		acc = acc*10 + dig
 		pos++
 	}
-	return sign*int64(acc), (pos == len(s))
+	return sign * int64(acc), (pos == len(s))
 }
 
 func hex2int(r byte) int {
 	switch {
-	 	case '0' <= r && r <= '9':
-			r = r - '0'
-		case 'a' <= r && r <= 'f':
-			r = r - 'a' + 10
-		case 'A' <= r && r <= 'F':
-			r = r - 'A' + 10
+	case '0' <= r && r <= '9':
+		r = r - '0'
+	case 'a' <= r && r <= 'f':
+		r = r - 'a' + 10
+	case 'A' <= r && r <= 'F':
+		r = r - 'A' + 10
 	}
 	return int(r)
 }
 
 func isHexDigit(r rune) bool { return isDigit(r) || 'a' <= r && r <= 'f' || 'A' <= r && r <= 'F' }
-func isDigit(r rune) bool { return '0' <= r && r <= '9' }
+func isDigit(r rune) bool    { return '0' <= r && r <= '9' }
 func isNaN(f64 float64) bool { return math.IsNaN(f64) }
-const maxInt = int(^uint(0)>>1)
+
+const maxInt = int(^uint(0) >> 1)

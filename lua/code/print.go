@@ -11,12 +11,12 @@ func printHeader(w io.Writer, fn *Proto) {
 		srcID = "=?"
 	}
 	switch {
-		case srcID[0] == '@' || srcID[0] == '=':
-			srcID = srcID[1:]
-		case srcID[0] == signature[0]:
-			srcID = "(bstring)"
-		default:
-			srcID = "(string)"
+	case srcID[0] == '@' || srcID[0] == '=':
+		srcID = srcID[1:]
+	case srcID[0] == signature[0]:
+		srcID = "(bstring)"
+	default:
+		srcID = "(string)"
 	}
 	prefix := "function"
 	if fn.SrcPos == 0 {
@@ -48,20 +48,20 @@ func printHeader(w io.Writer, fn *Proto) {
 
 func printConst(w io.Writer, kst Const) {
 	switch kst := kst.(type) {
-		case string:
-			fmt.Fprintf(w, "%q", kst)
-		case float64:
-			fmt.Fprintf(w, "%f", kst)
-		case bool:
-			fmt.Fprintf(w, "%t", kst)
-		case int64:
-			fmt.Fprintf(w, "%d", kst)			
-		default: // cannot happen
-			if kst == nil {
-				fmt.Fprintf(w, "nil")
-			} else {
-				fmt.Fprintf(w, "? type=%T", kst)
-			}
+	case string:
+		fmt.Fprintf(w, "%q", kst)
+	case float64:
+		fmt.Fprintf(w, "%f", kst)
+	case bool:
+		fmt.Fprintf(w, "%t", kst)
+	case int64:
+		fmt.Fprintf(w, "%d", kst)
+	default: // cannot happen
+		if kst == nil {
+			fmt.Fprintf(w, "nil")
+		} else {
+			fmt.Fprintf(w, "? type=%T", kst)
+		}
 	}
 }
 
@@ -107,108 +107,108 @@ func printCode(w io.Writer, fn *Proto) {
 		fmt.Fprintf(w, "%-9s\t", inst.Code())
 
 		switch mode {
-			case ModeAsBx:
-				fmt.Fprintf(w, "%d %d", inst.A(), inst.SBX())
-			case ModeABC:
-				fmt.Fprintf(w, "%d", inst.A())
-				if !mask.B(ArgN) {
-					if IsKst(inst.B()) {
-						fmt.Fprintf(w, " %d", Kst(ToKst(inst.B())))
-					} else {
-						fmt.Fprintf(w, " %d", inst.B())
-					}
+		case ModeAsBx:
+			fmt.Fprintf(w, "%d %d", inst.A(), inst.SBX())
+		case ModeABC:
+			fmt.Fprintf(w, "%d", inst.A())
+			if !mask.B(ArgN) {
+				if IsKst(inst.B()) {
+					fmt.Fprintf(w, " %d", Kst(ToKst(inst.B())))
+				} else {
+					fmt.Fprintf(w, " %d", inst.B())
 				}
-				if !mask.C(ArgN) {
-					if IsKst(inst.C()) {
-						fmt.Fprintf(w, " %d", Kst(ToKst(inst.C())))
-					} else {
-						fmt.Fprintf(w, " %d", inst.C())
-					}
+			}
+			if !mask.C(ArgN) {
+				if IsKst(inst.C()) {
+					fmt.Fprintf(w, " %d", Kst(ToKst(inst.C())))
+				} else {
+					fmt.Fprintf(w, " %d", inst.C())
 				}
-			case ModeABx:
-				fmt.Fprintf(w, "%d", inst.A())
-				if mask.B(ArgK) {
-					fmt.Fprintf(w, " %d", Kst(inst.BX()))
-				}
-				if mask.B(ArgU) {
-					fmt.Fprintf(w, " %d", inst.BX())
-				}
-			case ModeAx:
-				fmt.Fprintf(w, "%d", Kst(inst.AX()))
+			}
+		case ModeABx:
+			fmt.Fprintf(w, "%d", inst.A())
+			if mask.B(ArgK) {
+				fmt.Fprintf(w, " %d", Kst(inst.BX()))
+			}
+			if mask.B(ArgU) {
+				fmt.Fprintf(w, " %d", inst.BX())
+			}
+		case ModeAx:
+			fmt.Fprintf(w, "%d", Kst(inst.AX()))
 		}
 
 		switch inst.Code() {
-			case GETUPVAL, SETUPVAL:
-				fmt.Fprintf(w, "\t; %s", upVarID(fn.UpVars[inst.B()]))
-			case GETTABLE, SELF:
-				if IsKst(inst.C()) {
-					fmt.Fprint(w, "\t; ")
-					printConst(w, fn.Consts[ToKst(inst.C())])
-				}
-			case SETTABUP:
-				fmt.Fprintf(w, "\t; %s", upVarID(fn.UpVars[inst.A()]))
+		case GETUPVAL, SETUPVAL:
+			fmt.Fprintf(w, "\t; %s", upVarID(fn.UpVars[inst.B()]))
+		case GETTABLE, SELF:
+			if IsKst(inst.C()) {
+				fmt.Fprint(w, "\t; ")
+				printConst(w, fn.Consts[ToKst(inst.C())])
+			}
+		case SETTABUP:
+			fmt.Fprintf(w, "\t; %s", upVarID(fn.UpVars[inst.A()]))
+			if IsKst(inst.B()) {
+				fmt.Fprint(w, " ")
+				printConst(w, fn.Consts[ToKst(inst.B())])
+			}
+			if IsKst(inst.C()) {
+				fmt.Fprint(w, " ")
+				printConst(w, fn.Consts[ToKst(inst.C())])
+			}
+		case GETTABUP:
+			fmt.Fprintf(w, "\t; %s", upVarID(fn.UpVars[inst.B()]))
+			if IsKst(inst.C()) {
+				fmt.Fprint(w, " ")
+				printConst(w, fn.Consts[ToKst(inst.C())])
+			}
+		case SETTABLE,
+			ADD,
+			SUB,
+			MUL,
+			POW,
+			DIV,
+			IDIV,
+			BAND,
+			BOR,
+			BXOR,
+			SHL,
+			SHR,
+			EQ,
+			LT,
+			LE:
+			if IsKst(inst.B()) || IsKst(inst.C()) {
+				fmt.Fprint(w, "\t; ")
 				if IsKst(inst.B()) {
-					fmt.Fprint(w, " ")
 					printConst(w, fn.Consts[ToKst(inst.B())])
-				}
-				if IsKst(inst.C()) {
-					fmt.Fprint(w, " ")
-					printConst(w, fn.Consts[ToKst(inst.C())])
-				}
-			case GETTABUP:
-    			fmt.Fprintf(w, "\t; %s", upVarID(fn.UpVars[inst.B()]))
-				if IsKst(inst.C()) {
-					fmt.Fprint(w, " ")
-					printConst(w, fn.Consts[ToKst(inst.C())])
-				}
-			case SETTABLE,
-				ADD,
-				SUB,
-				MUL,
-				POW,
-				DIV,
-				IDIV,
-				BAND,
-				BOR,
-				BXOR,
-				SHL,
-				SHR,
-				EQ,
-				LT,
-				LE:
-				if IsKst(inst.B()) || IsKst(inst.C()) {
-					fmt.Fprint(w, "\t; ")
-					if IsKst(inst.B()) {
-						printConst(w, fn.Consts[ToKst(inst.B())])
-					} else {
-						fmt.Fprint(w, "-")
-					}
-					fmt.Fprint(w, " ")
-					if IsKst(inst.C()) {
-						printConst(w, fn.Consts[ToKst(inst.C())])
-					} else {
-						fmt.Fprint(w, "-")
-					}
-				}
-			case TFORLOOP,
-				FORPREP,
-				FORLOOP,
-				JMP:
-				fmt.Fprintf(w, "\t; to %d", inst.SBX()+pc+2)
-			case CLOSURE:
-				fmt.Fprintf(w, "\t; %p", fn.Protos[inst.BX()])
-			case SETLIST:
-				if inst.C() == 0 {
-					fmt.Fprintf(w, "\t; %d", fn.Instrs[pc+1])
 				} else {
-					fmt.Fprintf(w, "\t; %d", inst.C())
+					fmt.Fprint(w, "-")
 				}
-			case EXTRAARG:
-				fmt.Fprint(w, "\t; ")
-				printConst(w, fn.Consts[inst.AX()])
-			case LOADK:
-				fmt.Fprint(w, "\t; ")
-				printConst(w, fn.Consts[inst.BX()])
+				fmt.Fprint(w, " ")
+				if IsKst(inst.C()) {
+					printConst(w, fn.Consts[ToKst(inst.C())])
+				} else {
+					fmt.Fprint(w, "-")
+				}
+			}
+		case TFORLOOP,
+			FORPREP,
+			FORLOOP,
+			JMP:
+			fmt.Fprintf(w, "\t; to %d", inst.SBX()+pc+2)
+		case CLOSURE:
+			fmt.Fprintf(w, "\t; %p", fn.Protos[inst.BX()])
+		case SETLIST:
+			if inst.C() == 0 {
+				fmt.Fprintf(w, "\t; %d", fn.Instrs[pc+1])
+			} else {
+				fmt.Fprintf(w, "\t; %d", inst.C())
+			}
+		case EXTRAARG:
+			fmt.Fprint(w, "\t; ")
+			printConst(w, fn.Consts[inst.AX()])
+		case LOADK:
+			fmt.Fprint(w, "\t; ")
+			printConst(w, fn.Consts[inst.BX()])
 		}
 		fmt.Fprintln(w)
 	}

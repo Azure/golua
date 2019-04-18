@@ -53,7 +53,7 @@ func (ci *call) prepare(ls *thread, fn callable, args *[]Value, want int) *call 
 		}
 		fn.stack = make([]Value, fn.proto.StackN)
 	}
-	ci.fr, ls.fr = ls.fr, &frame{prev: ls.fr, call: ci} 
+	ci.fr, ls.fr = ls.fr, &frame{prev: ls.fr, call: ci}
 	ci.want = want
 	ci.fn = fn
 	return ci
@@ -65,7 +65,7 @@ func (ci *call) varargs(args *[]Value, fixed int) {
 		param++
 	}
 	for param < fixed {
-		param++	
+		param++
 	}
 	extra := (*args)[param:]
 	*args = (*args)[:param]
@@ -89,13 +89,13 @@ func (ci *call) call(ls *thread, args []Value) ([]Value, error) {
 	}
 	if ci.want >= 0 {
 		switch extra := len(rets) - ci.want; {
-			case ci.want == 0:
-				rets = rets[:0]
-			case extra < 0:
-				nils := make([]Value, -extra)
-				rets = append(rets, nils...)
-			case extra > 0:
-				rets = rets[:len(rets)-extra]
+		case ci.want == 0:
+			rets = rets[:0]
+		case extra < 0:
+			nils := make([]Value, -extra)
+			rets = append(rets, nils...)
+		case extra > 0:
+			rets = rets[:len(rets)-extra]
 		}
 	}
 	ls.fr = ci.fr

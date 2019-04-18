@@ -3,6 +3,7 @@ package luac
 import (
 	"fmt"
 	"os"
+
 	"github.com/Azure/golua/lua/code"
 )
 
@@ -33,9 +34,9 @@ func (p *parser) forbody(ls *lexical, base, line, varN int, numeric bool) {
 	} else { // generic for?
 		ls.fs.code.codeABC(ls.fs, code.TFORCALL, base, 0, varN)
 		ls.fs.fixLine(line)
-		end = ls.fs.code.codeAsBx(ls.fs, code.TFORLOOP, base + 2, noJump)
+		end = ls.fs.code.codeAsBx(ls.fs, code.TFORLOOP, base+2, noJump)
 	}
-	patchList(ls.fs, end, prep + 1)
+	patchList(ls.fs, end, prep+1)
 	ls.fs.fixLine(line)
 }
 
@@ -46,7 +47,7 @@ func (p *parser) forlist(ls *lexical, name string, line int) {
 	ls.fs.declare("(for limit)")
 	ls.fs.declare("(for step)")
 	ls.fs.declare(name)
- 	// initial value
+	// initial value
 	ls.expect('=')
 	ls.next()
 	p.expr1(ls)
@@ -94,14 +95,14 @@ func (p *parser) foriter(ls *lexical, name string) {
 // forstat -> FOR (fornum | forlist) END
 func (p *parser) forloop(ls *lexical, line int) {
 	ls.fs.enter(true) // scope for loop and control variables
-	ls.next() // skip 'for'
+	ls.next()         // skip 'for'
 	switch name := p.ident(ls); ls.token.char {
-		case ',', tIn:
-			p.foriter(ls, name)
-		case '=':
-			p.forlist(ls, name, line)
-		default:
-			ls.syntaxErr("'=' or 'in' expected")
+	case ',', tIn:
+		p.foriter(ls, name)
+	case '=':
+		p.forlist(ls, name, line)
+	default:
+		ls.syntaxErr("'=' or 'in' expected")
 	}
 	ls.match(tEnd, tFor, line)
 	ls.fs.leave() // loop scope ('break' jumps to this point)
@@ -110,18 +111,18 @@ func (p *parser) forloop(ls *lexical, line int) {
 // repeatstat -> REPEAT block UNTIL cond
 func (p *parser) repeat(ls *lexical, line int) {
 	init := ls.fs.pclabel()
-	ls.fs.enter(true) // loop block
+	ls.fs.enter(true)  // loop block
 	ls.fs.enter(false) // scope block
-	ls.next() // skip REPEAT
+	ls.next()          // skip REPEAT
 	p.stmts(ls)
 	ls.match(tUntil, tRepeat, line)
 	exit := p.condition(ls) // read condition (inside scope block)
-	if ls.fs.block.hasup { // upvalues?
+	if ls.fs.block.hasup {  // upvalues?
 		patchClose(ls.fs, exit, ls.fs.block.active)
 	}
-	ls.fs.leave() // finish scope
+	ls.fs.leave()                // finish scope
 	patchList(ls.fs, exit, init) // close the loop
-	ls.fs.leave() // finish loop
+	ls.fs.leave()                // finish loop
 }
 
 // whilestat -> WHILE cond DO block END

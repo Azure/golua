@@ -1,9 +1,10 @@
 package luac
 
 import (
-	"math"
 	"fmt"
+	"math"
 	"os"
+
 	"github.com/Azure/golua/lua/code"
 )
 
@@ -18,21 +19,21 @@ type (
 
 	// function state needed to generate code for a given function.
 	function struct {
-		consts  map[code.Const]int
-		parent  *function  // enclosing function
-		instrs  []*instr   // instructions
-		block   *block     // chain of current block
-		code 	*coder 	   // code generation state
-		ls 		*lexical   // lexical state
-		fn      *code.Proto // current function header
+		consts map[code.Const]int
+		parent *function   // enclosing function
+		instrs []*instr    // instructions
+		block  *block      // chain of current block
+		code   *coder      // code generation state
+		ls     *lexical    // lexical state
+		fn     *code.Proto // current function header
 		// transient compile state
-		target   int // 'label' of last 'jump label'
-		jumppc   int // list of pending jumps to 'pc'
-		active   int // number of active local variables
-		local0   int // index of first local var (in lexical state)
-		nups     int // number of upvalues
-		free     int // first free register
-		pc 		 int // next position to code (equivalent to 'ncode')
+		target int // 'label' of last 'jump label'
+		jumppc int // list of pending jumps to 'pc'
+		active int // number of active local variables
+		local0 int // index of first local var (in lexical state)
+		nups   int // number of upvalues
+		free   int // first free register
+		pc     int // next position to code (equivalent to 'ncode')
 	}
 
 	// variable is a description of an active local variable
@@ -55,7 +56,7 @@ type (
 		label string // label identifier
 		level int    // local level where it appears in current block
 		line  int    // line where it appeared
-		pc    int 	 // position in code
+		pc    int    // position in code
 	}
 )
 
@@ -72,16 +73,16 @@ func (fs *function) constant(value interface{}) int {
 	}
 	var k code.Const
 	switch v := value.(type) {
-		case float64,
-			string,
-			int64,
-			bool,
-			nil:
-			k = v
-		case uint64:
-			k = float64(v)
-		default:
-			fs.ls.syntaxErr(fmt.Sprintf("unexpected constant type %T", v))
+	case float64,
+		string,
+		int64,
+		bool,
+		nil:
+		k = v
+	case uint64:
+		k = float64(v)
+	default:
+		fs.ls.syntaxErr(fmt.Sprintf("unexpected constant type %T", v))
 	}
 	if i, ok := fs.consts[k]; ok {
 		return i
@@ -123,7 +124,7 @@ func (fs *function) enter(loop bool) *block {
 
 func (fs *function) leave() {
 	var (
-		b = fs.block
+		b  = fs.block
 		ls = fs.ls
 	)
 	if b.parent != nil && b.hasup {
@@ -143,11 +144,11 @@ func (fs *function) leave() {
 	fs.ls.assert(b.active == fs.active)
 	fs.free = fs.active // free registers
 	switch {
-	 	case b.parent != nil: // inner block?
-			// update pending gotos to outer block
-			movegotos(fs, b)
-		case b.gotos0 < len(ls.gotos): // pending gotos in outer block?
-			ls.undefGotoErr(ls.gotos[b.gotos0]) // error
+	case b.parent != nil: // inner block?
+		// update pending gotos to outer block
+		movegotos(fs, b)
+	case b.gotos0 < len(ls.gotos): // pending gotos in outer block?
+		ls.undefGotoErr(ls.gotos[b.gotos0]) // error
 	}
 	ls.labels = ls.labels[:b.label0] // remove local labels
 }
@@ -157,10 +158,10 @@ func (fs *function) open(ls *lexical) *function {
 	fs.local0 = len(ls.active)
 	fs.jumppc = noJump
 	fs.target = 0
-	fs.nups   = 0
-	fs.free   = 0
-	fs.pc     =	0
-	fs.ls     = ls
+	fs.nups = 0
+	fs.free = 0
+	fs.pc = 0
+	fs.ls = ls
 	fs.fn = &code.Proto{
 		Source: ls.name,
 		StackN: 2, // registers 0/1 are always valid
@@ -192,7 +193,7 @@ func (fs *function) label(list *[]*label, name string, line, pc int) int {
 		line:  line,
 		pc:    pc,
 	})
-	return len(*list)-1
+	return len(*list) - 1
 }
 
 // searchvar
@@ -208,14 +209,14 @@ func (fs *function) search(name string) int {
 // new_localvar
 func (fs *function) declare(name string) {
 	fs.fn.Locals = append(fs.fn.Locals, &code.Local{Name: name})
-	checkLimit(fs, len(fs.ls.active) + 1 - fs.local0, maxVars, "local variables")
-	fs.ls.active = append(fs.ls.active, &variable{len(fs.fn.Locals)-1})
+	checkLimit(fs, len(fs.ls.active)+1-fs.local0, maxVars, "local variables")
+	fs.ls.active = append(fs.ls.active, &variable{len(fs.fn.Locals) - 1})
 }
 
 // getlocvar
 func (fs *function) local(i int) *code.Local {
 	// fmt.Printf("local(index=%d, first=%d, total=%d)\n", i, fs.local0, len(fs.ls.active))
-	index := fs.ls.active[fs.local0 + i].index
+	index := fs.ls.active[fs.local0+i].index
 	fs.ls.assert(index < len(fs.fn.Locals))
 	return fs.fn.Locals[index]
 }
@@ -253,7 +254,7 @@ func (fs *function) findup(name string) int {
 
 // newupvalue
 func (fs *function) makeup(name string, e *expr) int {
-	checkLimit(fs, len(fs.fn.UpVars) + 1, maxUp, "upvalues")
+	checkLimit(fs, len(fs.fn.UpVars)+1, maxUp, "upvalues")
 	fs.fn.UpVars = append(fs.fn.UpVars, &code.UpVar{
 		Stack: (e.kind == vlocal),
 		Index: e.info,
@@ -270,7 +271,7 @@ func (fs *function) makeup(name string, e *expr) int {
 func (fs *function) markup(level int) {
 	b := fs.block
 	for b.active > level {
-		b = b.parent 
+		b = b.parent
 	}
 	b.hasup = true
 }

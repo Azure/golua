@@ -29,7 +29,7 @@ const maxUp = 255
 const maxID = 60
 
 // maximum integer size
-const maxInt = int(^uint(0)>>1)
+const maxInt = int(^uint(0) >> 1)
 
 // noJump marks the end of a patch list. It is an invalid value both as an absolute
 // address, and as a list link (would link an element to itself).
@@ -66,13 +66,13 @@ const fieldsPerFlush = 50
 // This can be done with the escape sequence \xXX, where XX is a sequence of exactly two hexadecimal digits,
 // or with the escape sequence \ddd, where ddd is a sequence of up to three decimal digits. (Note that if a
 // decimal escape sequence is to be followed by a digit, it must be expressed using exactly three digits.)
-// 
+//
 // The UTF-8 encoding of a Unicode character can be inserted in a literal string with the escape sequence
 // \u{XXX} (note the mandatory enclosing brackets), where XXX is a sequence of one or more hexadecimal digits
 // representing the character code point.
 //
 // recognized escape sequences
-var escapes = map[rune]rune{ 
+var escapes = map[rune]rune{
 	'a':  '\a',
 	'b':  '\b',
 	'f':  '\f',
@@ -81,14 +81,14 @@ var escapes = map[rune]rune{
 	't':  '\t',
 	'v':  '\v',
 	'\\': '\\',
-	'"':  '"', 
+	'"':  '"',
 	'\'': '\'',
 }
 
 // priority for unary operators
 const unaryPriority = 12
 
-var priority = []struct{
+var priority = []struct {
 	lhs int // left priority for each binary operator
 	rhs int // right priority
 }{
@@ -117,62 +117,62 @@ var priority = []struct{
 
 func binaryOp(op rune) code.Op {
 	switch op {
-		case tConcat:
-			return code.OpConcat
-		case tDivI:
-			return code.OpDivI
-		case tShl:
-			return code.OpShl
-		case tShr:
-			return code.OpShr
-		case tAnd:
-			return code.OpAnd
-		case tNe:
-			return code.OpNe
-		case tEq:
-			return code.OpEq
-		case tLe:
-			return code.OpLe
-		case tGe:
-			return code.OpGe
-		case tOr:
-			return code.OpOr
-		case '+':
-			return code.OpAdd
-		case '-':
-			return code.OpSub
-		case '*':
-			return code.OpMul
-		case '%':
-			return code.OpMod
-		case '^':
-			return code.OpPow
-		case '/':
-			return code.OpDivF
-		case '&':
-			return code.OpBand
-		case '|':
-			return code.OpBor
-		case '~':
-			return code.OpBxor
-		case '<':
-			return code.OpLt
-		case '>':
-			return code.OpGt
+	case tConcat:
+		return code.OpConcat
+	case tDivI:
+		return code.OpDivI
+	case tShl:
+		return code.OpShl
+	case tShr:
+		return code.OpShr
+	case tAnd:
+		return code.OpAnd
+	case tNe:
+		return code.OpNe
+	case tEq:
+		return code.OpEq
+	case tLe:
+		return code.OpLe
+	case tGe:
+		return code.OpGe
+	case tOr:
+		return code.OpOr
+	case '+':
+		return code.OpAdd
+	case '-':
+		return code.OpSub
+	case '*':
+		return code.OpMul
+	case '%':
+		return code.OpMod
+	case '^':
+		return code.OpPow
+	case '/':
+		return code.OpDivF
+	case '&':
+		return code.OpBand
+	case '|':
+		return code.OpBor
+	case '~':
+		return code.OpBxor
+	case '<':
+		return code.OpLt
+	case '>':
+		return code.OpGt
 	}
 	return code.OpNone
 }
 
 func unaryOp(op rune) code.Op {
 	switch op {
-		case tNot:
-			return code.OpNot
-		case '-':
-			return code.OpMinus
-		case '~':
-			return code.OpBnot
-		case '#':
-			return code.OpLen
+	case tNot:
+		return code.OpNot
+	case '-':
+		return code.OpMinus
+	case '~':
+		return code.OpBnot
+	case '#':
+		return code.OpLen
 	}
 	return code.OpNone
 }

@@ -35,7 +35,7 @@ type (
 		typ  string
 		want string
 	}
-	
+
 	argErr struct {
 		arg int
 		err error
@@ -53,6 +53,6 @@ func (e *typeErr) Error() string {
 }
 
 func (e *argErr) Error() string {
-	// "bad argument #arg to 'funcname' (extramsg)"	
+	// "bad argument #arg to 'funcname' (extramsg)"
 	return fmt.Sprintf("bad argument #%d (%v)", e.arg, e.err)
 }

@@ -2,6 +2,7 @@ package lua
 
 import (
 	"fmt"
+
 	"github.com/Azure/golua/lua/code"
 )
 
@@ -40,7 +41,7 @@ func (t *Thread) Globals() *Table {
 }
 
 func (t *Thread) Context() Context {
- 	return t.ls.rt
+	return t.ls.rt
 }
 
 func (t *Thread) Require(lib Library, global bool) (Value, error) {

@@ -18,9 +18,9 @@ func closegoto(ls *lexical, g int, lbl *label) {
 	// copy(ls.gotos[:g], ls.gotos[g+1:])
 	// ls.gotos[len(ls.gotos)-1] = nil
 	// ls.gotos = ls.gotos[:len(ls.gotos)-1]
-	
+
 	copy(ls.gotos[g:], ls.gotos[g+1:])
-	k := len(ls.gotos)-(g+1)+g
+	k := len(ls.gotos) - (g + 1) + g
 	n := len(ls.gotos)
 	for k < n {
 		ls.gotos[k] = nil

@@ -19,8 +19,9 @@ type (
 )
 
 type String string
+
 func (v String) String() string { return string(v) }
-func (String) constant() {}
+func (String) constant()        {}
 
 type Bool bool
 
@@ -30,29 +31,32 @@ const (
 )
 
 func (v Bool) String() string { return fmt.Sprintf("%t", bool(v)) }
-func (Bool) constant() {}
+func (Bool) constant()        {}
 
 type Float float64
+
 func (v Float) String() string { return fmt.Sprintf("%f", float64(v)) }
-func (Float) constant() {}
-func (Float) number() {}
+func (Float) constant()        {}
+func (Float) number()          {}
 
 type Uint uint64
+
 func (v Uint) String() string { return fmt.Sprintf("%d", uint64(v)) }
-func (Uint) constant() {}
-func (Uint) number() {}
+func (Uint) constant()        {}
+func (Uint) number()          {}
 
 type Int int64
+
 func (v Int) String() string { return fmt.Sprintf("%d", int64(v)) }
-func (Int) constant() {}
-func (Int) number() {}
+func (Int) constant()        {}
+func (Int) number()          {}
 
 type nilType byte
 
 const Nil = nilType(0)
 
 func (nilType) String() string { return "nil" }
-func (nilType) constant() {}
+func (nilType) constant()      {}
 
 // func compare(op Op, x, y Value) (bool, error) {
 // 	switch op {
@@ -163,10 +167,10 @@ func (nilType) constant() {}
 // 		case OpBand,
 // 			OpBor,
 // 			OpBxor,
-// 			OpShl, 
+// 			OpShl,
 // 			OpShr,
 // 			OpBnot:
-			
+
 // 			if x, ok := ToInt(x); ok {
 // 				if y, ok := ToInt(y); ok {
 // 					return intop(op, x, y), true
@@ -225,7 +229,7 @@ func (nilType) constant() {}
 // 		case OpBand:
 // 			return x & y
 // 		case OpBnot:
-// 			return ^x 
+// 			return ^x
 // 		case OpBxor:
 // 			return x ^ y
 // 		case OpBor:
